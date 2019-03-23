@@ -28,7 +28,8 @@ SOURCES += \
 	MainWindow.cpp \
 	ProfileCallback.cpp \
 	main.cpp \
-    StatusLabel.cpp
+    StatusLabel.cpp \
+    Deinterlace.cpp
 
 HEADERS += \
 	AncillaryDataTable.h \
@@ -40,7 +41,8 @@ HEADERS += \
 	MainWindow.h \
 	ProfileCallback.h \
 	common.h \
-    StatusLabel.h
+    StatusLabel.h \
+    Deinterlace.h
 
 FORMS += \
     MainWindow.ui

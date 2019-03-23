@@ -1,4 +1,5 @@
 #include "DeckLinkCapture.h"
+#include "Deinterlace.h"
 #include <QDebug>
 #include <QElapsedTimer>
 #include <stdint.h>
@@ -228,43 +229,9 @@ void DeckLinkCapture::process(Task const &task)
 				}
 				image = bytes1;
 			} else if (m->deinterlace == DeinterlaceMode::Merge) {
-				for (int y = 0; y + 1 < h; y += 2) {
-					uint8_t const *s1 = (uint8_t const *)m->last_image.scanLine(y);
-					uint8_t const *s2 = (uint8_t const *)m->curr_image.scanLine(y);
-					uint8_t *d1 = (uint8_t *)bytes1.scanLine(y);
-					uint8_t *d2 = (uint8_t *)bytes2.scanLine(y);
-					memcpy(d1, s1, stride);
-					memcpy(d1 + stride, s2 + stride, stride);
-					memcpy(d2, s2, stride);
-					memcpy(d2 + stride, s1 + stride, stride);
-				}
-				unsigned int diff0 = 0;
-				unsigned int diff1 = 0;
-				unsigned int diff2 = 0;
-				int x0 = w / 4;
-				int x1 = w - x0;
-				int y0 = h / 4;
-				int y1 = h - y0;
-				for (int y = y0; y < y1; y++) {
-					uint8_t const *p0 = (uint8_t const *)m->curr_image.scanLine(y);
-					uint8_t const *p1 = (uint8_t const *)bytes1.scanLine(y);
-					uint8_t const *p2 = (uint8_t const *)bytes2.scanLine(y);
-					for (int x = x0; x < x1; x++) {
-						int d0 = (int)p0[x * 3 + 1] - (int)p0[x * 3 + 1 + stride];
-						int d1 = (int)p1[x * 3 + 1] - (int)p1[x * 3 + 1 + stride];
-						int d2 = (int)p2[x * 3 + 1] - (int)p2[x * 3 + 1 + stride];
-						diff0 += d0 * d0;
-						diff1 += d1 * d1;
-						diff2 += d2 * d2;
-					}
-				}
-				if (diff0 < diff1 && diff0 < diff2) {
-					image = m->curr_image;
-				} else if (diff1 < diff2) {
-					image = bytes1;
-				} else {
-					image = bytes2;
-				}
+				Deinterlace di;
+				auto pair = di.filter(m->curr_image);
+				image = pair.first;
 			} else {
 				image = m->curr_image;
 			}
