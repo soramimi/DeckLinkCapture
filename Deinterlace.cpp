@@ -6,6 +6,14 @@ static inline int gray(int r, int g, int b)
 	return (r * 306 + g * 601 + b * 117) / 1024;
 }
 
+struct Deinterlace::Private {
+	QMutex mutex;
+	unsigned int busy = 0;
+	unsigned int index = 0;
+	std::vector<Task> tasklist;
+	std::vector<std::shared_ptr<DeinterlaceThread>> threads;
+};
+
 void DeinterlaceThread::process(const DeinterlaceThread::Task &task)
 {
 	const int span = 7;
@@ -78,24 +86,79 @@ void DeinterlaceThread::process(const DeinterlaceThread::Task &task)
 
 void DeinterlaceThread::run()
 {
-	while (1) {
+	while (!isInterruptionRequested()) {
 		Task t;
 		{
-			QMutexLocker lock(&that->mutex_);
-			if (that->index_ < that->tasklist_.size()) {
-				t = that->tasklist_[that->index_];
-				that->index_++;
+			QMutexLocker lock(&that->m->mutex);
+			if (that->m->index < that->m->tasklist.size()) {
+				t = that->m->tasklist[that->m->index];
+				that->m->index++;
 			} else {
-				break;
+				that->m->busy &= ~(1 << number_);
 			}
 		}
-		DeinterlaceThread::process(t);
+		if (t.length > 0 && t.src0 && t.src1 && t.dst) {
+			DeinterlaceThread::process(t);
+			{
+				QMutexLocker lock(&that->m->mutex);
+			}
+		} else {
+			QThread::yieldCurrentThread();
+		}
+	}
+	{
+		QMutexLocker lock(&that->m->mutex);
+		that->m->busy &= ~(1 << number_);
 	}
 }
 
-DeinterlaceThread::DeinterlaceThread(Deinterlace *di)
+DeinterlaceThread::DeinterlaceThread(Deinterlace *di, int number)
 	: that(di)
+	, number_(number)
 {
+}
+
+Deinterlace::Deinterlace()
+	: m(new Private)
+{
+
+}
+
+Deinterlace::~Deinterlace()
+{
+	stop();
+	delete m;
+}
+
+void Deinterlace::start()
+{
+	if (m->threads.empty()) {
+		for (int i = 0; i < THREAD_COUNT; i++) {
+			std::shared_ptr<DeinterlaceThread> th = std::make_shared<DeinterlaceThread>(this, i);
+			m->threads.push_back(th);
+			th->start();
+		}
+	}
+}
+
+void Deinterlace::clear()
+{
+	m->tasklist.clear();
+	m->index = 0;
+}
+
+void Deinterlace::stop()
+{
+	for (auto th : m->threads) {
+		th->requestInterruption();
+	}
+	for (auto th : m->threads) {
+		if (!th->wait(500)) {
+			th->terminate();
+		}
+	}
+	m->threads.clear();
+	clear();
 }
 
 std::pair<QImage, QImage> Deinterlace::filter(QImage image)
@@ -109,16 +172,16 @@ std::pair<QImage, QImage> Deinterlace::filter(QImage image)
 		newimage0 = QImage(w, h, QImage::Format_RGB888);
 		newimage1 = QImage(w, h, QImage::Format_RGB888);
 		{
-			for (int y = 0; y + 2 < h; y += 2) {
-				tasklist_.emplace_back(w, image.scanLine(y), image.scanLine(y + 2), newimage0.scanLine(y + 1));
-			}
-			for (int y = 0; y + 3 < h; y += 2) {
-				tasklist_.emplace_back(w, image.scanLine(y + 1), image.scanLine(y + 3), newimage1.scanLine(y + 2));
-			}
-			for (int i = 0; i < THREAD_COUNT; i++) {
-				std::shared_ptr<DeinterlaceThread> th = std::make_shared<DeinterlaceThread>(this);
-				th->start();
-				threads_.push_back(th);
+			{
+				QMutexLocker lock(&m->mutex);
+				clear();
+				m->busy = (1 << m->threads.size()) - 1;
+				for (int y = 0; y + 2 < h; y += 2) {
+					m->tasklist.emplace_back(w, image.scanLine(y), image.scanLine(y + 2), newimage0.scanLine(y + 1));
+				}
+				for (int y = 0; y + 3 < h; y += 2) {
+					m->tasklist.emplace_back(w, image.scanLine(y + 1), image.scanLine(y + 3), newimage1.scanLine(y + 2));
+				}
 			}
 			{
 				for (int y = 0; y < h; y += 2) {
@@ -130,9 +193,15 @@ std::pair<QImage, QImage> Deinterlace::filter(QImage image)
 				memcpy(newimage0.scanLine(h - 1), newimage0.scanLine(h - 2), w * 3);
 				memcpy(newimage1.scanLine(0), newimage1.scanLine(1), w * 3);
 			}
-			for (auto th : threads_) {
-				th->wait();
-				th.reset();
+			while (1) {
+				{
+					QMutexLocker lock(&m->mutex);
+					if (m->busy == 0) {
+						clear();
+						break;
+					}
+				}
+				QThread::yieldCurrentThread();
 			}
 		}
 	}

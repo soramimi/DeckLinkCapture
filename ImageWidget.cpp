@@ -58,6 +58,16 @@ ImageWidget::ImageWidget(QWidget *parent)
 	});
 }
 
+void ImageWidget::clear()
+{
+	fps_ = 0;
+	frame_counter_ = 0;
+	time_ = QDateTime();
+	image_ = QImage();
+	next_image_ = QImage();
+	timer_.stop();
+}
+
 void ImageWidget::paintEvent(QPaintEvent *)
 {
 	int dw = std::min(1920, width());
@@ -84,9 +94,10 @@ void ImageWidget::setImage(const QImage &image0, const QImage &image1)
 	image_ = image0;
 	next_image_ = image1;
 
-	frame_counter_++;
-	update();
-
+	if (!image_.isNull()) {
+		frame_counter_++;
+		update();
+	}
 	if (!next_image_.isNull() && time_.isValid()) {
 		next_image_ = image1;
 		qint64 ms = time_.msecsTo(now);

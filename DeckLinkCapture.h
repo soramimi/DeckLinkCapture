@@ -8,12 +8,6 @@
 
 class DeckLinkInputDevice;
 
-struct Images {
-	QImage last_image;
-	QImage curr_image;
-	QImage deinterlaced_image;
-};
-
 enum class DeinterlaceMode {
 	None,
 	InterpolateEven,
@@ -49,6 +43,7 @@ private:
 	void process(const Task &task);
 	void run();
 	void pushFrame(const Task &task);
+	void clear();
 public:
 	DeckLinkCapture();
 	~DeckLinkCapture();

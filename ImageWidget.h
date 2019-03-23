@@ -50,6 +50,7 @@ protected:
 	void timerEvent(QTimerEvent *event);
 public:
 	ImageWidget(QWidget *parent = 0);
+	void clear();
 public slots:
 	void setImage(const QImage &image0, const QImage &image1);
 };

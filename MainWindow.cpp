@@ -198,6 +198,7 @@ void MainWindow::internalStartCapture(bool start)
 		m->selected_device->stopCapture();
 		m->video_capture.stop();
 	}
+	ui->widget_image->clear();
 	if (start) {
 		// start capture
 		auto *item = ui->listWidget_display_mode->currentItem();

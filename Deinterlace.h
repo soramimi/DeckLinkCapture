@@ -13,8 +13,7 @@ class DeinterlaceThread;
 class Deinterlace {
 	friend class DeinterlaceThread;
 private:
-	const int THREAD_COUNT = 8;
-
+	const int THREAD_COUNT = 4;
 	struct Task {
 		int length = 0;
 		uint8_t const *src0 = nullptr;
@@ -29,11 +28,14 @@ private:
 		{
 		}
 	};
-	QMutex mutex_;
-	std::vector<Task> tasklist_;
-	int index_ = 0;
-	std::vector<std::shared_ptr<DeinterlaceThread>> threads_;
+	struct Private;
+	Private *m;
+	void clear();
 public:
+	Deinterlace();
+	~Deinterlace();
+	void start();
+	void stop();
 	std::pair<QImage, QImage> filter(QImage image);
 };
 
@@ -42,10 +44,11 @@ class DeinterlaceThread : public QThread {
 private:
 	using Task = Deinterlace::Task;
 	Deinterlace *that = nullptr;
+	int number_ = 0;
 	static void process(Task const &task);
 	void run();
 public:
-	DeinterlaceThread(Deinterlace *di);
+	DeinterlaceThread(Deinterlace *di, int number);
 };
 
 
