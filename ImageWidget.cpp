@@ -51,6 +51,11 @@ ImageWidget::ImageWidget(QWidget *parent)
 	: QGLWidget(parent)
 {
 	startTimer(1000);
+	connect(&timer_, &QTimer::timeout, [&](){
+		image_ = next_image_;
+		frame_counter_++;
+		update();
+	});
 }
 
 void ImageWidget::paintEvent(QPaintEvent *)
@@ -72,11 +77,24 @@ void ImageWidget::timerEvent(QTimerEvent *event)
 	qDebug() << QString("----- %1fps").arg(fps_);
 }
 
-void ImageWidget::setImage(const QImage &image)
+void ImageWidget::setImage(const QImage &image0, const QImage &image1)
 {
-	image_ = image;
+	QDateTime now = QDateTime::currentDateTime();
+
+	image_ = image0;
+	next_image_ = image1;
+
 	frame_counter_++;
 	update();
+
+	if (!next_image_.isNull() && time_.isValid()) {
+		next_image_ = image1;
+		qint64 ms = time_.msecsTo(now);
+		timer_.setSingleShot(true);
+		timer_.start(ms / 2);
+	}
+
+	time_ = now;
 }
 
 

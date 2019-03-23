@@ -49,7 +49,6 @@ struct DeckLinkInputDevice::Private {
 	bool apply_detected_input_mode = false;
 	int64_t supported_input_connections = 0;
 	//
-
 };
 
 DeckLinkInputDevice::DeckLinkInputDevice(MainWindow *mw, IDeckLink *device)
@@ -347,7 +346,7 @@ HRESULT DeckLinkInputDevice::VideoInputFormatChanged(BMDVideoInputFormatChangedE
 	if ((m->mainwindow) && (notificationEvents & bmdVideoInputDisplayModeChanged)) {
 		QCoreApplication::postEvent(m->mainwindow, new DeckLinkInputFormatChangedEvent(newMode->GetDisplayMode()));
 	}
-	
+
 	return S_OK;
 }
 

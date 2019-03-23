@@ -113,7 +113,7 @@ std::pair<QImage, QImage> Deinterlace::filter(QImage image)
 				tasklist_.emplace_back(w, image.scanLine(y), image.scanLine(y + 2), newimage0.scanLine(y + 1));
 			}
 			for (int y = 0; y + 3 < h; y += 2) {
-				tasklist_.emplace_back(w, image.scanLine(y + 1), image.scanLine(y + 3), newimage1.scanLine(y + 1));
+				tasklist_.emplace_back(w, image.scanLine(y + 1), image.scanLine(y + 3), newimage1.scanLine(y + 2));
 			}
 			for (int i = 0; i < THREAD_COUNT; i++) {
 				std::shared_ptr<DeinterlaceThread> th = std::make_shared<DeinterlaceThread>(this);
@@ -124,11 +124,11 @@ std::pair<QImage, QImage> Deinterlace::filter(QImage image)
 				for (int y = 0; y < h; y += 2) {
 					memcpy(newimage0.scanLine(y), image.scanLine(y), w * 3);
 				}
-				for (int y = 0; y + 1< h; y += 2) {
-					memcpy(newimage1.scanLine(y), image.scanLine(y + 1), w * 3);
+				for (int y = 0; y + 1 < h; y += 2) {
+					memcpy(newimage1.scanLine(y + 1), image.scanLine(y + 1), w * 3);
 				}
 				memcpy(newimage0.scanLine(h - 1), newimage0.scanLine(h - 2), w * 3);
-				memcpy(newimage1.scanLine(h - 1), newimage1.scanLine(h - 2), w * 3);
+				memcpy(newimage1.scanLine(0), newimage1.scanLine(1), w * 3);
 			}
 			for (auto th : threads_) {
 				th->wait();

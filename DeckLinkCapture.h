@@ -54,10 +54,10 @@ public:
 	~DeckLinkCapture();
 	void setPixelFormat(BMDPixelFormat pixel_format);
 	void setDeinterlaceMode(DeinterlaceMode mode);
-	bool start(DeckLinkInputDevice *selectedDevice_, BMDDisplayMode displayMode, bool applyDetectedInputMode, bool input_audio);
+	bool start(DeckLinkInputDevice *selectedDevice_, BMDDisplayMode displayMode, BMDFieldDominance fieldDominance, bool applyDetectedInputMode, bool input_audio);
 	void stop();
 signals:
-	void newFrame(QImage const &image);
+	void newFrame(QImage const &image0, QImage const &image1);
 };
 
 #endif // DECKLINKCAPTURE_H

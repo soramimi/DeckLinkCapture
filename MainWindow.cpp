@@ -7,6 +7,11 @@
 #include <QMessageBox>
 #include <functional>
 
+enum {
+	DisplayModeRole = Qt::UserRole,
+	FieldDominanceRole,
+};
+
 static inline void BlockSignals(QWidget *w, std::function<void ()> const &callback)
 {
 	bool b = w->blockSignals(true);
@@ -39,6 +44,7 @@ struct MainWindow::Private {
 	DeckLinkDeviceDiscovery *decklink_discovery = nullptr;
 	ProfileCallback *profile_callback = nullptr;
 	BMDDisplayMode display_mode = bmdModeHD1080i5994;
+	BMDFieldDominance field_dominance = bmdUnknownFieldDominance;
 
 	std::shared_ptr<QAudioOutput> audio_output;
 	QIODevice *audio_output_device = nullptr;
@@ -196,10 +202,11 @@ void MainWindow::internalStartCapture(bool start)
 		// start capture
 		auto *item = ui->listWidget_display_mode->currentItem();
 		if (item) {
-			m->display_mode = (BMDDisplayMode)item->data(Qt::UserRole).toInt();
+			m->display_mode = (BMDDisplayMode)item->data(DisplayModeRole).toInt();
+			m->field_dominance = (BMDFieldDominance)item->data(FieldDominanceRole).toUInt();
 		}
 		bool auto_detect = isVideoFormatAutoDetectionEnabled();
-		m->video_capture.start(m->selected_device, m->display_mode, auto_detect, isAudioCaptureEnabled());
+		m->video_capture.start(m->selected_device, m->display_mode, m->field_dominance, auto_detect, isAudioCaptureEnabled());
 	}
 	updateUI();
 }
@@ -270,6 +277,7 @@ void MainWindow::refreshDisplayModeMenu(void)
 	while (displayModeIterator->Next(&displayMode) == S_OK) {
 		BOOL supported = false;
 		BMDDisplayMode mode = displayMode->GetDisplayMode();
+		BMDFieldDominance fdom = displayMode->GetFieldDominance();
 
 		if ((deckLinkInput->DoesSupportVideoMode(m->selected_input_connection, mode, bmdFormatUnspecified, bmdSupportedVideoModeDefault, &supported) == S_OK) && supported) {
 			QString name;
@@ -290,7 +298,8 @@ void MainWindow::refreshDisplayModeMenu(void)
 			if (!name.isEmpty()) {
 				int row = ui->listWidget_display_mode->count();
 				auto *item = new QListWidgetItem(name);
-				item->setData(Qt::UserRole, QVariant::fromValue((uint64_t)mode));
+				item->setData(DisplayModeRole, QVariant::fromValue((uint64_t)mode));
+				item->setData(FieldDominanceRole, QVariant::fromValue((uint32_t)fdom));
 				ui->listWidget_display_mode->addItem(item);
 				if (mode == m->display_mode) {
 					ui->listWidget_display_mode->setCurrentRow(row);
@@ -325,7 +334,7 @@ void MainWindow::addDevice(IDeckLink *decklink)
 
 	ui->listWidget_input_device->sortItems();
 
-	ui->widget_image->setImage(QImage());
+	ui->widget_image->setImage(QImage(), QImage());
 	ui->pushButton_start->setText("Start");
 	changeInputDevice(0);
 }
