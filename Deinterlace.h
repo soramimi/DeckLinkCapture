@@ -8,6 +8,8 @@
 #include <QImage>
 #include <QThread>
 
+class DeinterlaceThread;
+
 class Deinterlace {
 	friend class DeinterlaceThread;
 private:

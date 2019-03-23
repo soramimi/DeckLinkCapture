@@ -18,8 +18,8 @@ struct DeckLinkCapture::Private {
 	QMutex mutex;
 	QWaitCondition waiter;
 	QSize image_size;
-	QImage last_image;
 	QImage curr_image;
+	QImage next_image;
 	DeinterlaceMode deinterlace = DeinterlaceMode::InterpolateEven;
 	BMDPixelFormat pixel_format = bmdFormat8BitYUV;
 };
@@ -182,19 +182,17 @@ void DeckLinkCapture::process(Task const &task)
 			}
 #endif
 		}
-		m->last_image = m->curr_image;
 		m->curr_image = image;
-		if (m->last_image.width() == w && m->last_image.height() == h && m->curr_image.width() == w && m->curr_image.height() == h) {
+		if (m->curr_image.width() == w && m->curr_image.height() == h) {
 			int stride = w * 3;
 
 			QImage bytes1(w, h, QImage::Format_RGB888);
-			QImage bytes2(w, h, QImage::Format_RGB888);
 
 			if (m->deinterlace == DeinterlaceMode::None) {
-				image = m->curr_image;
+				emit newFrame(m->curr_image);
 			} else if (m->deinterlace == DeinterlaceMode::InterpolateEven) {
 				for (int y = 0; y + 2 < h; y += 2) {
-					uint8_t const *s = (uint8_t const *)m->last_image.scanLine(y);
+					uint8_t const *s = (uint8_t const *)m->curr_image.scanLine(y);
 					uint8_t *d0 = (uint8_t *)bytes1.scanLine(y);
 					if (y == 0) memcpy(d0, s, stride);
 					uint8_t *d1 = d0 + stride;
@@ -209,10 +207,10 @@ void DeckLinkCapture::process(Task const &task)
 						d1[i] = (d0[i] + d2[i]) / 2;
 					}
 				}
-				image = bytes1;
+				emit newFrame(bytes1);
 			} else if (m->deinterlace == DeinterlaceMode::InterpolateOdd) {
 				for (int y = 0; y + 2 < h; y += 2) {
-					uint8_t const *s = (uint8_t const *)m->last_image.scanLine(y + 1);
+					uint8_t const *s = (uint8_t const *)m->curr_image.scanLine(y + 1);
 					uint8_t *d0 = (uint8_t *)bytes1.scanLine(y);
 					if (y == 0) memcpy(d0, s, stride);
 					uint8_t *d1 = d0 + stride;
@@ -227,16 +225,18 @@ void DeckLinkCapture::process(Task const &task)
 						d1[i] = (d0[i] + d2[i]) / 2;
 					}
 				}
-				image = bytes1;
+				emit newFrame(bytes1);
 			} else if (m->deinterlace == DeinterlaceMode::Merge) {
+				image = QImage();
+				if (!m->next_image.isNull()) {
+					emit newFrame(m->next_image);
+				}
 				Deinterlace di;
 				auto pair = di.filter(m->curr_image);
-				image = pair.first;
+				m->next_image = pair.first;
 			} else {
-				image = m->curr_image;
+				emit newFrame(m->curr_image);
 			}
-
-			emit newFrame(image);
 		}
 		qDebug() << QString("%1ms").arg(t.elapsed());
 	}
