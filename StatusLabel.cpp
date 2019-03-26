@@ -3,5 +3,4 @@
 StatusLabel::StatusLabel(QWidget *parent)
 	: QLabel(parent)
 {
-
 }

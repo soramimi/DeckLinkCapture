@@ -1,3 +1,8 @@
+
+// Deinterlace filter
+// Copyright (C) 2019 S.Fuchita (@soramimi_jp)
+// MIT License
+
 #include "Deinterlace.h"
 #include <memory>
 
@@ -121,7 +126,6 @@ DeinterlaceThread::DeinterlaceThread(Deinterlace *di, int number)
 Deinterlace::Deinterlace()
 	: m(new Private)
 {
-
 }
 
 Deinterlace::~Deinterlace()

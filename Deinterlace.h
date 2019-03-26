@@ -1,3 +1,8 @@
+
+// Deinterlace filter
+// Copyright (C) 2019 S.Fuchita (@soramimi_jp)
+// MIT License
+
 #ifndef DEINTERLACE_H
 #define DEINTERLACE_H
 
@@ -50,6 +55,5 @@ private:
 public:
 	DeinterlaceThread(Deinterlace *di, int number);
 };
-
 
 #endif // DEINTERLACE_H

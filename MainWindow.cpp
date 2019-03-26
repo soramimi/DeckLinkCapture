@@ -1,3 +1,4 @@
+
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
 #include "DeckLinkCapture.h"
@@ -565,5 +566,6 @@ void MainWindow::on_comboBox_deinterlace_currentIndexChanged(int index)
 
 void MainWindow::on_checkBox_audio_stateChanged(int arg1)
 {
+	(void)arg1;
 	restartCapture();
 }

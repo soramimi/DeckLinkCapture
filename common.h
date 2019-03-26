@@ -8,5 +8,4 @@ static const QEvent::Type kVideoFormatChangedEvent	= static_cast<QEvent::Type>(Q
 static const QEvent::Type kVideoFrameArrivedEvent	= static_cast<QEvent::Type>(QEvent::User + 4);
 static const QEvent::Type kProfileActivatedEvent	= static_cast<QEvent::Type>(QEvent::User + 5);
 
-
 #endif // COMMON_H
