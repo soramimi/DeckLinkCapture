@@ -5,7 +5,7 @@ Original: Copyright (C) 2018 Blackmagic Design
 Modified: Copyright (C) 2019 Shinichi Fuchita (@soramimi_jp)
 
 
-The following files is distributed under the MIT license.
+The following files are distributed under the MIT license.
 
 	- Deinterlace.h
 	- Deinterlace.cpp

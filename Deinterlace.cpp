@@ -4,7 +4,13 @@
 // MIT License
 
 #include "Deinterlace.h"
+#include <QDebug>
+#include <QElapsedTimer>
 #include <memory>
+
+#ifdef USE_OPENCV
+#include <opencv2/imgproc/imgproc.hpp>
+#endif
 
 static inline int gray(int r, int g, int b)
 {
@@ -15,77 +21,107 @@ struct Deinterlace::Private {
 	QMutex mutex;
 	unsigned int busy = 0;
 	unsigned int index = 0;
+	std::vector<int8_t> vec;
+	std::vector<uint8_t> flags;
 	std::vector<Task> tasklist;
 	std::vector<std::shared_ptr<DeinterlaceThread>> threads;
 };
 
-void DeinterlaceThread::process(const DeinterlaceThread::Task &task)
+void DeinterlaceThread::process(DeinterlaceThread::Task &task)
 {
-	const int span = 7;
-	const int margin = (span / 2 + 1) * 2;
-	using int16x2 = int16_t[2];
-	uint8_t *buf0 = (uint8_t *)alloca(task.length + margin * 2);
-	uint8_t *buf1 = (uint8_t *)alloca(task.length + margin * 2);
-	int16x2 *vec = (int16x2 *)alloca(task.length * sizeof(int16x2));
-	for (int x = 0; x < task.length; x++) {
-		int r0 = task.src0[x * 3 + 0];
-		int g0 = task.src0[x * 3 + 1];
-		int b0 = task.src0[x * 3 + 2];
-		int r1 = task.src1[x * 3 + 0];
-		int g1 = task.src1[x * 3 + 1];
-		int b1 = task.src1[x * 3 + 2];
-		buf0[x + margin] = gray(r0, g0, b0);
-		buf1[x + margin] = gray(r1, g1, b1);
-	}
-	memset(buf0, buf0[margin], margin);
-	memset(buf1, buf1[margin], margin);
-	memset(buf0 + margin + task.length, buf0[task.length + margin - 1], margin);
-	memset(buf1 + margin + task.length, buf1[task.length + margin - 1], margin);
-	for (int x = 0; x < task.length; x++) {
-		vec[x][0] = (int16_t)0x8000;
-	}
-	for (int x = 0; x < task.length; x++) {
-		int index = 0;
-		int distance = 2000000;
-		for (int i = 0; i < span; i++) {
-			int j = i - span / 2;
-			int x0 = x + margin;
-			int x1 = x + margin + j;
-			int a = (int)buf0[x0 - 1] - (int)buf1[x1 - 1];
-			int b = (int)buf0[x0    ] - (int)buf1[x1    ];
-			int c = (int)buf0[x0 + 1] - (int)buf1[x1 + 1];
-			int d = a * a + b * b + c * c;
-			if (distance > d) {
-				distance = d;
-				index = j;
+	switch (task.job) {
+	case 0:
+		{
+			const int w = task.w;
+			const int h = task.h;
+			const int y = task.y;
+			uint8_t const *src = task.src0;
+			uint8_t *flags = &that->m->flags[w * y];
+			for (int x = 0; x < w; x++) {
+				uint8_t const *s = src + x;
+				uint8_t a = s[w * 0];
+				uint8_t b = s[w * 1];
+				uint8_t c = s[w * 2];
+				uint8_t d = s[w * 3];
+				if ((b < c && a <= b && c <= d) || (c < b && b <= a && d <= c)) {
+					flags[w * 0 + x] = 0;
+					flags[w * 1 + x] = 0;
+					flags[w * 2 + x] = 0;
+					flags[w * 3 + x] = 0;
+				} else if (y + 4 < h) {
+					uint8_t e = s[w * 4];
+					uint8_t t = (b + c * 2 + d) / 4;
+					if ((b < c && d < c && a < t && e < t) || (b > c && d > c && a > t && e > t)) {
+						flags[w * 1 + x] = 0;
+						flags[w * 2 + x] = 0;
+						flags[w * 3 + x] = 0;
+					}
+				}
 			}
 		}
-		vec[x + index / 2][0] = (int16_t)index;
-	}
-	{
-		int t = 0;
-		int u = 0;
-		for (int x = 0; x < task.length; x++) {
-			if ((uint16_t)vec[x][0] != 0x8000) {
-				int v = vec[x][0];
-				t = x - v / 2;
-				u = x + (v + 1) / 2;
-				t = t < 0 ? 0 : (t > task.length ? task.length : t);
-				u = u < 0 ? 0 : (u > task.length ? task.length : u);
+		break;
+	case 1:
+		{
+			const int w = task.w;
+			const int span = 7;
+			const int margin = span / 2;
+			uint8_t *buf0 = (uint8_t *)alloca(w + margin * 2);
+			uint8_t *buf1 = (uint8_t *)alloca(w + margin * 2);
+			int8_t *v = &that->m->vec[task.w * task.y];
+			memcpy(buf0 + margin, task.src0, w);
+			memcpy(buf1 + margin, task.src1, w);
+			memset(buf0, buf0[margin], margin);
+			memset(buf1, buf1[margin], margin);
+			memset(buf0 + margin + w, buf0[w + margin - 1], margin);
+			memset(buf1 + margin + w, buf1[w + margin - 1], margin);
+			for (int x = 0; x < w; x++) {
+				int offset = 0;
+				int distance = 2000000;
+				for (int i = 0; i < span; i++) {
+					int o = i - span / 2;
+					int x0 = x + margin;
+					int x1 = x + margin + o;
+					int a = (int)buf0[x0 - 1] - (int)buf1[x1 - 1];
+					int b = (int)buf0[x0    ] - (int)buf1[x1    ];
+					int c = (int)buf0[x0 + 1] - (int)buf1[x1 + 1];
+					int d = a * a + b * b + c * c;
+					if (distance > d) {
+						distance = d;
+						offset = o;
+					}
+				}
+				v[x + offset / 2] = (int8_t)offset;
 			}
-			vec[x][0] = t;
-			vec[x][1] = u;
 		}
-	}
-	for (int x = 0; x < task.length; x++) {
-		int t = vec[x][0];
-		int u = vec[x][1];
-		uint8_t r = (task.src0[t * 3 + 0] + task.src1[u * 3 + 0]) / 2;
-		uint8_t g = (task.src0[t * 3 + 1] + task.src1[u * 3 + 1]) / 2;
-		uint8_t b = (task.src0[t * 3 + 2] + task.src1[u * 3 + 2]) / 2;
-		task.dst[x * 3 + 0] = r;
-		task.dst[x * 3 + 1] = g;
-		task.dst[x * 3 + 2] = b;
+		break;
+	case 2:
+		{
+			const int w = task.w;
+			int8_t *v = &that->m->vec[w * task.y];
+			uint8_t const *f = &that->m->flags[w * task.y];
+			int t = 0;
+			int u = 0;
+			for (int x = 0; x < w; x++) {
+				if (f[x] & 1) {
+					if ((uint8_t)v[x] != (uint8_t)0x80) {
+						int offset = v[x];
+						t = x - offset / 2;
+						u = x + (offset + 1) / 2;
+						t = t < 0 ? 0 : (t > w ? w : t);
+						u = u < 0 ? 0 : (u > w ? w : u);
+					}
+					uint8_t const *s0 = task.src0 + t * 3;
+					uint8_t const *s1 = task.src1 + u * 3;
+					uint8_t *d = task.dst + x * 3;
+					d[0] = (s0[0] + s1[0]) / 2;
+					d[1] = (s0[1] + s1[1]) / 2;
+					d[2] = (s0[2] + s1[2]) / 2;
+				} else {
+					t = u = x;
+				}
+			}
+		}
+		break;
 	}
 }
 
@@ -102,8 +138,8 @@ void DeinterlaceThread::run()
 				that->m->busy &= ~(1 << number_);
 			}
 		}
-		if (t.length > 0 && t.src0 && t.src1 && t.dst) {
-			DeinterlaceThread::process(t);
+		if (t.w > 0) {
+			process(t);
 			{
 				QMutexLocker lock(&that->m->mutex);
 			}
@@ -167,48 +203,124 @@ void Deinterlace::stop()
 
 std::pair<QImage, QImage> Deinterlace::filter(QImage image)
 {
+//	QElapsedTimer t;
+//	t.start();
+
 	QImage newimage0;
 	QImage newimage1;
 	image = image.convertToFormat(QImage::Format_RGB888);
 	int w = image.width();
 	int h = image.height();
 	if (w > 0 && h > 2) {
-		newimage0 = QImage(w, h, QImage::Format_RGB888);
-		newimage1 = QImage(w, h, QImage::Format_RGB888);
+
+#ifdef USE_OPENCV
+		cv::Mat mat_rgb(h, w, CV_8UC3, (void *)image.bits());
+		cv::Mat mat_gray;
+		cv::cvtColor(mat_rgb, mat_gray, cv::COLOR_RGB2GRAY);
+		auto GrayscaleLine = [&](int y){
+			return mat_gray.ptr(y);
+		};
+#else
+		QImage grayed = image.convertToFormat(QImage::Format_Grayscale8);
+		auto GrayscaleLine = [&](int y){
+			return grayed.scanLine(y);
+		};
+#endif
 		{
+			const int wh = w * h;
+			if (m->vec.size() != wh)   m->vec.resize(wh);
+			if (m->flags.size() != wh) m->flags.resize(wh);
+			memset(&m->vec[0], 0x80, wh);
+			memset(&m->flags[0], 1, wh);
+
 			{
 				QMutexLocker lock(&m->mutex);
 				clear();
-				m->busy = (1 << m->threads.size()) - 1;
+
+				// stage a
+				for (int y = 0; y + 3 < h; y++) {
+					DeinterlaceThread::Task t;
+					t.job = 0;
+					t.y = y;
+					t.h = h;
+					t.w = w;
+					t.src0 = GrayscaleLine(y);
+					m->tasklist.push_back(t);
+				}
+
+				// stage b-1
 				for (int y = 0; y + 2 < h; y += 2) {
-					m->tasklist.emplace_back(w, image.scanLine(y), image.scanLine(y + 2), newimage0.scanLine(y + 1));
+					DeinterlaceThread::Task t;
+					t.job = 1;
+					t.y = y + 1;
+					t.h = h;
+					t.w = w;
+					t.src0 = GrayscaleLine(y);
+					t.src1 = GrayscaleLine(y + 2);
+					m->tasklist.push_back(t);
 				}
-				for (int y = 0; y + 3 < h; y += 2) {
-					m->tasklist.emplace_back(w, image.scanLine(y + 1), image.scanLine(y + 3), newimage1.scanLine(y + 2));
+
+				// stage b-2
+				for (int y = 1; y + 2 < h; y += 2) {
+					DeinterlaceThread::Task t;
+					t.job = 1;
+					t.y = y + 1;
+					t.h = h;
+					t.w = w;
+					t.src0 = GrayscaleLine(y);
+					t.src1 = GrayscaleLine(y + 2);
+					m->tasklist.push_back(t);
 				}
+
+				m->busy = (1 << m->threads.size()) - 1;
 			}
+
+			newimage0 = image.copy();
+			newimage1 = image.copy();
+
+			while (m->busy != 0) {
+				QThread::yieldCurrentThread();
+			}
+
 			{
-				for (int y = 0; y < h; y += 2) {
-					memcpy(newimage0.scanLine(y), image.scanLine(y), w * 3);
+				QMutexLocker lock(&m->mutex);
+				clear();
+
+				// stage c-1
+				for (int y = 0; y + 2 < h; y += 2) {
+					DeinterlaceThread::Task t;
+					t.job = 2;
+					t.y = y + 1;
+					t.h = h;
+					t.w = w;
+					t.src0 = newimage0.scanLine(y);
+					t.src1 = newimage0.scanLine(y + 2);
+					t.dst = newimage0.scanLine(y + 1);
+					m->tasklist.push_back(t);
 				}
-				for (int y = 0; y + 1 < h; y += 2) {
-					memcpy(newimage1.scanLine(y + 1), image.scanLine(y + 1), w * 3);
+
+				// stage c-2
+				for (int y = 1; y + 2 < h; y += 2) {
+					DeinterlaceThread::Task t;
+					t.job = 2;
+					t.y = y + 1;
+					t.h = h;
+					t.w = w;
+					t.src0 = newimage1.scanLine(y);
+					t.src1 = newimage1.scanLine(y + 2);
+					t.dst = newimage1.scanLine(y + 1);
+					m->tasklist.push_back(t);
 				}
-				memcpy(newimage0.scanLine(h - 1), newimage0.scanLine(h - 2), w * 3);
-				memcpy(newimage1.scanLine(0), newimage1.scanLine(1), w * 3);
+
+				m->busy = (1 << m->threads.size()) - 1;
 			}
-			while (1) {
-				{
-					QMutexLocker lock(&m->mutex);
-					if (m->busy == 0) {
-						clear();
-						break;
-					}
-				}
+
+			while (m->busy != 0) {
 				QThread::yieldCurrentThread();
 			}
 		}
 	}
+//	qDebug() << t.elapsed();
 	return std::make_pair<QImage, QImage>(std::move(newimage0), std::move(newimage1));
 }
 
