@@ -12,14 +12,9 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #endif
 
-static inline int gray(int r, int g, int b)
-{
-	return (r * 306 + g * 601 + b * 117) / 1024;
-}
-
 struct Deinterlace::Private {
 	QMutex mutex;
-	unsigned int busy = 0;
+	volatile unsigned int busy = 0;
 	unsigned int index = 0;
 	std::vector<int8_t> vec;
 	std::vector<uint8_t> flags;
@@ -140,17 +135,12 @@ void DeinterlaceThread::run()
 		}
 		if (t.w > 0) {
 			process(t);
-			{
-				QMutexLocker lock(&that->m->mutex);
-			}
 		} else {
 			QThread::yieldCurrentThread();
 		}
 	}
-	{
-		QMutexLocker lock(&that->m->mutex);
-		that->m->busy &= ~(1 << number_);
-	}
+	QMutexLocker lock(&that->m->mutex);
+	that->m->busy &= ~(1 << number_);
 }
 
 DeinterlaceThread::DeinterlaceThread(Deinterlace *di, int number)
@@ -228,8 +218,8 @@ std::pair<QImage, QImage> Deinterlace::filter(QImage image)
 #endif
 		{
 			const int wh = w * h;
-			if (m->vec.size() != wh)   m->vec.resize(wh);
-			if (m->flags.size() != wh) m->flags.resize(wh);
+			if ((int)m->vec.size() != wh) m->vec.resize(wh);
+			if ((int)m->flags.size() != wh) m->flags.resize(wh);
 			memset(&m->vec[0], 0x80, wh);
 			memset(&m->flags[0], 1, wh);
 

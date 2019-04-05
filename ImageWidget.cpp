@@ -3,6 +3,7 @@
 #include <QDebug>
 #include <QPainter>
 #include <QThread>
+#include <QStyle>
 
 QSize fitSize(QSize const &size, int dw, int dh)
 {
@@ -44,13 +45,18 @@ void ImageWidget::clear()
 
 void ImageWidget::paintEvent(QPaintEvent *)
 {
-	int dw = std::min(1920, width());
-	int dh = std::min(1080, height());
-	QSize sz = fitSize(image_.size(), dw, dh);
-	int x = (width() - sz.width()) / 2;
-	int y = (height() - sz.height()) / 2;
 	QPainter pr(this);
-	pr.drawImage(QRect(x, y, sz.width(), sz.height()), image_, image_.rect());
+	pr.fillRect(0, 0, width(), height(), Qt::black);
+	int w = std::min(1920, width());
+	int h = std::min(1080, height());
+	QSize sz = fitSize(image_.size(), w, h);
+	w = sz.width();
+	h = sz.height();
+	if (w > 0 && h > 0) {
+		int x = (width() - sz.width()) / 2;
+		int y = (height() - sz.height()) / 2;
+		pr.drawImage(QRect(x, y, w, h), image_, image_.rect());
+	}
 }
 
 void ImageWidget::timerEvent(QTimerEvent *event)

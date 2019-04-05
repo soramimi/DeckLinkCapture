@@ -16,7 +16,7 @@ CONFIG += use_opencv
 use_opencv {
 	DEFINES += USE_OPENCV
 	linux:LIBS += -lopencv_core -lopencv_highgui -lopencv_imgproc
-	win32:LIBS += -LC:\opencv\build\x64\vc12\lib -lopencv_core2412 -lopencv_gpu2412 -lopencv_highgui2412 -lopencv_imgproc2412
+	win32:LIBS += -LC:\opencv\build\x64\vc12\lib -lopencv_core2412 -lopencv_highgui2412 -lopencv_imgproc2412
 }
 
 SOURCES += \
@@ -28,8 +28,8 @@ SOURCES += \
 	MainWindow.cpp \
 	ProfileCallback.cpp \
 	main.cpp \
-    StatusLabel.cpp \
-    Deinterlace.cpp
+	Deinterlace.cpp \
+	StatusLabel.cpp
 
 HEADERS += \
 	AncillaryDataTable.h \
@@ -41,8 +41,8 @@ HEADERS += \
 	MainWindow.h \
 	ProfileCallback.h \
 	common.h \
-    StatusLabel.h \
-    Deinterlace.h
+	Deinterlace.h \
+	StatusLabel.h
 
 FORMS += \
     MainWindow.ui
