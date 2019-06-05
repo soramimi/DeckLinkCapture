@@ -3,7 +3,9 @@
 #include "ui_MainWindow.h"
 #include "DeckLinkCapture.h"
 #include "StatusLabel.h"
+#include "MotionJPEG.h"
 #include <QAudioOutput>
+#include <QBuffer>
 #include <QDebug>
 #include <QMessageBox>
 #include <functional>
@@ -50,6 +52,8 @@ struct MainWindow::Private {
 	std::shared_ptr<QAudioOutput> audio_output;
 	QIODevice *audio_output_device = nullptr;
 
+	std::shared_ptr<MotionJPEG> mjpg;
+
 	StatusLabel *status_label = nullptr;
 
 	bool closing = false;
@@ -74,7 +78,7 @@ MainWindow::MainWindow(QWidget *parent)
 		i++;
 	}
 
-	connect(&m->video_capture, &DeckLinkCapture::newFrame, ui->widget_image, &ImageWidget::setImage);
+	connect(&m->video_capture, &DeckLinkCapture::newFrame, this, &MainWindow::setImage);
 
 	setStatusBarText(QString());
 
@@ -568,4 +572,26 @@ void MainWindow::on_checkBox_audio_stateChanged(int arg1)
 {
 	(void)arg1;
 	restartCapture();
+}
+
+void MainWindow::setImage(const QImage &image0, const QImage &image1)
+{
+	ui->widget_image->setImage(image0, image1);
+
+	if (m->mjpg) {
+		m->mjpg->putFrame(image0);
+	}
+}
+
+void MainWindow::on_pushButton_record_clicked()
+{
+	if (m->mjpg) {
+		ui->pushButton_record->setText(tr("Record"));
+		m->mjpg->stop();
+		m->mjpg.reset();
+	} else {
+		ui->pushButton_record->setText(tr("Recording..."));
+		m->mjpg = std::make_shared<MotionJPEG>();
+		m->mjpg->start("/tmp/a.avi", 960, 540);
+	}
 }

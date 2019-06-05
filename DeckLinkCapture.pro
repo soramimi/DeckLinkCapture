@@ -26,6 +26,7 @@ SOURCES += \
 	DeckLinkInputDevice.cpp \
 	ImageWidget.cpp \
 	MainWindow.cpp \
+	MotionJPEG.cpp \
 	ProfileCallback.cpp \
 	main.cpp \
 	Deinterlace.cpp \
@@ -39,6 +40,7 @@ HEADERS += \
 	DeckLinkInputDevice.h \
 	ImageWidget.h \
 	MainWindow.h \
+	MotionJPEG.h \
 	ProfileCallback.h \
 	common.h \
 	Deinterlace.h \

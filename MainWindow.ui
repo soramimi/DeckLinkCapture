@@ -140,6 +140,13 @@
         </property>
        </widget>
       </item>
+      <item>
+       <widget class="QPushButton" name="pushButton_record">
+        <property name="text">
+         <string>Record</string>
+        </property>
+       </widget>
+      </item>
      </layout>
     </item>
     <item>
@@ -160,7 +167,7 @@
      <x>0</x>
      <y>0</y>
      <width>1013</width>
-     <height>24</height>
+     <height>18</height>
     </rect>
    </property>
   </widget>
