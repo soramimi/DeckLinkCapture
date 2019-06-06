@@ -560,6 +560,9 @@ void MainWindow::onPlayAudio(const QByteArray &samples)
 	if (m->audio_output_device) {
 		m->audio_output_device->write(samples);
 	}
+	if (m->mjpg) {
+		m->mjpg->putAudioSamples(samples);
+	}
 }
 
 void MainWindow::on_comboBox_deinterlace_currentIndexChanged(int index)
@@ -579,7 +582,7 @@ void MainWindow::setImage(const QImage &image0, const QImage &image1)
 	ui->widget_image->setImage(image0, image1);
 
 	if (m->mjpg) {
-		m->mjpg->putFrame(image0);
+		m->mjpg->putVideoFrame(image0);
 	}
 }
 
@@ -592,6 +595,6 @@ void MainWindow::on_pushButton_record_clicked()
 	} else {
 		ui->pushButton_record->setText(tr("Recording..."));
 		m->mjpg = std::make_shared<MotionJPEG>();
-		m->mjpg->start("/tmp/a.avi", 960, 540);
+		m->mjpg->start("/tmp/a.avi", 960, 540, isAudioCaptureEnabled());
 	}
 }

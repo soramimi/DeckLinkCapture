@@ -9,11 +9,13 @@
 struct MotionJPEG::Private {
 	QMutex mutex;
 	bool recording = false;
+	bool audio = true;
 	QString filepath;
 	int width = 1200;
 	int height = 675;
 	double fps = 29.97;
 	std::deque<QImage> frames;
+	std::deque<QByteArray> waves;
 	QFile file;
 	uint64_t pos_AVI = 0;
 	uint64_t pos_dwTotalFrames = 0;
@@ -70,7 +72,7 @@ void MotionJPEG::writeLength(QIODevice *file, uint64_t p)
 	file->seek(q);
 }
 
-QByteArray MotionJPEG::nextFrame()
+QByteArray MotionJPEG::nextVideoFrame()
 {
 	QImage img;
 	{
@@ -88,6 +90,19 @@ QByteArray MotionJPEG::nextFrame()
 		img.save(&buf, "jpeg");
 		buf.close();
 		ba = buf.data();
+	}
+	return ba;
+}
+
+QByteArray MotionJPEG::nextAudioSamples()
+{
+	QByteArray ba;
+	{
+		QMutexLocker lock(&m->mutex);
+		if (!m->waves.empty()) {
+			ba = m->waves.front();
+			m->waves.pop_front();
+		}
 	}
 	return ba;
 }
@@ -143,7 +158,7 @@ bool MotionJPEG::create()
 				write32LE(0);
 				uint64_t p2 = m->file.pos();
 				write("vids", 4);
-				write("mpjg", 4);
+				write("mpjg", 4); // fccHandler
 				write32LE(0); // dwFlags
 				write16LE(0); // wPriority
 				write16LE(0); // wLanguage
@@ -181,6 +196,50 @@ bool MotionJPEG::create()
 				writeLength(&m->file, p1);
 			}
 
+			write("LIST", 4);
+			{
+				write32LE(0);
+				uint64_t p4 = m->file.pos();
+				write("strl", 4);
+
+				write("strh", 4);
+				write32LE(0);
+				uint64_t p5 = m->file.pos();
+				write("auds", 4);
+				write32LE(0); // fccHandler
+				write32LE(0); // dwFlags
+				write16LE(0); // wPriority
+				write16LE(0); // wLanguage
+				write32LE(0); // dwInitialFrames
+				write32LE(1); // dwScale
+				write32LE(48000); // dwRate
+				write32LE(0); // dwStart
+				write32LE(0); // dwLength
+				write32LE(0); // dwSuggestedBufferSize
+				write32LE(0); // dwQuality
+				write32LE(0); // dwSampleSize
+				write16LE(0); // rcFrame.left
+				write16LE(0); // rcFrame.top
+				write16LE(0); // rcFrame.right
+				write16LE(0); // rcFrame.bottom
+				writeLength(&m->file, p5);
+
+#define WAVE_FORMAT_PCM 1
+				write("strf", 4);
+				write32LE(0);
+				uint64_t p6 = m->file.pos();
+				write16LE(WAVE_FORMAT_PCM); // wFormatTag
+				write16LE(2); // nChannels
+				write32LE(48000); // nSamplePerSec
+				write32LE(48000 * 2 * 2); // nAvgBytesPerSecbiPlanes
+				write16LE(2 * 2); // nBlockAlign
+				write16LE(16); // wBitsPerSample
+				write16LE(0); // cbSize
+				writeLength(&m->file, p6);
+
+				writeLength(&m->file, p4);
+			}
+
 			writeLength(&m->file, p0);
 		}
 
@@ -210,7 +269,7 @@ void MotionJPEG::close()
 	}
 }
 
-void MotionJPEG::writeFrame(QByteArray const &jpeg)
+void MotionJPEG::writeVideoFrame(QByteArray const &jpeg)
 {
 	uint32_t len = jpeg.size();
 	bool pad = len & 1;
@@ -224,6 +283,20 @@ void MotionJPEG::writeFrame(QByteArray const &jpeg)
 	m->total_frames++;
 }
 
+void MotionJPEG::writeAudio(QByteArray const &wave)
+{
+	uint32_t len = wave.size();
+	bool pad = len & 1;
+	if (pad) len++;
+
+	write("01wb", 4);
+	write32LE(len);
+	m->file.write(wave);
+	if (pad) m->file.putChar(0);
+
+//	m->total_frames++;
+}
+
 void MotionJPEG::run()
 {
 	create();
@@ -233,12 +306,24 @@ void MotionJPEG::run()
 			if (isInterruptionRequested()) {
 				break;
 			}
-			QByteArray jpeg = nextFrame();
-			if (jpeg.isEmpty()) {
-				QThread::yieldCurrentThread();
-				continue;
+			bool empty = true;
+			{
+				QByteArray jpeg = nextVideoFrame();
+				if (!jpeg.isEmpty()) {
+					writeVideoFrame(jpeg);
+					empty = false;
+				}
 			}
-			writeFrame(jpeg);
+			{
+				QByteArray wave = nextAudioSamples();
+				if (!wave.isEmpty()) {
+					writeAudio(wave);
+					empty = false;
+				}
+			}
+			if (empty) {
+				QThread::yieldCurrentThread();
+			}
 		}
 	}
 
@@ -246,11 +331,12 @@ void MotionJPEG::run()
 	m->recording = false;
 }
 
-void MotionJPEG::start(const QString &filepath, int width, int height)
+void MotionJPEG::start(const QString &filepath, int width, int height, bool audio)
 {
 	m->filepath = filepath;
 	m->width = width;
 	m->height = height;
+	m->audio = audio;
 	m->recording = true;
 	QThread::start();
 }
@@ -265,12 +351,24 @@ void MotionJPEG::stop()
 	}
 }
 
-bool MotionJPEG::putFrame(const QImage &img)
+bool MotionJPEG::putVideoFrame(const QImage &img)
 {
 	if (m->recording) {
 		QMutexLocker lock(&m->mutex);
 		if (m->frames.size() < 100) {
 			m->frames.push_back(img);
+			return true;
+		}
+	}
+	return false;
+}
+
+bool MotionJPEG::putAudioSamples(const QByteArray &wav)
+{
+	if (m->recording) {
+		QMutexLocker lock(&m->mutex);
+		if (m->waves.size() < 100) {
+			m->waves.push_back(wav);
 			return true;
 		}
 	}

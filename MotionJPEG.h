@@ -17,18 +17,21 @@ private:
 	void write32LE(uint32_t v);
 	void writeLength(QIODevice *file, uint64_t p);
 
-	QByteArray nextFrame();
+	QByteArray nextVideoFrame();
+	QByteArray nextAudioSamples();
 
 	void run();
 public:
 	MotionJPEG();
 	~MotionJPEG();
-	void start(QString const &filepath, int width, int height);
+	void start(QString const &filepath, int width, int height, bool audio);
 	void stop();
-	bool putFrame(const QImage &img);
+	void writeVideoFrame(const QByteArray &jpeg);
+	void writeAudio(const QByteArray &wave);
+	bool putVideoFrame(const QImage &img);
+	bool putAudioSamples(const QByteArray &wav);
 	bool create();
 	void close();
-	void writeFrame(const QByteArray &jpeg);
 };
 
 #endif // MOTIONJPEG_H
