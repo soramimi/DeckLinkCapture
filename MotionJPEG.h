@@ -23,15 +23,35 @@ private:
 	void run();
 public:
 	MotionJPEG();
-	~MotionJPEG();
-	void start(QString const &filepath, int width, int height, bool audio);
-	void stop();
-	void writeVideoFrame(const QByteArray &jpeg);
-	void writeAudio(const QByteArray &wave);
-	bool putVideoFrame(const QImage &img);
-	bool putAudioSamples(const QByteArray &wav);
+	virtual ~MotionJPEG();
+
+	struct VideoOption {
+		int width = 960;
+		int height = 540;
+		double fps = 29.97;
+	};
+
+	struct AudioOption {
+		int channels = 2;
+		int frequency = 48000;
+
+		static AudioOption None()
+		{
+			AudioOption o;
+			o.channels = 0;
+			return o;
+		}
+	};
+
+	bool config(const QString &filepath, VideoOption const &vopt, AudioOption const &aopt);
 	bool create();
 	void close();
+	void thread_start(QString const &filepath, VideoOption const &vopt, AudioOption const &aopt);
+	void thread_stop();
+	void writeVideoFrame(const QByteArray &jpg);
+	void writeAudioFrame(const QByteArray &pcm);
+	bool putVideoFrame(const QImage &img);
+	bool putAudioSamples(const QByteArray &wav);
 };
 
 #endif // MOTIONJPEG_H

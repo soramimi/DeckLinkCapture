@@ -586,15 +586,28 @@ void MainWindow::setImage(const QImage &image0, const QImage &image1)
 	}
 }
 
-void MainWindow::on_pushButton_record_clicked()
+void MainWindow::toggleRecord()
 {
 	if (m->mjpg) {
-		ui->pushButton_record->setText(tr("Record"));
-		m->mjpg->stop();
+		m->mjpg->thread_stop();
 		m->mjpg.reset();
 	} else {
-		ui->pushButton_record->setText(tr("Recording..."));
+		MotionJPEG::VideoOption vopt;
+		vopt.width = 960;
+		vopt.height = 540;
+		MotionJPEG::AudioOption aopt;
+		if (isAudioCaptureEnabled()) {
+			aopt.channels = 2;
+			aopt.frequency = 48000;
+		} else {
+			aopt.channels = 0;
+		}
 		m->mjpg = std::make_shared<MotionJPEG>();
-		m->mjpg->start("/tmp/a.avi", 960, 540, isAudioCaptureEnabled());
+		m->mjpg->thread_start("/tmp/a.avi", vopt, aopt);
 	}
+}
+
+void MainWindow::on_action_record_triggered()
+{
+	toggleRecord();
 }

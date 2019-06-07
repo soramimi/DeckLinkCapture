@@ -28,6 +28,7 @@ private:
 	bool isVideoFormatAutoDetectionEnabled() const;
 	void updateUI();
 	void internalStartCapture(bool start);
+	void toggleRecord();
 public:
 	explicit MainWindow(QWidget *parent = 0);
 	virtual ~MainWindow();
@@ -69,7 +70,7 @@ private slots:
 	void on_comboBox_deinterlace_currentIndexChanged(int index);
 	void on_checkBox_audio_stateChanged(int arg1);
 	void setImage(const QImage &image0, const QImage &image1);
-	void on_pushButton_record_clicked();
+	void on_action_record_triggered();
 };
 
 #endif // MAINWINDOW_H
