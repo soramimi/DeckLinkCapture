@@ -70,6 +70,7 @@ public:
 	// IDeckLinkInputCallback interface
 	virtual HRESULT STDMETHODCALLTYPE VideoInputFormatChanged(BMDVideoInputFormatChangedEvents notificationEvents, IDeckLinkDisplayMode *newDisplayMode, BMDDetectedVideoInputFormatFlags detectedSignalFlags);
 	virtual HRESULT STDMETHODCALLTYPE VideoInputFrameArrived(IDeckLinkVideoInputFrame *videoFrame, IDeckLinkAudioInputPacket *audioPacket);
+	static double frameRate(IDeckLinkDisplayMode *mode);
 signals:
 	void audio(QByteArray const &samples);
 };
@@ -77,12 +78,14 @@ signals:
 class DeckLinkInputFormatChangedEvent : public QEvent {
 private:
 	BMDDisplayMode display_mode_;
+	double fps_;
 
 public:
-	DeckLinkInputFormatChangedEvent(BMDDisplayMode displayMode);
+	DeckLinkInputFormatChangedEvent(BMDDisplayMode displayMode, double fps);
 	virtual ~DeckLinkInputFormatChangedEvent() {}
 
 	BMDDisplayMode DisplayMode() const { return display_mode_; }
+	double fps() const { return fps_; }
 };
 
 class DeckLinkInputFrameArrivedEvent : public QEvent {

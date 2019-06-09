@@ -12,6 +12,8 @@ win32:INCLUDEPATH += C:\opencv\build\include
 linux:LIBS += -ldl
 win32:LIBS += -lole32 -loleaut32
 
+LIBS += -lavutil -lavcodec -lavformat -lswscale -lswresample
+
 CONFIG += use_opencv
 use_opencv {
 	DEFINES += USE_OPENCV
@@ -28,6 +30,7 @@ SOURCES += \
 	MainWindow.cpp \
 	MotionJPEG.cpp \
 	ProfileCallback.cpp \
+	VideoEncoder.cpp \
 	main.cpp \
 	Deinterlace.cpp \
 	StatusLabel.cpp
@@ -42,6 +45,7 @@ HEADERS += \
 	MainWindow.h \
 	MotionJPEG.h \
 	ProfileCallback.h \
+	VideoEncoder.h \
 	common.h \
 	Deinterlace.h \
 	StatusLabel.h

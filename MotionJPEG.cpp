@@ -82,10 +82,10 @@ QByteArray MotionJPEG::nextVideoFrame()
 	}
 	QByteArray ba;
 	if (img.width() > 0 && img.height() > 0) {
-		img = img.scaled(m->vopt.width, m->vopt.height);
+		img = img.scaled(m->vopt.width, m->vopt.height, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
 		QBuffer buf;
 		buf.open(QBuffer::WriteOnly);
-		img.save(&buf, "jpeg");
+		img.save(&buf, "jpeg", 95);
 		buf.close();
 		ba = buf.data();
 	}
@@ -358,7 +358,7 @@ bool MotionJPEG::putVideoFrame(const QImage &img)
 {
 	if (m->thread_recording) {
 		QMutexLocker lock(&m->mutex);
-		if (m->video_frames.size() < 100) {
+		if (m->video_frames.size() < 10) {
 			m->video_frames.push_back(img);
 			return true;
 		}
@@ -370,7 +370,7 @@ bool MotionJPEG::putAudioSamples(const QByteArray &wav)
 {
 	if (m->thread_recording) {
 		QMutexLocker lock(&m->mutex);
-		if (m->audio_frames.size() < 100) {
+		if (m->audio_frames.size() < 10) {
 			m->audio_frames.push_back(wav);
 			return true;
 		}

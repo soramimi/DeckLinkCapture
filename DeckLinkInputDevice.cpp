@@ -36,7 +36,7 @@
 struct DeckLinkInputDevice::Private {
 	MainWindow *mainwindow = nullptr;
 	QAtomicInt refcount = 1;
-	//
+
 	QString device_name;
 	IDeckLink *decklink = nullptr;
 	IDeckLinkInput *decklink_input = nullptr;
@@ -48,7 +48,6 @@ struct DeckLinkInputDevice::Private {
 	bool currently_capturing = false;
 	bool apply_detected_input_mode = false;
 	int64_t supported_input_connections = 0;
-	//
 };
 
 DeckLinkInputDevice::DeckLinkInputDevice(MainWindow *mw, IDeckLink *device)
@@ -309,6 +308,14 @@ IDeckLinkProfileManager *DeckLinkInputDevice::getProfileManager()
 	return m->decklink_profile_manager;
 }
 
+double DeckLinkInputDevice::frameRate(IDeckLinkDisplayMode *mode)
+{
+	BMDTimeValue duration = 0;
+	BMDTimeScale scale = 0;
+	mode->GetFrameRate(&duration, &scale);
+	return (double)scale / duration;
+}
+
 HRESULT DeckLinkInputDevice::VideoInputFormatChanged(BMDVideoInputFormatChangedEvents notificationEvents, IDeckLinkDisplayMode *newMode, BMDDetectedVideoInputFormatFlags detectedSignalFlags)
 {
 	HRESULT result;
@@ -335,6 +342,8 @@ HRESULT DeckLinkInputDevice::VideoInputFormatChanged(BMDVideoInputFormatChangedE
 		return result;
 	}
 
+	double fps = frameRate(newMode);
+
 	// Start the capture
 	result = m->decklink_input->StartStreams();
 	if (result != S_OK) {
@@ -344,7 +353,7 @@ HRESULT DeckLinkInputDevice::VideoInputFormatChanged(BMDVideoInputFormatChangedE
 
 	// Notify UI of new display mode
 	if ((m->mainwindow) && (notificationEvents & bmdVideoInputDisplayModeChanged)) {
-		QCoreApplication::postEvent(m->mainwindow, new DeckLinkInputFormatChangedEvent(newMode->GetDisplayMode()));
+		QCoreApplication::postEvent(m->mainwindow, new DeckLinkInputFormatChangedEvent(newMode->GetDisplayMode(), fps));
 	}
 
 	return S_OK;
@@ -540,9 +549,10 @@ void DeckLinkInputDevice::getHDRMetadataFromFrame(IDeckLinkVideoInputFrame* vide
 	}
 }
 
-DeckLinkInputFormatChangedEvent::DeckLinkInputFormatChangedEvent(BMDDisplayMode displayMode)
+DeckLinkInputFormatChangedEvent::DeckLinkInputFormatChangedEvent(BMDDisplayMode displayMode, double fps)
 	: QEvent(kVideoFormatChangedEvent)
 	, display_mode_(displayMode)
+	, fps_(fps)
 {
 }
 

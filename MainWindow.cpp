@@ -4,6 +4,7 @@
 #include "DeckLinkCapture.h"
 #include "StatusLabel.h"
 #include "MotionJPEG.h"
+#include "VideoEncoder.h"
 #include <QAudioOutput>
 #include <QBuffer>
 #include <QDebug>
@@ -13,6 +14,7 @@
 enum {
 	DisplayModeRole = Qt::UserRole,
 	FieldDominanceRole,
+	FrameRateRole,
 };
 
 static inline void BlockSignals(QWidget *w, std::function<void ()> const &callback)
@@ -48,11 +50,13 @@ struct MainWindow::Private {
 	ProfileCallback *profile_callback = nullptr;
 	BMDDisplayMode display_mode = bmdModeHD1080i5994;
 	BMDFieldDominance field_dominance = bmdUnknownFieldDominance;
+	double fps = 0;
 
 	std::shared_ptr<QAudioOutput> audio_output;
 	QIODevice *audio_output_device = nullptr;
 
-	std::shared_ptr<MotionJPEG> mjpg;
+//	std::shared_ptr<MotionJPEG> video_encoder;
+	std::shared_ptr<VideoEncoder> video_encoder;
 
 	StatusLabel *status_label = nullptr;
 
@@ -147,7 +151,7 @@ void MainWindow::customEvent(QEvent *event)
 		removeDevice(discoveryEvent->decklink());
 	} else if (event->type() == kVideoFormatChangedEvent) {
 		DeckLinkInputFormatChangedEvent* formatEvent = dynamic_cast<DeckLinkInputFormatChangedEvent*>(event);
-		changeDisplayMode(formatEvent->DisplayMode());
+		changeDisplayMode(formatEvent->DisplayMode(), formatEvent->fps());
 	} else if (event->type() == kVideoFrameArrivedEvent) {
 		DeckLinkInputFrameArrivedEvent* frameArrivedEvent = dynamic_cast<DeckLinkInputFrameArrivedEvent*>(event);
 		setStatusBarText(frameArrivedEvent->SignalValid() ? QString() : tr("No valid input signal"));
@@ -198,6 +202,7 @@ void MainWindow::updateUI()
 
 void MainWindow::internalStartCapture(bool start)
 {
+	stopRecord();
 	if (isCapturing()) {
 		// stop capture
 		m->selected_device->stopCapture();
@@ -210,6 +215,7 @@ void MainWindow::internalStartCapture(bool start)
 		if (item) {
 			m->display_mode = (BMDDisplayMode)item->data(DisplayModeRole).toInt();
 			m->field_dominance = (BMDFieldDominance)item->data(FieldDominanceRole).toUInt();
+			m->fps = item->data(FrameRateRole).toDouble();
 		}
 		bool auto_detect = isVideoFormatAutoDetectionEnabled();
 		m->video_capture.start(m->selected_device, m->display_mode, m->field_dominance, auto_detect, isAudioCaptureEnabled());
@@ -285,6 +291,8 @@ void MainWindow::refreshDisplayModeMenu(void)
 		BMDDisplayMode mode = displayMode->GetDisplayMode();
 		BMDFieldDominance fdom = displayMode->GetFieldDominance();
 
+		double fps = DeckLinkInputDevice::frameRate(displayMode);
+
 		if ((deckLinkInput->DoesSupportVideoMode(m->selected_input_connection, mode, bmdFormatUnspecified, bmdSupportedVideoModeDefault, &supported) == S_OK) && supported) {
 			QString name;
 			{
@@ -306,6 +314,7 @@ void MainWindow::refreshDisplayModeMenu(void)
 				auto *item = new QListWidgetItem(name);
 				item->setData(DisplayModeRole, QVariant::fromValue((uint64_t)mode));
 				item->setData(FieldDominanceRole, QVariant::fromValue((uint32_t)fdom));
+				item->setData(FrameRateRole, QVariant::fromValue(fps));
 				ui->listWidget_display_mode->addItem(item);
 				if (mode == m->display_mode) {
 					ui->listWidget_display_mode->setCurrentRow(row);
@@ -451,7 +460,7 @@ void MainWindow::changeInputDevice(int selectedDeviceIndex)
 	changeInputConnection(m->selected_input_connection, false);
 
 	if (capturing) {
-		changeDisplayMode(m->display_mode);
+		changeDisplayMode(m->display_mode, m->fps);
 		startCapture();
 	}
 }
@@ -482,7 +491,7 @@ void MainWindow::changeInputConnection(BMDVideoConnection conn, bool errorcheck)
 	refreshDisplayModeMenu();
 }
 
-void MainWindow::changeDisplayMode(BMDDisplayMode dispmode)
+void MainWindow::changeDisplayMode(BMDDisplayMode dispmode, double fps)
 {
 	for (int i = 0; i < ui->listWidget_display_mode->count(); i++) {
 		auto *item = ui->listWidget_display_mode->item(i);
@@ -492,6 +501,7 @@ void MainWindow::changeDisplayMode(BMDDisplayMode dispmode)
 					ui->listWidget_display_mode->setCurrentRow(i);
 				});
 				m->display_mode = dispmode;
+				m->fps = fps;
 				restartCapture();
 				return;
 			}
@@ -519,8 +529,9 @@ void MainWindow::on_listWidget_display_mode_currentRowChanged(int currentRow)
 	(void)currentRow;
 	QListWidgetItem *item = ui->listWidget_display_mode->currentItem();
 	if (!item) return;
-	auto v = item->data(Qt::UserRole).toUInt();
-	changeDisplayMode((BMDDisplayMode)v);
+	auto mode = item->data(DisplayModeRole).toUInt();
+	auto fps = item->data(FrameRateRole).toDouble();
+	changeDisplayMode((BMDDisplayMode)mode, fps);
 }
 
 void MainWindow::on_listWidget_display_mode_itemDoubleClicked(QListWidgetItem *item)
@@ -560,8 +571,8 @@ void MainWindow::onPlayAudio(const QByteArray &samples)
 	if (m->audio_output_device) {
 		m->audio_output_device->write(samples);
 	}
-	if (m->mjpg) {
-		m->mjpg->putAudioSamples(samples);
+	if (m->video_encoder) {
+		m->video_encoder->putAudioFrame(samples);
 	}
 }
 
@@ -581,29 +592,37 @@ void MainWindow::setImage(const QImage &image0, const QImage &image1)
 {
 	ui->widget_image->setImage(image0, image1);
 
-	if (m->mjpg) {
-		m->mjpg->putVideoFrame(image0);
+	if (m->video_encoder) {
+		m->video_encoder->putVideoFrame(image0);
+	}
+}
+
+void MainWindow::stopRecord()
+{
+	if (m->video_encoder) {
+		m->video_encoder->thread_stop();
+		m->video_encoder.reset();
 	}
 }
 
 void MainWindow::toggleRecord()
 {
-	if (m->mjpg) {
-		m->mjpg->thread_stop();
-		m->mjpg.reset();
+	if (m->video_encoder) {
+		stopRecord();
 	} else {
-		MotionJPEG::VideoOption vopt;
-		vopt.width = 960;
-		vopt.height = 540;
-		MotionJPEG::AudioOption aopt;
-		if (isAudioCaptureEnabled()) {
-			aopt.channels = 2;
-			aopt.frequency = 48000;
-		} else {
-			aopt.channels = 0;
-		}
-		m->mjpg = std::make_shared<MotionJPEG>();
-		m->mjpg->thread_start("/tmp/a.avi", vopt, aopt);
+		VideoEncoder::VideoOption vopt;
+		vopt.fps = m->fps;
+//		vopt.width = 960;
+//		vopt.height = 540;
+		VideoEncoder::AudioOption aopt;
+//		if (isAudioCaptureEnabled()) {
+//			aopt.channels = 2;
+//			aopt.frequency = 48000;
+//		} else {
+//			aopt.channels = 0;
+//		}
+		m->video_encoder = std::make_shared<VideoEncoder>();
+		m->video_encoder->thread_start("/tmp/a.avi", vopt, aopt);
 	}
 }
 

@@ -56,9 +56,10 @@ public:
 
 	void changeInputDevice(int selectedDeviceIndex);
 	void changeInputConnection(BMDVideoConnection conn, bool errorcheck);
-	void changeDisplayMode(BMDDisplayMode dispmode);
+	void changeDisplayMode(BMDDisplayMode dispmode, double fps);
 	void setDeinterlaceMode(DeinterlaceMode mode);
 	bool isAudioCaptureEnabled() const;
+	void stopRecord();
 private slots:
 	void onPlayAudio(QByteArray const &samples);
 	void on_checkBox_display_mode_auto_detection_clicked(bool checked);
