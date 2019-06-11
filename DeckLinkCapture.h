@@ -13,6 +13,7 @@ enum class DeinterlaceMode {
 	InterpolateEven,
 	InterpolateOdd,
 	Merge,
+	MergeX2, // double frames
 };
 
 class DeckLinkCapture : public QThread, public IDeckLinkScreenPreviewCallback {

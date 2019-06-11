@@ -39,6 +39,7 @@ const QVector<QPair<DeinterlaceMode, QString>> deinterlace_mode_list = {
 	qMakePair(DeinterlaceMode::InterpolateEven,		QString("Interporate Even")),
 	qMakePair(DeinterlaceMode::InterpolateOdd,		QString("Interporate Odd")),
 	qMakePair(DeinterlaceMode::Merge,				QString("Merge")),
+	qMakePair(DeinterlaceMode::MergeX2,				QString("Merge x2 Frames")),
 };
 
 struct MainWindow::Private {

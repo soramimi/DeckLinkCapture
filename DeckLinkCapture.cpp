@@ -194,10 +194,12 @@ void DeckLinkCapture::process(Task const &task)
 			if (m->deinterlace == DeinterlaceMode::None) {
 				emit newFrame(image, QImage());
 			} else if (m->deinterlace == DeinterlaceMode::InterpolateEven) {
-				for (int y = 0; y + 2 < h; y += 2) {
-					uint8_t const *s = (uint8_t const *)image.scanLine(y);
-					uint8_t *d0 = (uint8_t *)bytes1.scanLine(y);
-					if (y == 0) memcpy(d0, s, stride);
+				uint8_t const *s = (uint8_t const *)image.scanLine(0);
+				uint8_t *d0 = (uint8_t *)bytes1.scanLine(0);
+				memcpy(bytes1.scanLine(0), s, stride);
+				int y = 1;
+				while (y + 1 < h) {
+					s = (uint8_t const *)image.scanLine(y + 1);
 					uint8_t *d1 = d0 + stride;
 					uint8_t *d2 = d0 + stride * 2;
 					memcpy(d2, s, stride);
@@ -209,13 +211,20 @@ void DeckLinkCapture::process(Task const &task)
 						d1[j] = (d0[j] + d2[j]) / 2;
 						d1[k] = (d0[k] + d2[k]) / 2;
 					}
+					d0 = d2;
+					y += 2;
 				}
+				memcpy((uint8_t *)bytes1.scanLine(h - 1), d0, stride);
 				emit newFrame(bytes1, QImage());
 			} else if (m->deinterlace == DeinterlaceMode::InterpolateOdd) {
-				for (int y = 0; y + 2 < h; y += 2) {
-					uint8_t const *s = (uint8_t const *)image.scanLine(y + 1);
-					uint8_t *d0 = (uint8_t *)bytes1.scanLine(y);
-					if (y == 0) memcpy(d0, s, stride);
+				uint8_t const *s = (uint8_t const *)image.scanLine(1);
+				uint8_t *d0 = (uint8_t *)bytes1.scanLine(0);
+				memcpy(d0, s, stride);
+				d0 += stride;
+				memcpy(d0, s, stride);
+				int y = 3;
+				while (y < h) {
+					s = (uint8_t const *)image.scanLine(y);
 					uint8_t *d1 = d0 + stride;
 					uint8_t *d2 = d0 + stride * 2;
 					memcpy(d2, s, stride);
@@ -227,9 +236,12 @@ void DeckLinkCapture::process(Task const &task)
 						d1[j] = (d0[j] + d2[j]) / 2;
 						d1[k] = (d0[k] + d2[k]) / 2;
 					}
+					d0 = d2;
+					y += 2;
 				}
 				emit newFrame(bytes1, QImage());
-			} else if (m->deinterlace == DeinterlaceMode::Merge) {
+			} else if (m->deinterlace == DeinterlaceMode::Merge || m->deinterlace == DeinterlaceMode::MergeX2) {
+				const bool x2frame = (m->deinterlace == DeinterlaceMode::MergeX2);
 				QImage image0;
 				QImage image1;
 				{
@@ -238,9 +250,9 @@ void DeckLinkCapture::process(Task const &task)
 					image1 = m->next_image1;
 				}
 				if (m->field_dominance == bmdUpperFieldFirst) {
-					emit newFrame(image0, image1);
+					emit newFrame(image0, x2frame ? image1 : QImage());
 				} else if (m->field_dominance == bmdLowerFieldFirst) {
-					emit newFrame(image1, image0);
+					emit newFrame(image1, x2frame ? image0 : QImage());
 				} else {
 					emit newFrame(image1, QImage());
 				}
