@@ -160,16 +160,9 @@
      <x>0</x>
      <y>0</y>
      <width>1013</width>
-     <height>18</height>
+     <height>24</height>
     </rect>
    </property>
-   <widget class="QMenu" name="menu_File">
-    <property name="title">
-     <string>Experimental</string>
-    </property>
-    <addaction name="action_record"/>
-   </widget>
-   <addaction name="menu_File"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="action_record">

@@ -3,13 +3,14 @@
 #include "ui_MainWindow.h"
 #include "DeckLinkCapture.h"
 #include "StatusLabel.h"
-#include "MotionJPEG.h"
-#include "VideoEncoder.h"
 #include <QAudioOutput>
 #include <QBuffer>
 #include <QDebug>
 #include <QMessageBox>
 #include <functional>
+#ifdef USE_VIDEO_RECORDING
+#include "VideoEncoder.h"
+#endif
 
 enum {
 	DisplayModeRole = Qt::UserRole,
@@ -43,6 +44,8 @@ const QVector<QPair<DeinterlaceMode, QString>> deinterlace_mode_list = {
 };
 
 struct MainWindow::Private {
+	QAction *a_record = nullptr;
+
 	DeckLinkCapture video_capture;
 
 	DeckLinkInputDevice *selected_device = nullptr;
@@ -56,8 +59,9 @@ struct MainWindow::Private {
 	std::shared_ptr<QAudioOutput> audio_output;
 	QIODevice *audio_output_device = nullptr;
 
-//	std::shared_ptr<MotionJPEG> video_encoder;
+#ifdef USE_VIDEO_RECORDING
 	std::shared_ptr<VideoEncoder> video_encoder;
+#endif
 
 	StatusLabel *status_label = nullptr;
 
@@ -70,6 +74,17 @@ MainWindow::MainWindow(QWidget *parent)
 	, m(new Private)
 {
 	ui->setupUi(this);
+
+#ifdef USE_VIDEO_RECORDING
+	{
+		QMenu *menu = new QMenu(tr("Experimental"), this);
+		m->a_record = new QAction("Record", this);
+		m->a_record->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_R));
+		menu->addAction(m->a_record);
+		ui->menubar->addMenu(menu);
+		connect(m->a_record, SIGNAL(triggered(bool)), this, SLOT(on_action_record_triggered(bool)));
+	}
+#endif
 
 	m->status_label = new StatusLabel(this);
 	ui->statusbar->addWidget(m->status_label);
@@ -572,9 +587,11 @@ void MainWindow::onPlayAudio(const QByteArray &samples)
 	if (m->audio_output_device) {
 		m->audio_output_device->write(samples);
 	}
+#ifdef USE_VIDEO_RECORDING
 	if (m->video_encoder) {
 		m->video_encoder->putAudioFrame(samples);
 	}
+#endif
 }
 
 void MainWindow::on_comboBox_deinterlace_currentIndexChanged(int index)
@@ -593,41 +610,39 @@ void MainWindow::setImage(const QImage &image0, const QImage &image1)
 {
 	ui->widget_image->setImage(image0, image1);
 
+#ifdef USE_VIDEO_RECORDING
 	if (m->video_encoder) {
 		m->video_encoder->putVideoFrame(image0);
 	}
+#endif
 }
 
 void MainWindow::stopRecord()
 {
+#ifdef USE_VIDEO_RECORDING
 	if (m->video_encoder) {
 		m->video_encoder->thread_stop();
 		m->video_encoder.reset();
 	}
+#endif
 }
 
 void MainWindow::toggleRecord()
 {
+#ifdef USE_VIDEO_RECORDING
 	if (m->video_encoder) {
 		stopRecord();
 	} else {
 		VideoEncoder::VideoOption vopt;
 		vopt.fps = m->fps;
-//		vopt.width = 960;
-//		vopt.height = 540;
 		VideoEncoder::AudioOption aopt;
-//		if (isAudioCaptureEnabled()) {
-//			aopt.channels = 2;
-//			aopt.frequency = 48000;
-//		} else {
-//			aopt.channels = 0;
-//		}
 		m->video_encoder = std::make_shared<VideoEncoder>();
 		m->video_encoder->thread_start("a.avi", vopt, aopt);
 	}
+#endif
 }
 
-void MainWindow::on_action_record_triggered()
+void MainWindow::on_action_record_triggered(bool)
 {
 	toggleRecord();
 }

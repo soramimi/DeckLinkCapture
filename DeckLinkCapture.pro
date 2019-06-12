@@ -12,21 +12,29 @@ win32:INCLUDEPATH += C:\opencv\build\include
 linux:LIBS += -ldl
 win32:LIBS += -lole32 -loleaut32
 
-win32 {
-	INCLUDEPATH += C:/ffmpeg-4.1.3-win64-dev/include
-	LIBS += -LC:/ffmpeg-4.1.3-win64-dev/lib
+# recording
+
+#CONFIG += use_video_recording
+use_video_recording {
+	DEFINES += USE_VIDEO_RECORDING
+	win32 {
+		INCLUDEPATH += C:/ffmpeg-4.1.3-win64-dev/include
+		LIBS += -LC:/ffmpeg-4.1.3-win64-dev/lib
+	}
+	LIBS += -lavutil -lavcodec -lavformat -lswscale -lswresample
 }
 
-LIBS += -lavutil -lavcodec -lavformat -lswscale -lswresample
+# OpenCV
 
-CONFIG += use_opencv
+#CONFIG += use_opencv
 use_opencv {
 	DEFINES += USE_OPENCV
 	linux:LIBS += -lopencv_core -lopencv_highgui -lopencv_imgproc
-#	win32:LIBS += -LC:\opencv\build\x64\vc12\lib -lopencv_core2412 -lopencv_highgui2412 -lopencv_imgproc2412
 	CONFIG(release,debug|release):win32:LIBS += -LC:\opencv\build\x64\vc15\lib -lopencv_world410
 	CONFIG(debug,debug|release):win32:LIBS += -LC:\opencv\build\x64\vc15\lib -lopencv_world410d
 }
+
+#
 
 SOURCES += \
 	AncillaryDataTable.cpp \
@@ -35,9 +43,7 @@ SOURCES += \
 	DeckLinkInputDevice.cpp \
 	ImageWidget.cpp \
 	MainWindow.cpp \
-	MotionJPEG.cpp \
 	ProfileCallback.cpp \
-	VideoEncoder.cpp \
 	main.cpp \
 	Deinterlace.cpp \
 	StatusLabel.cpp
@@ -50,9 +56,7 @@ HEADERS += \
 	DeckLinkInputDevice.h \
 	ImageWidget.h \
 	MainWindow.h \
-	MotionJPEG.h \
 	ProfileCallback.h \
-	VideoEncoder.h \
 	common.h \
 	Deinterlace.h \
 	StatusLabel.h
@@ -60,6 +64,12 @@ HEADERS += \
 FORMS += \
     MainWindow.ui
 
+use_video_recording {
+	SOURCES += VideoEncoder.cpp
+	HEADERS += VideoEncoder.h
+}
+
 win32:SOURCES += sdk/Win/DeckLinkAPI_i.c
 win32:HEADERS += sdk/Win/DeckLinkAPI_h.h
 linux:SOURCES += sdk/Linux/include/DeckLinkAPIDispatch.cpp
+
