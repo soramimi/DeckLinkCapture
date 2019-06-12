@@ -623,7 +623,7 @@ void MainWindow::toggleRecord()
 //			aopt.channels = 0;
 //		}
 		m->video_encoder = std::make_shared<VideoEncoder>();
-		m->video_encoder->thread_start("/tmp/a.avi", vopt, aopt);
+		m->video_encoder->thread_start("a.avi", vopt, aopt);
 	}
 }
 

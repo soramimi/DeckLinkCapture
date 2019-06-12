@@ -110,6 +110,7 @@ bool MotionJPEG::config(const QString &filepath, const VideoOption &vopt, const 
 	m->filepath = filepath;
 	m->vopt = vopt;
 	m->aopt = aopt;
+	return true;
 }
 
 bool MotionJPEG::create()

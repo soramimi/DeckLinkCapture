@@ -94,15 +94,16 @@ AVStream *add_stream(AVFormatContext *oc, AVCodec **codec, AVCodecID codec_id, V
 		break;
 	}
 	/* Some formats want stream headers to be separate. */
-	if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
-		c->flags |= CODEC_FLAG_GLOBAL_HEADER;
-	}
+//	if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
+//		c->flags |= CODEC_FLAG_GLOBAL_HEADER;
+//	}
 	return st;
 }
 
 } // namespace
 
 struct VideoEncoder::Private {
+	QString filepath;
 	VideoEncoder::VideoOption vopt;
 	VideoEncoder::AudioOption aopt;
 
@@ -245,7 +246,7 @@ void VideoEncoder::open_audio(AVFormatContext *oc, AVCodec *codec, AVStream *st)
 	m->tincr = 2 * M_PI * 110.0 / c->sample_rate;
 	/* increment frequency by 110 Hz per second */
 	m->tincr2 = 2 * M_PI * 110.0 / c->sample_rate / c->sample_rate;
-	m->src_nb_samples = (c->codec->capabilities & CODEC_CAP_VARIABLE_FRAME_SIZE) ? 1000 : c->frame_size;
+	m->src_nb_samples = c->frame_size;
 	ret = av_samples_alloc_array_and_samples(&m->src_samples_data, &m->src_samples_linesize, c->channels, m->src_nb_samples, AV_SAMPLE_FMT_S16, 0);
 	if (ret < 0) {
 		fprintf(stderr, "Could not allocate source samples\n");
@@ -319,7 +320,8 @@ void VideoEncoder::write_audio_frame(AVFormatContext *oc, AVStream *st, bool flu
 			dst_nb_samples = m->src_nb_samples;
 		}
 		m->audio_frame->nb_samples = dst_nb_samples;
-		m->audio_frame->pts = av_rescale_q(m->samples_count, (AVRational){1, c->sample_rate}, c->time_base);
+		AVRational rate = { 1, c->sample_rate };
+		m->audio_frame->pts = av_rescale_q(m->samples_count, rate, c->time_base);
 		avcodec_fill_audio_frame(m->audio_frame, c->channels, c->sample_fmt, m->dst_samples_data[0], m->dst_samples_size, 0);
 		m->samples_count += dst_nb_samples;
 	}
@@ -410,16 +412,17 @@ void VideoEncoder::write_video_frame(AVFormatContext *oc, AVStream *st, bool flu
 		}
 		sws_scale(sws_ctx, (const uint8_t * const *)m->src_picture.data, m->src_picture.linesize, 0, c->height, m->dst_picture.data, m->dst_picture.linesize);
 	}
-	if ((oc->oformat->flags & AVFMT_RAWPICTURE) && !flush) {
-		/* Raw video case - directly store the picture in the packet */
-		AVPacket pkt;
-		av_init_packet(&pkt);
-		pkt.flags        |= AV_PKT_FLAG_KEY;
-		pkt.stream_index  = st->index;
-		pkt.data          = m->dst_picture.data[0];
-		pkt.size          = sizeof(AVPicture);
-		ret = av_interleaved_write_frame(oc, &pkt);
-	} else {
+//	if ((oc->oformat->flags & AVFMT_RAWPICTURE) && !flush) {
+//		/* Raw video case - directly store the picture in the packet */
+//		AVPacket pkt;
+//		av_init_packet(&pkt);
+//		pkt.flags        |= AV_PKT_FLAG_KEY;
+//		pkt.stream_index  = st->index;
+//		pkt.data          = m->dst_picture.data[0];
+//		pkt.size          = sizeof(AVPicture);
+//		ret = av_interleaved_write_frame(oc, &pkt);
+//	} else
+	{
 		AVPacket pkt = {};
 		int got_packet;
 		av_init_packet(&pkt);
@@ -464,7 +467,7 @@ bool VideoEncoder::is_recording() const
 
 int VideoEncoder::save()
 {
-	const char *filename = "/tmp/test.avi";
+	std::string filename = m->filepath.toStdString();
 	AVOutputFormat *fmt;
 	AVFormatContext *oc;
 	AVCodec *audio_codec, *video_codec;
@@ -477,10 +480,10 @@ int VideoEncoder::save()
 	/* Initialize libavcodec, and register all codecs and formats. */
 	av_register_all();
 	/* allocate the output media context */
-	avformat_alloc_output_context2(&oc, nullptr, nullptr, filename);
+	avformat_alloc_output_context2(&oc, nullptr, nullptr, filename.c_str());
 	if (!oc) {
 		printf("Could not deduce output format from file extension: using MPEG.\n");
-		avformat_alloc_output_context2(&oc, nullptr, "avi", filename);
+		avformat_alloc_output_context2(&oc, nullptr, "avi", filename.c_str());
 	}
 	if (!oc) return 1;
 	//	oc->strict_std_compliance = FF_COMPLIANCE_EXPERIMENTAL;
@@ -495,12 +498,18 @@ int VideoEncoder::save()
 	if (fmt->audio_codec != AV_CODEC_ID_NONE) m->audio_st = add_stream(oc, &audio_codec, fmt->audio_codec, m->aopt, m->vopt);
 	/* Now that all the parameters are set, we can open the audio and
 		 * video codecs and allocate the necessary encode buffers. */
-	if (m->video_st) open_video(oc, video_codec, m->video_st);
-	if (m->audio_st) open_audio(oc, audio_codec, m->audio_st);
-	av_dump_format(oc, 0, filename, 1);
+	if (m->video_st) {
+		open_video(oc, video_codec, m->video_st);
+		m->video_st->time_base.den = 100 * STREAM_FRAME_RATE;
+		m->video_st->time_base.num = 100;
+	}
+	if (m->audio_st) {
+		open_audio(oc, audio_codec, m->audio_st);
+	}
+	av_dump_format(oc, 0, filename.c_str(), 1);
 	/* open the output file, if needed */
 	if (!(fmt->flags & AVFMT_NOFILE)) {
-		ret = avio_open(&oc->pb, filename, AVIO_FLAG_WRITE);
+		ret = avio_open(&oc->pb, filename.c_str(), AVIO_FLAG_WRITE);
 		if (ret < 0) {
 			//			fprintf(stderr, "Could not open '%s': %s\n", filename, av_err2str(ret));
 			return 1;
@@ -565,6 +574,7 @@ void VideoEncoder::run()
 
 void VideoEncoder::thread_start(const QString &filepath, const VideoOption &vopt, const AudioOption &aopt)
 {
+	m->filepath = filepath;
 	m->vopt = vopt;
 	m->aopt = aopt;
 	start();
