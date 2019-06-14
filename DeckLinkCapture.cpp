@@ -48,6 +48,14 @@ void DeckLinkCapture::setDeinterlaceMode(DeinterlaceMode mode)
 	m->deinterlace = mode;
 }
 
+DeinterlaceMode DeckLinkCapture::deinterlaceMode() const
+{
+	if (m->field_dominance == bmdProgressiveFrame) {
+		return DeinterlaceMode::None;
+	}
+	return m->deinterlace;
+}
+
 HRESULT DeckLinkCapture::DrawFrame(IDeckLinkVideoFrame *frame)
 {
 	if (frame) {
@@ -191,7 +199,7 @@ void DeckLinkCapture::process(Task const &task)
 
 			QImage bytes1(w, h, QImage::Format_RGB888);
 
-			if (m->deinterlace == DeinterlaceMode::None) {
+			if (m->deinterlace == DeinterlaceMode::None || m->field_dominance == bmdProgressiveFrame) {
 				emit newFrame(image, QImage());
 			} else if (m->deinterlace == DeinterlaceMode::InterpolateEven) {
 				uint8_t const *s = (uint8_t const *)image.scanLine(0);

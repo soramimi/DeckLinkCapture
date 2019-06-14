@@ -613,6 +613,9 @@ void MainWindow::setImage(const QImage &image0, const QImage &image1)
 #ifdef USE_VIDEO_RECORDING
 	if (m->video_encoder) {
 		m->video_encoder->putVideoFrame(image0);
+		if (m->video_capture.deinterlaceMode() == DeinterlaceMode::MergeX2) {
+			m->video_encoder->putVideoFrame(image1);
+		}
 	}
 #endif
 }
@@ -635,6 +638,9 @@ void MainWindow::toggleRecord()
 	} else {
 		VideoEncoder::VideoOption vopt;
 		vopt.fps = m->fps;
+		if (m->video_capture.deinterlaceMode() == DeinterlaceMode::MergeX2) {
+			vopt.fps *= 2;
+		}
 		VideoEncoder::AudioOption aopt;
 		m->video_encoder = std::make_shared<VideoEncoder>();
 		m->video_encoder->thread_start("a.avi", vopt, aopt);

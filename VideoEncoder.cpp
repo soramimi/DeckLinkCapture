@@ -21,10 +21,10 @@ extern "C" {
 }
 
 namespace {
-static const int STREAM_DURATION = 5.0;
-static const double STREAM_FRAME_RATE = 29.97;
+//static const int STREAM_DURATION = 5.0;
+//static const double STREAM_FRAME_RATE = 29.97;
 static const AVPixelFormat STREAM_PIX_FMT = AV_PIX_FMT_YUV420P;
-static const int sws_flags = SWS_BICUBIC;
+static const int sws_flags = SWS_BILINEAR;
 
 int write_frame(AVFormatContext *fmt_ctx, const AVRational *time_base, AVStream *st, AVPacket *pkt)
 {
@@ -62,10 +62,10 @@ AVStream *add_stream(AVFormatContext *oc, AVCodec **codec, AVCodecID codec_id, V
 		break;
 	case AVMEDIA_TYPE_VIDEO:
 		c->codec_id = codec_id;
-		c->bit_rate = 8000000;
 		/* Resolution must be a multiple of two. */
-		c->width    = 1280;
-		c->height   = 720;
+		c->width    = 1920;//1280;
+		c->height   = 1080;//720;
+		c->bit_rate = c->width * c->height * 8;//8000000;
 		/* timebase: This is the fundamental unit of time (in seconds) in terms
 		 * of which frame timestamps are represented. For fixed-fps content,
 		 * timebase should be 1/framerate and timestamp increments should be
@@ -500,7 +500,7 @@ int VideoEncoder::save()
 		 * video codecs and allocate the necessary encode buffers. */
 	if (m->video_st) {
 		open_video(oc, video_codec, m->video_st);
-		m->video_st->time_base.den = 100 * STREAM_FRAME_RATE;
+		m->video_st->time_base.den = 100 * m->vopt.fps;//STREAM_FRAME_RATE;
 		m->video_st->time_base.num = 100;
 	}
 	if (m->audio_st) {
