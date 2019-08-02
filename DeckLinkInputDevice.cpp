@@ -139,8 +139,10 @@ bool DeckLinkInputDevice::init()
 {
 	HRESULT result;
 	IDeckLinkProfileAttributes *deckLinkAttributes = nullptr;
-#ifdef Q_OS_WIN
+#if defined(Q_OS_WIN)
 	BSTR deviceNameStr;
+#elif defined(Q_OS_MACX)
+	CFStringRef deviceNameStr;
 #else
 	const char *deviceNameStr;
 #endif
@@ -189,9 +191,11 @@ bool DeckLinkInputDevice::init()
 	// Get device name
 	result = m->decklink->GetDisplayName(&deviceNameStr);
 	if (result == S_OK) {
-#ifdef Q_OS_WIN
+#if defined(Q_OS_WIN)
 		m->device_name = QString::fromUtf16((ushort const *)deviceNameStr);
 		SysFreeString(deviceNameStr);
+#elif defined(Q_OS_MACX)
+		m->device_name = toQString(deviceNameStr);
 #else
 		m->device_name = deviceNameStr;
 		free((void*)deviceNameStr);
@@ -407,8 +411,10 @@ HRESULT DeckLinkInputDevice::VideoInputFrameArrived(IDeckLinkVideoInputFrame *vi
 void DeckLinkInputDevice::getAncillaryDataFromFrame(IDeckLinkVideoInputFrame *videoFrame, BMDTimecodeFormat timecodeFormat, QString *timecodeString, QString *userBitsString)
 {
 	IDeckLinkTimecode *timecode	= nullptr;
-#ifdef Q_OS_WIN
+#if defined(Q_OS_WIN)
 	BSTR timecodeStr = nullptr;
+#elif defined(Q_OS_MACX)
+	CFStringRef timecodeStr = nullptr;
 #else
 	const char *timecodeStr	= nullptr;
 #endif

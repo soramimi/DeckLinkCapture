@@ -313,10 +313,14 @@ void MainWindow::refreshDisplayModeMenu(void)
 			QString name;
 			{
 				BSTR modeName = nullptr;
-#ifdef Q_OS_WIN
+#if defined(Q_OS_WIN)
 				if (displayMode->GetName(&modeName) == S_OK && modeName) {
 					name = QString::fromUtf16((ushort const *)modeName);
 					SysFreeString(modeName);
+				}
+#elif defined(Q_OS_MACX)
+				if (displayMode->GetName(&modeName) == S_OK && modeName) {
+					name = toQString(modeName);
 				}
 #else
 				if (displayMode->GetName(const_cast<const char **>(&modeName)) == S_OK && modeName) {
