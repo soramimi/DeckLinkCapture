@@ -397,24 +397,12 @@ HRESULT DeckLinkInputDevice::VideoInputFrameArrived(IDeckLinkVideoInputFrame *vi
 void DeckLinkInputDevice::getAncillaryDataFromFrame(IDeckLinkVideoInputFrame *videoFrame, BMDTimecodeFormat timecodeFormat, QString *timecodeString, QString *userBitsString)
 {
 	IDeckLinkTimecode *timecode	= nullptr;
-#if defined(Q_OS_WIN)
 	DLString timecodeStr;
-#elif defined(Q_OS_MACX)
-//	CFStringRef timecodeStr = nullptr;
-	DLString timecodeStr;
-#else
-	DLString timecodeStr;
-#endif
 	BMDTimecodeUserBits userBits = 0;
 
 	if (videoFrame && timecodeString && userBitsString && videoFrame->GetTimecode(timecodeFormat, &timecode) == S_OK) {
 		if (timecode->GetString(&timecodeStr) == S_OK) {
 			*timecodeString = timecodeStr;
-//#ifdef Q_OS_WIN
-//			SysFreeString(timecodeStr);
-//#else
-////			free((void*)timecodeStr);
-//#endif
 		} else {
 			*timecodeString = "";
 		}

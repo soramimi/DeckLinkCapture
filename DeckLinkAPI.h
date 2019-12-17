@@ -7,6 +7,31 @@
 #if defined(Q_OS_WIN)
 #include "sdk/Win/DeckLinkAPI_h.h"
 typedef IID CFUUIDBytes;
+
+class DLString {
+private:
+	BSTR str = nullptr;
+public:
+	~DLString();
+	void clear();
+	BSTR *operator & ()
+	{
+		return &str;
+	}
+	operator QString ()
+	{
+		return str ? QString::fromUtf16((ushort const *)str) : QString();
+	}
+	operator std::string ()
+	{
+		return operator QString ().toStdString();
+	}
+	bool empty() const
+	{
+		return !(str && *str);
+	}
+};
+
 #elif defined(Q_OS_MACX)
 #include "sdk/Mac/include/DeckLinkAPI.h"
 
@@ -48,8 +73,7 @@ typedef bool BOOL;
 
 #endif
 
-#ifdef Q_OS_MAC
-#else
+#if 0
 class DLString {
 private:
 #ifdef Q_OS_WIN
