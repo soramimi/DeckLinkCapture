@@ -313,19 +313,9 @@ void MainWindow::refreshDisplayModeMenu(void)
 			QString name;
 			{
 				DLString modeName;
-#if defined(Q_OS_WIN)
 				if (displayMode->GetName(&modeName) == S_OK && !modeName.empty()) {
 					name = modeName;
 				}
-#elif defined(Q_OS_MACX)
-				if (displayMode->GetName(&modeName) == S_OK && !modeName.empty()) {
-					name = modeName;
-				}
-#else
-				if (displayMode->GetName(const_cast<const char **>(&modeName)) == S_OK && !modeName.empty()) {
-					name = modeName;
-				}
-#endif
 			}
 			if (!name.isEmpty()) {
 				int row = ui->listWidget_display_mode->count();

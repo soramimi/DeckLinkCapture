@@ -32,7 +32,7 @@ public:
 	}
 };
 
-#elif defined(Q_OS_MACX)
+#elif defined(Q_OS_MAC)
 #include "sdk/Mac/include/DeckLinkAPI.h"
 
 typedef bool BOOL;
@@ -66,44 +66,16 @@ public:
 	}
 };
 
-#else
+#elif defined(Q_OS_LINUX)
 #include "sdk/Linux/include/DeckLinkAPI.h"
 typedef bool BOOL;
-//typedef char *BSTR;
 
-#endif
-
-#if 0
 class DLString {
 private:
-#ifdef Q_OS_WIN
-	BSTR str = nullptr;
-#endif
-#ifdef Q_OS_LINUX
 	char const *str = nullptr;
-#endif
 public:
 	~DLString();
 	void clear();
-#ifdef Q_OS_WIN
-	BSTR *operator & ()
-	{
-		return &str;
-	}
-	operator QString ()
-	{
-		return str ? QString::fromUtf16((ushort const *)str) : QString();
-	}
-	operator std::string ()
-	{
-		return operator QString ().toStdString();
-	}
-	bool empty() const
-	{
-		return !(str && *str);
-	}
-#endif
-#ifdef Q_OS_LINUX
 	char const **operator & ()
 	{
 		return &str;
@@ -120,8 +92,10 @@ public:
 	{
 		return !(str && *str);
 	}
-#endif
 };
+
 #endif
+
+HRESULT GetDeckLinkIterator(IDeckLinkIterator **deckLinkIterator);
 
 #endif // DECKLINKAPI_H
