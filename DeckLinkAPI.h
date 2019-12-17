@@ -27,6 +27,9 @@ static inline QString toQString(CFStringRef str)
 typedef bool BOOL;
 //typedef char *BSTR;
 
+#endif
+
+
 class DLString {
 private:
 #ifdef Q_OS_WIN
@@ -69,7 +72,5 @@ public:
 		return !(str && *str);
 	}
 };
-
-#endif
 
 #endif // DECKLINKAPI_H

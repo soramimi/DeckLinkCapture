@@ -314,9 +314,8 @@ void MainWindow::refreshDisplayModeMenu(void)
 			{
 				DLString modeName;
 #if defined(Q_OS_WIN)
-				if (displayMode->GetName(&modeName) == S_OK && modeName) {
-					name = QString::fromUtf16((ushort const *)modeName);
-					SysFreeString(modeName);
+				if (displayMode->GetName(&modeName) == S_OK && !modeName.empty()) {
+					name = modeName;
 				}
 #elif defined(Q_OS_MACX)
 				if (displayMode->GetName(&modeName) == S_OK && modeName) {

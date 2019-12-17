@@ -412,7 +412,7 @@ void DeckLinkInputDevice::getAncillaryDataFromFrame(IDeckLinkVideoInputFrame *vi
 {
 	IDeckLinkTimecode *timecode	= nullptr;
 #if defined(Q_OS_WIN)
-	BSTR timecodeStr = nullptr;
+	DLString timecodeStr;
 #elif defined(Q_OS_MACX)
 	CFStringRef timecodeStr = nullptr;
 #else
@@ -423,11 +423,11 @@ void DeckLinkInputDevice::getAncillaryDataFromFrame(IDeckLinkVideoInputFrame *vi
 	if (videoFrame && timecodeString && userBitsString && videoFrame->GetTimecode(timecodeFormat, &timecode) == S_OK) {
 		if (timecode->GetString(&timecodeStr) == S_OK) {
 			*timecodeString = timecodeStr;
-#ifdef Q_OS_WIN
-			SysFreeString(timecodeStr);
-#else
-//			free((void*)timecodeStr);
-#endif
+//#ifdef Q_OS_WIN
+//			SysFreeString(timecodeStr);
+//#else
+////			free((void*)timecodeStr);
+//#endif
 		} else {
 			*timecodeString = "";
 		}
