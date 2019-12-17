@@ -144,7 +144,7 @@ bool DeckLinkInputDevice::init()
 #elif defined(Q_OS_MACX)
 	CFStringRef deviceNameStr;
 #else
-	const char *deviceNameStr;
+	DLString deviceNameStr;
 #endif
 
 	// Get input interface
@@ -198,7 +198,7 @@ bool DeckLinkInputDevice::init()
 		m->device_name = toQString(deviceNameStr);
 #else
 		m->device_name = deviceNameStr;
-		free((void*)deviceNameStr);
+//		free((void*)deviceNameStr);
 #endif
 	} else {
 		m->device_name = "DeckLink";
@@ -416,17 +416,17 @@ void DeckLinkInputDevice::getAncillaryDataFromFrame(IDeckLinkVideoInputFrame *vi
 #elif defined(Q_OS_MACX)
 	CFStringRef timecodeStr = nullptr;
 #else
-	const char *timecodeStr	= nullptr;
+	DLString timecodeStr;
 #endif
 	BMDTimecodeUserBits userBits = 0;
 
 	if (videoFrame && timecodeString && userBitsString && videoFrame->GetTimecode(timecodeFormat, &timecode) == S_OK) {
 		if (timecode->GetString(&timecodeStr) == S_OK) {
-			*timecodeString = QString::fromUtf16((ushort const *)timecodeStr);
+			*timecodeString = timecodeStr;
 #ifdef Q_OS_WIN
 			SysFreeString(timecodeStr);
 #else
-			free((void*)timecodeStr);
+//			free((void*)timecodeStr);
 #endif
 		} else {
 			*timecodeString = "";

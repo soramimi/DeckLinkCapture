@@ -43,6 +43,7 @@ use_opencv {
 
 SOURCES += \
 	AncillaryDataTable.cpp \
+	DeckLinkAPI.cpp \
 	DeckLinkCapture.cpp \
 	DeckLinkDeviceDiscovery.cpp \
 	DeckLinkInputDevice.cpp \
