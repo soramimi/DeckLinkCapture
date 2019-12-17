@@ -193,9 +193,6 @@ void Deinterlace::stop()
 
 std::pair<QImage, QImage> Deinterlace::filter(QImage image)
 {
-//	QElapsedTimer t;
-//	t.start();
-
 	QImage newimage0;
 	QImage newimage1;
 	image = image.convertToFormat(QImage::Format_RGB888);
@@ -310,7 +307,6 @@ std::pair<QImage, QImage> Deinterlace::filter(QImage image)
 			}
 		}
 	}
-//	qDebug() << t.elapsed();
 	return std::make_pair<QImage, QImage>(std::move(newimage0), std::move(newimage1));
 }
 

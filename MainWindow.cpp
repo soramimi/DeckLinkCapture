@@ -312,22 +312,10 @@ void MainWindow::refreshDisplayModeMenu(void)
 		if ((deckLinkInput->DoesSupportVideoMode(m->selected_input_connection, mode, bmdFormatUnspecified, bmdSupportedVideoModeDefault, &supported) == S_OK) && supported) {
 			QString name;
 			{
-				BSTR modeName = nullptr;
-#if defined(Q_OS_WIN)
-				if (displayMode->GetName(&modeName) == S_OK && modeName) {
-					name = QString::fromUtf16((ushort const *)modeName);
-					SysFreeString(modeName);
+				DLString modeName;
+				if (displayMode->GetName(&modeName) == S_OK && !modeName.empty()) {
+					name = modeName;
 				}
-#elif defined(Q_OS_MACX)
-				if (displayMode->GetName(&modeName) == S_OK && modeName) {
-					name = toQString(modeName);
-				}
-#else
-				if (displayMode->GetName(const_cast<const char **>(&modeName)) == S_OK && modeName) {
-					name = QString(modeName);
-					free(modeName);
-				}
-#endif
 			}
 			if (!name.isEmpty()) {
 				int row = ui->listWidget_display_mode->count();

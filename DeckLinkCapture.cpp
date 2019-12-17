@@ -314,11 +314,13 @@ void DeckLinkCapture::clear()
 bool DeckLinkCapture::start(DeckLinkInputDevice *selectedDevice, BMDDisplayMode displayMode, BMDFieldDominance fieldDominance, bool applyDetectedInputMode, bool input_audio)
 {
 	clear();
-	m->di.start();
-	if (selectedDevice->startCapture(displayMode, this, applyDetectedInputMode, input_audio)) {
-		m->field_dominance = fieldDominance;
-		QThread::start();
-		return true;
+	if (selectedDevice) {
+		m->di.start();
+		if (selectedDevice->startCapture(displayMode, this, applyDetectedInputMode, input_audio)) {
+			m->field_dominance = fieldDominance;
+			QThread::start();
+			return true;
+		}
 	}
 	return false;
 }
