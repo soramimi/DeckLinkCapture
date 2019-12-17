@@ -9,18 +9,37 @@
 typedef IID CFUUIDBytes;
 #elif defined(Q_OS_MACX)
 #include "sdk/Mac/include/DeckLinkAPI.h"
-typedef bool BOOL;
-typedef CFStringRef BSTR;
 
-static inline QString toQString(CFStringRef str)
-{
-	if (!str) return QString();
-	CFIndex length = CFStringGetLength(str);
-	if (length == 0) return QString();
-	QString string(length, Qt::Uninitialized);
-	CFStringGetCharacters(str, CFRangeMake(0, length), reinterpret_cast<UniChar *>(const_cast<QChar *>(string.unicode())));
-	return string;
-}
+typedef bool BOOL;
+
+class DLString {
+private:
+	CFStringRef str = nullptr;
+public:
+	~DLString();
+	void clear();
+	CFStringRef *operator & ()
+	{
+		return &str;
+	}
+	operator QString () const
+	{
+		if (!str) return QString();
+		CFIndex length = CFStringGetLength(str);
+		if (length == 0) return QString();
+		QString string(length, Qt::Uninitialized);
+		CFStringGetCharacters(str, CFRangeMake(0, length), reinterpret_cast<UniChar *>(const_cast<QChar *>(string.unicode())));
+		return string;
+	}
+	operator std::string () const
+	{
+		return operator QString ().toStdString();
+	}
+	bool empty() const
+	{
+		return !(str && CFStringGetLength(str) > 0);
+	}
+};
 
 #else
 #include "sdk/Linux/include/DeckLinkAPI.h"
@@ -29,12 +48,14 @@ typedef bool BOOL;
 
 #endif
 
-
+#ifdef Q_OS_MAC
+#else
 class DLString {
 private:
 #ifdef Q_OS_WIN
 	BSTR str = nullptr;
-#else
+#endif
+#ifdef Q_OS_LINUX
 	char const *str = nullptr;
 #endif
 public:
@@ -53,7 +74,12 @@ public:
 	{
 		return operator QString ().toStdString();
 	}
-#else
+	bool empty() const
+	{
+		return !(str && *str);
+	}
+#endif
+#ifdef Q_OS_LINUX
 	char const **operator & ()
 	{
 		return &str;
@@ -66,11 +92,12 @@ public:
 	{
 		return str ? std::string(str) : std::string();
 	}
-#endif
 	bool empty() const
 	{
 		return !(str && *str);
 	}
+#endif
 };
+#endif
 
 #endif // DECKLINKAPI_H

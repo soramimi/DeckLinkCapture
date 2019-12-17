@@ -29,7 +29,7 @@ use_video_recording {
 
 # OpenCV
 
-#CONFIG += use_opencv
+CONFIG += use_opencv
 use_opencv {
 	DEFINES += USE_OPENCV
     linux:LIBS += -lopencv_core -lopencv_highgui -lopencv_imgproc

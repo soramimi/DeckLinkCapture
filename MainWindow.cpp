@@ -318,8 +318,8 @@ void MainWindow::refreshDisplayModeMenu(void)
 					name = modeName;
 				}
 #elif defined(Q_OS_MACX)
-				if (displayMode->GetName(&modeName) == S_OK && modeName) {
-					name = toQString(modeName);
+				if (displayMode->GetName(&modeName) == S_OK && !modeName.empty()) {
+					name = modeName;
 				}
 #else
 				if (displayMode->GetName(const_cast<const char **>(&modeName)) == S_OK && !modeName.empty()) {
