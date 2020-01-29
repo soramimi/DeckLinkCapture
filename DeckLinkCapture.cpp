@@ -3,6 +3,7 @@
 #include <QDebug>
 #include <QElapsedTimer>
 #include <stdint.h>
+#include <omp.h>
 
 #ifdef USE_OPENCV
 #include <opencv2/imgproc/imgproc.hpp>
@@ -89,6 +90,7 @@ void DeckLinkCapture::process(Task const &task)
 				image = QImage(w, h, QImage::Format_RGB888);
 				void const *data = task.ba.data();
 				int stride = w * 4;
+#pragma omp parallel for
 				for (int y = 0; y < h; y++) {
 					uint8_t const *src = (uint8_t const *)data + stride * y;
 					uint8_t *dst = image.scanLine(y);
@@ -105,6 +107,7 @@ void DeckLinkCapture::process(Task const &task)
 				image = QImage(w, h, QImage::Format_RGB888);
 				void const *data = task.ba.data();
 				int stride = w * 4;
+#pragma omp parallel for
 				for (int y = 0; y < h; y++) {
 					uint8_t const *src = (uint8_t const *)data + stride * y;
 					uint8_t *dst = image.scanLine(y);
@@ -121,6 +124,7 @@ void DeckLinkCapture::process(Task const &task)
 				image = QImage(w, h, QImage::Format_RGB888);
 				void const *data = task.ba.data();
 				int stride = w * 4;
+#pragma omp parallel for
 				for (int y = 0; y < h; y++) {
 					uint8_t const *src = (uint8_t const *)data + stride * y;
 					uint8_t *dst = image.scanLine(y);
@@ -137,6 +141,7 @@ void DeckLinkCapture::process(Task const &task)
 				image = QImage(w, h, QImage::Format_RGB888);
 				void const *data = task.ba.data();
 				int stride = w * 4;
+#pragma omp parallel for
 				for (int y = 0; y < h; y++) {
 					uint8_t const *src = (uint8_t const *)data + stride * y;
 					uint8_t *dst = image.scanLine(y);
@@ -152,6 +157,7 @@ void DeckLinkCapture::process(Task const &task)
 				image = QImage(w, h, QImage::Format_RGB888);
 				void const *data = task.ba.data();
 				int stride = w * 4;
+#pragma omp parallel for
 				for (int y = 0; y < h; y++) {
 					uint8_t const *src = (uint8_t const *)data + stride * y;
 					uint8_t *dst = image.scanLine(y);
@@ -170,6 +176,7 @@ void DeckLinkCapture::process(Task const &task)
 			cv::cvtColor(mat_yuyv, mat_rgb, cv::COLOR_YUV2RGB_UYVY);
 			memcpy(image.bits(), mat_rgb.ptr(0), w * h * 3);
 #else
+#pragma omp parallel for
 			for (int y = 0; y < h; y++) {
 				uint8_t const *src = (uint8_t const *)task.ba.data() + w * y * 2;
 				uint8_t *dst = image.scanLine(y);
@@ -315,7 +322,6 @@ bool DeckLinkCapture::start(DeckLinkInputDevice *selectedDevice, BMDDisplayMode 
 {
 	clear();
 	if (selectedDevice) {
-		m->di.start();
 		if (selectedDevice->startCapture(displayMode, this, applyDetectedInputMode, input_audio)) {
 			m->field_dominance = fieldDominance;
 			QThread::start();
@@ -334,7 +340,6 @@ void DeckLinkCapture::stop()
 		m->waiter.wakeAll();
 	}
 
-	m->di.stop();
 	clear();
 
 	if (!wait(300)) {

@@ -9,6 +9,9 @@ DESTDIR = $$PWD/_bin
 
 win32:INCLUDEPATH += C:\opencv\build\include
 
+linux:QMAKE_CXXFLAGS += -fopenmp
+linux:QMAKE_LFLAGS += -fopenmp
+
 linux:LIBS += -ldl
 win32:LIBS += -lole32 -loleaut32
 macx:LIBS += -framework CoreFoundation
