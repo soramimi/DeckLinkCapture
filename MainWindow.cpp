@@ -309,7 +309,9 @@ void MainWindow::refreshDisplayModeMenu(void)
 
 		double fps = DeckLinkInputDevice::frameRate(displayMode);
 
-		if ((deckLinkInput->DoesSupportVideoMode(m->selected_input_connection, mode, bmdFormatUnspecified, bmdSupportedVideoModeDefault, &supported) == S_OK) && supported) {
+//		if ((deckLinkInput->DoesSupportVideoMode(m->selected_input_connection, mode, bmdFormatUnspecified, bmdNoVideoInputConversion, bmdSupportedVideoModeDefault, NULL, &supported){}
+
+		if ((deckLinkInput->DoesSupportVideoMode(m->selected_input_connection, mode, bmdFormatUnspecified, bmdNoVideoInputConversion, bmdSupportedVideoModeDefault, nullptr, &supported) == S_OK) && supported) {
 			QString name;
 			{
 				DLString modeName;
