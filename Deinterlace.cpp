@@ -58,7 +58,7 @@ std::pair<QImage, QImage> Deinterlace::filter(QImage image)
 #pragma omp parallel for
 			for (int y = 0; y < h - 3; y++) {
 				uint8_t const *src = GrayscaleLine(y);
-				uint8_t *flags = &flags[w * y];
+				uint8_t *flg = &flags[w * y];
 				for (int x = 0; x < w; x++) {
 					uint8_t const *s = src + x;
 					uint8_t a = s[w * 0];
@@ -66,17 +66,17 @@ std::pair<QImage, QImage> Deinterlace::filter(QImage image)
 					uint8_t c = s[w * 2];
 					uint8_t d = s[w * 3];
 					if ((b < c && a <= b && c <= d) || (c < b && b <= a && d <= c)) {
-						flags[w * 0 + x] = 0;
-						flags[w * 1 + x] = 0;
-						flags[w * 2 + x] = 0;
-						flags[w * 3 + x] = 0;
+						flg[w * 0 + x] = 0;
+						flg[w * 1 + x] = 0;
+						flg[w * 2 + x] = 0;
+						flg[w * 3 + x] = 0;
 					} else if (y + 4 < h) {
 						uint8_t e = s[w * 4];
 						uint8_t t = (b + c * 2 + d) / 4;
 						if ((b < c && d < c && a < t && e < t) || (b > c && d > c && a > t && e > t)) {
-							flags[w * 1 + x] = 0;
-							flags[w * 2 + x] = 0;
-							flags[w * 3 + x] = 0;
+							flg[w * 1 + x] = 0;
+							flg[w * 2 + x] = 0;
+							flg[w * 3 + x] = 0;
 						}
 					}
 				}

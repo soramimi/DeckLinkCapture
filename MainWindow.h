@@ -70,7 +70,7 @@ private slots:
 	void on_pushButton_start_clicked();
 	void on_comboBox_deinterlace_currentIndexChanged(int index);
 	void on_checkBox_audio_stateChanged(int arg1);
-	void setImage(const QImage &image0, const QImage &image1);
+	void newFrame();
 	void on_action_record_triggered(bool);
 };
 

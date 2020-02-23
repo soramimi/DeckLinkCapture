@@ -98,7 +98,7 @@ MainWindow::MainWindow(QWidget *parent)
 		i++;
 	}
 
-	connect(&m->video_capture, &DeckLinkCapture::newFrame, this, &MainWindow::setImage);
+	connect(&m->video_capture, &DeckLinkCapture::newFrame, this, &MainWindow::newFrame);
 
 	setStatusBarText(QString());
 
@@ -598,18 +598,24 @@ void MainWindow::on_checkBox_audio_stateChanged(int arg1)
 	restartCapture();
 }
 
-void MainWindow::setImage(const QImage &image0, const QImage &image1)
+void MainWindow::newFrame()
 {
-	ui->widget_image->setImage(image0, image1);
+	while (1) {
+		QImage image0 = m->video_capture.nextFrame();
+		if (image0.isNull()) return;
+		QImage image1 = m->video_capture.nextFrame();
+
+		ui->widget_image->setImage(image0, image1);
 
 #ifdef USE_VIDEO_RECORDING
-	if (m->video_encoder) {
-		m->video_encoder->putVideoFrame(image0);
-		if (m->video_capture.deinterlaceMode() == DeinterlaceMode::MergeX2) {
-			m->video_encoder->putVideoFrame(image1);
+		if (m->video_encoder) {
+			m->video_encoder->putVideoFrame(image0);
+			if (m->video_capture.deinterlaceMode() == DeinterlaceMode::MergeX2) {
+				m->video_encoder->putVideoFrame(image1);
+			}
 		}
-	}
 #endif
+	}
 }
 
 void MainWindow::stopRecord()
