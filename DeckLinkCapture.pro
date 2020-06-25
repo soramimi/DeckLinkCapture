@@ -35,6 +35,7 @@ use_video_recording {
 CONFIG += use_opencv
 use_opencv {
 	DEFINES += USE_OPENCV
+	linux:INCLUDEPATH += /usr/include/opencv4
     linux:LIBS += -lopencv_core -lopencv_highgui -lopencv_imgproc
     macx:INCLUDEPATH += /usr/local/Cellar/opencv/4.1.0_2/include/opencv4
     macx:LIBS += -L/usr/local/Cellar/opencv/4.1.0_2/lib -lopencv_core -lopencv_highgui -lopencv_imgproc

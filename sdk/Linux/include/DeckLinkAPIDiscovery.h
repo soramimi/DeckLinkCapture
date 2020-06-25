@@ -54,7 +54,7 @@ BMD_CONST REFIID IID_IDeckLink                                    = /* C418FBDD-
 
 class IDeckLink;
 
-/* Interface IDeckLink - represents a DeckLink device */
+/* Interface IDeckLink - Represents a DeckLink device */
 
 class BMD_PUBLIC IDeckLink : public IUnknown
 {

@@ -70,7 +70,7 @@ enum _BMDDeckLinkConfigurationID {
     bmdDeckLinkConfigSwapHDMICh3AndCh4OnInput                    = /* 'hi34' */ 0x68693334,
     bmdDeckLinkConfigSwapHDMICh3AndCh4OnOutput                   = /* 'ho34' */ 0x686F3334,
 
-    /* Video output flags */
+    /* Video Output Flags */
 
     bmdDeckLinkConfigFieldFlickerRemoval                         = /* 'fdfr' */ 0x66646672,
     bmdDeckLinkConfigHD1080p24ToHD1080i5994Conversion            = /* 'to59' */ 0x746F3539,
@@ -81,9 +81,6 @@ enum _BMDDeckLinkConfigurationID {
     bmdDeckLinkConfigSMPTELevelAOutput                           = /* 'smta' */ 0x736D7461,
     bmdDeckLinkConfigRec2020Output                               = /* 'rec2' */ 0x72656332,	// Ensure output is Rec.2020 colorspace
     bmdDeckLinkConfigQuadLinkSDIVideoOutputSquareDivisionSplit   = /* 'SDQS' */ 0x53445153,
-
-    /* Video Output Flags */
-
     bmdDeckLinkConfigOutput1080pAsPsF                            = /* 'pfpr' */ 0x70667072,
 
     /* Video Output Integers */
@@ -114,9 +111,6 @@ enum _BMDDeckLinkConfigurationID {
     bmdDeckLinkConfigVideoInputScanning                          = /* 'visc' */ 0x76697363,	// Applicable to H264 Pro Recorder only
     bmdDeckLinkConfigUseDedicatedLTCInput                        = /* 'dltc' */ 0x646C7463,	// Use timecode from LTC input instead of SDI stream
     bmdDeckLinkConfigSDIInput3DPayloadOverride                   = /* '3dds' */ 0x33646473,
-
-    /* Video Input Flags */
-
     bmdDeckLinkConfigCapture1080pAsPsF                           = /* 'cfpr' */ 0x63667072,
 
     /* Video Input Integers */
@@ -140,6 +134,10 @@ enum _BMDDeckLinkConfigurationID {
     bmdDeckLinkConfigVideoInputCompositeChromaGain               = /* 'iicg' */ 0x69696367,
     bmdDeckLinkConfigVideoInputSVideoLumaGain                    = /* 'islg' */ 0x69736C67,
     bmdDeckLinkConfigVideoInputSVideoChromaGain                  = /* 'iscg' */ 0x69736367,
+
+    /* Keying Integers */
+
+    bmdDeckLinkConfigInternalKeyingAncillaryDataSource           = /* 'ikas' */ 0x696B6173,
 
     /* Audio Input Flags */
 

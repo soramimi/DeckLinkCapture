@@ -67,13 +67,13 @@ enum _BMDDeckControlEvent {
 
     /* Export-To-Tape events */
 
-    bmdDeckControlPrepareForExportEvent                          = /* 'pfee' */ 0x70666565,	// This event is triggered a few frames before reaching the in-point. IDeckLinkInput::StartScheduledPlayback() should be called at this point.
-    bmdDeckControlExportCompleteEvent                            = /* 'exce' */ 0x65786365,	// This event is triggered a few frames after reaching the out-point. At this point, it is safe to stop playback.
+    bmdDeckControlPrepareForExportEvent                          = /* 'pfee' */ 0x70666565,	// This event is triggered a few frames before reaching the in-point. IDeckLinkInput::StartScheduledPlayback should be called at this point.
+    bmdDeckControlExportCompleteEvent                            = /* 'exce' */ 0x65786365,	// This event is triggered a few frames after reaching the out-point. At this point, it is safe to stop playback. Upon reception of this event the deck's control mode is set back to bmdDeckControlVTRControlMode.
 
     /* Capture events */
 
     bmdDeckControlPrepareForCaptureEvent                         = /* 'pfce' */ 0x70666365,	// This event is triggered a few frames before reaching the in-point. The serial timecode attached to IDeckLinkVideoInputFrames is now valid.
-    bmdDeckControlCaptureCompleteEvent                           = /* 'ccev' */ 0x63636576	// This event is triggered a few frames after reaching the out-point.
+    bmdDeckControlCaptureCompleteEvent                           = /* 'ccev' */ 0x63636576	// This event is triggered a few frames after reaching the out-point. Upon reception of this event the deck's control mode is set back to bmdDeckControlVTRControlMode.
 };
 
 /* Enum BMDDeckControlVTRControlState - VTR Control state */

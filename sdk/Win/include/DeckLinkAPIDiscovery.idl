@@ -46,12 +46,12 @@ cpp_quote("#endif")
 
 interface IDeckLink;
 
-/* Interface IDeckLink - represents a DeckLink device */
+/* Interface IDeckLink - Represents a DeckLink device */
 
 [
     object,
     uuid(C418FBDD-0587-48ED-8FE5-640F0A14AF91),
-    helpstring("represents a DeckLink device")
+    helpstring("Represents a DeckLink device")
 ] interface IDeckLink : IUnknown
 {
     HRESULT GetModelName ([out] BSTR* modelName);

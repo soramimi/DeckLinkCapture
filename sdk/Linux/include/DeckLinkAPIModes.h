@@ -49,7 +49,7 @@
 BMD_CONST REFIID IID_IDeckLinkDisplayModeIterator                 = /* 9C88499F-F601-4021-B80B-032E4EB41C35 */ { 0x9C,0x88,0x49,0x9F,0xF6,0x01,0x40,0x21,0xB8,0x0B,0x03,0x2E,0x4E,0xB4,0x1C,0x35 };
 BMD_CONST REFIID IID_IDeckLinkDisplayMode                         = /* 3EB2C1AB-0A3D-4523-A3AD-F40D7FB14E78 */ { 0x3E,0xB2,0xC1,0xAB,0x0A,0x3D,0x45,0x23,0xA3,0xAD,0xF4,0x0D,0x7F,0xB1,0x4E,0x78 };
 
-/* Enum BMDDisplayMode - Video display modes */
+/* Enum BMDDisplayMode - BMDDisplayMode enumerates the video modes supported. */
 
 typedef uint32_t BMDDisplayMode;
 enum _BMDDisplayMode {
@@ -194,17 +194,12 @@ enum _BMDDisplayMode {
     bmdMode2560x1600p50                                          = /* 'wqx5' */ 0x77717835,
     bmdMode2560x1600p60                                          = /* 'wqx6' */ 0x77717836,
 
-    /* RAW Modes for Cintel (input only) */
-
-    bmdModeCintelRAW                                             = /* 'rwci' */ 0x72776369,	// Frame size up to 4096x3072, variable frame rate
-    bmdModeCintelCompressedRAW                                   = /* 'rwcc' */ 0x72776363,	// Frame size up to 4096x3072, variable frame rate
-
     /* Special Modes */
 
     bmdModeUnknown                                               = /* 'iunk' */ 0x69756E6B
 };
 
-/* Enum BMDFieldDominance - Video field dominance */
+/* Enum BMDFieldDominance - BMDFieldDominance enumerates settings applicable to video fields. */
 
 typedef uint32_t BMDFieldDominance;
 enum _BMDFieldDominance {
@@ -233,12 +228,7 @@ enum _BMDPixelFormat {
 
     /* AVID DNxHR */
 
-    bmdFormatDNxHR                                               = /* 'AVdh' */ 0x41566468,
-
-    /* Cintel formats */
-
-    bmdFormat12BitRAWGRBG                                        = /* 'r12p' */ 0x72313270,	// 12-bit RAW data for bayer pattern GRBG
-    bmdFormat12BitRAWJPEG                                        = /* 'r16p' */ 0x72313670	// 12-bit RAW data arranged in tiles and JPEG compressed
+    bmdFormatDNxHR                                               = /* 'AVdh' */ 0x41566468
 };
 
 /* Enum BMDDisplayModeFlags - Flags to describe the characteristics of an IDeckLinkDisplayMode. */
@@ -258,7 +248,7 @@ enum _BMDDisplayModeFlags {
 class IDeckLinkDisplayModeIterator;
 class IDeckLinkDisplayMode;
 
-/* Interface IDeckLinkDisplayModeIterator - enumerates over supported input/output display modes. */
+/* Interface IDeckLinkDisplayModeIterator - Enumerates over supported input/output display modes. */
 
 class BMD_PUBLIC IDeckLinkDisplayModeIterator : public IUnknown
 {
@@ -269,7 +259,7 @@ protected:
     virtual ~IDeckLinkDisplayModeIterator () {} // call Release method to drop reference count
 };
 
-/* Interface IDeckLinkDisplayMode - represents a display mode */
+/* Interface IDeckLinkDisplayMode - Represents a display mode */
 
 class BMD_PUBLIC IDeckLinkDisplayMode : public IUnknown
 {
