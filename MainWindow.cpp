@@ -130,6 +130,8 @@ MainWindow::~MainWindow()
 		m->decklink_discovery = nullptr;
 	}
 
+	m->video_capture.stop();
+
 	delete m;
 	delete ui;
 }
@@ -153,8 +155,11 @@ void MainWindow::setup()
 	if ((m->decklink_discovery) && (m->profile_callback)) {
 		if (!m->decklink_discovery->enable()) {
 			QMessageBox::critical(this, "This application requires the DeckLink drivers installed.", "Please install the Blackmagic DeckLink drivers to use the features of this application.");
+			return;
 		}
 	}
+
+	m->video_capture.start();
 }
 
 void MainWindow::customEvent(QEvent *event)
@@ -222,7 +227,6 @@ void MainWindow::internalStartCapture(bool start)
 	if (isCapturing()) {
 		// stop capture
 		m->selected_device->stopCapture();
-		m->video_capture.stop();
 	}
 	ui->widget_image->clear();
 	if (start) {
@@ -234,7 +238,7 @@ void MainWindow::internalStartCapture(bool start)
 			m->fps = item->data(FrameRateRole).toDouble();
 		}
 		bool auto_detect = isVideoFormatAutoDetectionEnabled();
-		m->video_capture.start(m->selected_device, m->display_mode, m->field_dominance, auto_detect, isAudioCaptureEnabled());
+		m->video_capture.startCapture(m->selected_device, m->display_mode, m->field_dominance, auto_detect, isAudioCaptureEnabled());
 	}
 	updateUI();
 }

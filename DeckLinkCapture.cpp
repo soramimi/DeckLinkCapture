@@ -333,13 +333,12 @@ void DeckLinkCapture::clear()
 	m->next_image1 = QImage();
 }
 
-bool DeckLinkCapture::start(DeckLinkInputDevice *selectedDevice, BMDDisplayMode displayMode, BMDFieldDominance fieldDominance, bool applyDetectedInputMode, bool input_audio)
+bool DeckLinkCapture::startCapture(DeckLinkInputDevice *selectedDevice, BMDDisplayMode displayMode, BMDFieldDominance fieldDominance, bool applyDetectedInputMode, bool input_audio)
 {
 	clear();
 	if (selectedDevice) {
 		if (selectedDevice->startCapture(displayMode, this, applyDetectedInputMode, input_audio)) {
 			m->field_dominance = fieldDominance;
-			QThread::start();
 			return true;
 		}
 	}

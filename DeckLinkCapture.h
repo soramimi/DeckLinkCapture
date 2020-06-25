@@ -52,7 +52,7 @@ public:
 	void setPixelFormat(BMDPixelFormat pixel_format);
 	DeinterlaceMode deinterlaceMode() const;
 	void setDeinterlaceMode(DeinterlaceMode mode);
-	bool start(DeckLinkInputDevice *selectedDevice_, BMDDisplayMode displayMode, BMDFieldDominance fieldDominance, bool applyDetectedInputMode, bool input_audio);
+	bool startCapture(DeckLinkInputDevice *selectedDevice_, BMDDisplayMode displayMode, BMDFieldDominance fieldDominance, bool applyDetectedInputMode, bool input_audio);
 	void stop();
 	QImage nextFrame();
 signals:
