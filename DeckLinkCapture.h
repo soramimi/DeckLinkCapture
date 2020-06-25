@@ -45,16 +45,18 @@ private:
 	void run();
 	void pushFrame(const Task &task);
 	void clear();
+	void newFrame_(QImage const &image0, QImage const &image1);
 public:
 	DeckLinkCapture();
 	~DeckLinkCapture();
 	void setPixelFormat(BMDPixelFormat pixel_format);
 	DeinterlaceMode deinterlaceMode() const;
 	void setDeinterlaceMode(DeinterlaceMode mode);
-	bool start(DeckLinkInputDevice *selectedDevice_, BMDDisplayMode displayMode, BMDFieldDominance fieldDominance, bool applyDetectedInputMode, bool input_audio);
+	bool startCapture(DeckLinkInputDevice *selectedDevice_, BMDDisplayMode displayMode, BMDFieldDominance fieldDominance, bool applyDetectedInputMode, bool input_audio);
 	void stop();
+	QImage nextFrame();
 signals:
-	void newFrame(QImage const &image0, QImage const &image1);
+	void newFrame();
 };
 
 #endif // DECKLINKCAPTURE_H

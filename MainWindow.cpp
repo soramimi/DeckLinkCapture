@@ -98,7 +98,7 @@ MainWindow::MainWindow(QWidget *parent)
 		i++;
 	}
 
-	connect(&m->video_capture, &DeckLinkCapture::newFrame, this, &MainWindow::setImage);
+	connect(&m->video_capture, &DeckLinkCapture::newFrame, this, &MainWindow::newFrame);
 
 	setStatusBarText(QString());
 
@@ -130,6 +130,8 @@ MainWindow::~MainWindow()
 		m->decklink_discovery = nullptr;
 	}
 
+	m->video_capture.stop();
+
 	delete m;
 	delete ui;
 }
@@ -153,8 +155,11 @@ void MainWindow::setup()
 	if ((m->decklink_discovery) && (m->profile_callback)) {
 		if (!m->decklink_discovery->enable()) {
 			QMessageBox::critical(this, "This application requires the DeckLink drivers installed.", "Please install the Blackmagic DeckLink drivers to use the features of this application.");
+			return;
 		}
 	}
+
+	m->video_capture.start();
 }
 
 void MainWindow::customEvent(QEvent *event)
@@ -222,7 +227,6 @@ void MainWindow::internalStartCapture(bool start)
 	if (isCapturing()) {
 		// stop capture
 		m->selected_device->stopCapture();
-		m->video_capture.stop();
 	}
 	ui->widget_image->clear();
 	if (start) {
@@ -234,7 +238,7 @@ void MainWindow::internalStartCapture(bool start)
 			m->fps = item->data(FrameRateRole).toDouble();
 		}
 		bool auto_detect = isVideoFormatAutoDetectionEnabled();
-		m->video_capture.start(m->selected_device, m->display_mode, m->field_dominance, auto_detect, isAudioCaptureEnabled());
+		m->video_capture.startCapture(m->selected_device, m->display_mode, m->field_dominance, auto_detect, isAudioCaptureEnabled());
 	}
 	updateUI();
 }
@@ -309,9 +313,7 @@ void MainWindow::refreshDisplayModeMenu(void)
 
 		double fps = DeckLinkInputDevice::frameRate(displayMode);
 
-//		if ((deckLinkInput->DoesSupportVideoMode(m->selected_input_connection, mode, bmdFormatUnspecified, bmdNoVideoInputConversion, bmdSupportedVideoModeDefault, NULL, &supported){}
-
-		if ((deckLinkInput->DoesSupportVideoMode(m->selected_input_connection, mode, bmdFormatUnspecified, bmdNoVideoInputConversion, bmdSupportedVideoModeDefault, nullptr, &supported) == S_OK) && supported) {
+		if ((deckLinkInput->DoesSupportVideoMode(m->selected_input_connection, mode, bmdFormatUnspecified, bmdSupportedVideoModeDefault, &supported) == S_OK) && supported) {
 			QString name;
 			{
 				DLString modeName;
@@ -600,18 +602,24 @@ void MainWindow::on_checkBox_audio_stateChanged(int arg1)
 	restartCapture();
 }
 
-void MainWindow::setImage(const QImage &image0, const QImage &image1)
+void MainWindow::newFrame()
 {
-	ui->widget_image->setImage(image0, image1);
+	while (1) {
+		QImage image0 = m->video_capture.nextFrame();
+		if (image0.isNull()) return;
+		QImage image1 = m->video_capture.nextFrame();
+
+		ui->widget_image->setImage(image0, image1);
 
 #ifdef USE_VIDEO_RECORDING
-	if (m->video_encoder) {
-		m->video_encoder->putVideoFrame(image0);
-		if (m->video_capture.deinterlaceMode() == DeinterlaceMode::MergeX2) {
-			m->video_encoder->putVideoFrame(image1);
+		if (m->video_encoder) {
+			m->video_encoder->putVideoFrame(image0);
+			if (m->video_capture.deinterlaceMode() == DeinterlaceMode::MergeX2) {
+				m->video_encoder->putVideoFrame(image1);
+			}
 		}
-	}
 #endif
+	}
 }
 
 void MainWindow::stopRecord()

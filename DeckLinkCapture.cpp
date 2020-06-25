@@ -3,6 +3,7 @@
 #include <QDebug>
 #include <QElapsedTimer>
 #include <stdint.h>
+#include <deque>
 #include <omp.h>
 
 #ifdef USE_OPENCV
@@ -25,6 +26,7 @@ struct DeckLinkCapture::Private {
 	BMDPixelFormat pixel_format = bmdFormat8BitYUV;
 	BMDFieldDominance field_dominance = bmdUnknownFieldDominance;
 	Deinterlace di;
+	std::deque<QImage> frame_queue;
 };
 
 DeckLinkCapture::DeckLinkCapture()
@@ -73,6 +75,19 @@ HRESULT DeckLinkCapture::DrawFrame(IDeckLinkVideoFrame *frame)
 		}
 	}
 	return S_OK;
+}
+
+void DeckLinkCapture::newFrame_(const QImage &image0, const QImage &image1)
+{
+	{
+		QMutexLocker lock(&m->mutex);
+		while (m->frame_queue.size() > 2) {
+			m->frame_queue.pop_front();
+		}
+		if (!image0.isNull()) m->frame_queue.push_back(image0);
+		if (!image1.isNull()) m->frame_queue.push_back(image1);
+	}
+	emit newFrame();
 }
 
 void DeckLinkCapture::process(Task const &task)
@@ -207,7 +222,7 @@ void DeckLinkCapture::process(Task const &task)
 			QImage bytes1(w, h, QImage::Format_RGB888);
 
 			if (m->deinterlace == DeinterlaceMode::None || m->field_dominance == bmdProgressiveFrame) {
-				emit newFrame(image, QImage());
+				newFrame_(image, QImage());
 			} else if (m->deinterlace == DeinterlaceMode::InterpolateEven) {
 				uint8_t const *s = (uint8_t const *)image.scanLine(0);
 				uint8_t *d0 = (uint8_t *)bytes1.scanLine(0);
@@ -230,7 +245,7 @@ void DeckLinkCapture::process(Task const &task)
 					y += 2;
 				}
 				memcpy((uint8_t *)bytes1.scanLine(h - 1), d0, stride);
-				emit newFrame(bytes1, QImage());
+				newFrame_(bytes1, QImage());
 			} else if (m->deinterlace == DeinterlaceMode::InterpolateOdd) {
 				uint8_t const *s = (uint8_t const *)image.scanLine(1);
 				uint8_t *d0 = (uint8_t *)bytes1.scanLine(0);
@@ -254,7 +269,7 @@ void DeckLinkCapture::process(Task const &task)
 					d0 = d2;
 					y += 2;
 				}
-				emit newFrame(bytes1, QImage());
+				newFrame_(bytes1, QImage());
 			} else if (m->deinterlace == DeinterlaceMode::Merge || m->deinterlace == DeinterlaceMode::MergeX2) {
 				const bool x2frame = (m->deinterlace == DeinterlaceMode::MergeX2);
 				QImage image0;
@@ -265,11 +280,11 @@ void DeckLinkCapture::process(Task const &task)
 					image1 = m->next_image1;
 				}
 				if (m->field_dominance == bmdUpperFieldFirst) {
-					emit newFrame(image0, x2frame ? image1 : QImage());
+					newFrame_(image0, x2frame ? image1 : QImage());
 				} else if (m->field_dominance == bmdLowerFieldFirst) {
-					emit newFrame(image1, x2frame ? image0 : QImage());
+					newFrame_(image1, x2frame ? image0 : QImage());
 				} else {
-					emit newFrame(image1, QImage());
+					newFrame_(image1, QImage());
 				}
 				auto pair = m->di.filter(image);
 				{
@@ -278,7 +293,7 @@ void DeckLinkCapture::process(Task const &task)
 					m->next_image1 = pair.second;
 				}
 			} else {
-				emit newFrame(image, QImage());
+				newFrame_(image, QImage());
 			}
 		}
 		qDebug() << QString("%1ms").arg(t.elapsed());
@@ -318,13 +333,12 @@ void DeckLinkCapture::clear()
 	m->next_image1 = QImage();
 }
 
-bool DeckLinkCapture::start(DeckLinkInputDevice *selectedDevice, BMDDisplayMode displayMode, BMDFieldDominance fieldDominance, bool applyDetectedInputMode, bool input_audio)
+bool DeckLinkCapture::startCapture(DeckLinkInputDevice *selectedDevice, BMDDisplayMode displayMode, BMDFieldDominance fieldDominance, bool applyDetectedInputMode, bool input_audio)
 {
 	clear();
 	if (selectedDevice) {
 		if (selectedDevice->startCapture(displayMode, this, applyDetectedInputMode, input_audio)) {
 			m->field_dominance = fieldDominance;
-			QThread::start();
 			return true;
 		}
 	}
@@ -345,5 +359,16 @@ void DeckLinkCapture::stop()
 	if (!wait(300)) {
 		terminate();
 	}
+}
+
+QImage DeckLinkCapture::nextFrame()
+{
+	QImage image;
+	QMutexLocker lock(&m->mutex);
+	if (!m->frame_queue.empty()) {
+		image = m->frame_queue.front();
+		m->frame_queue.pop_front();
+	}
+	return image;
 }
 
