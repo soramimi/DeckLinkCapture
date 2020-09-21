@@ -34,6 +34,7 @@
 #include <stdint.h>
 
 class MainWindow;
+class DeckLinkCapture;
 
 class DeckLinkInputDevice : public QObject, public IDeckLinkInputCallback {
 	Q_OBJECT
@@ -45,7 +46,7 @@ private:
 	static void getHDRMetadataFromFrame(IDeckLinkVideoInputFrame *videoFrame, HDRMetadataStruct *hdrMetadata);
 
 public:
-	DeckLinkInputDevice(MainWindow *mw, IDeckLink *deckLink);
+	DeckLinkInputDevice(MainWindow *mw, IDeckLink *deckLink, DeckLinkCapture *capture);
 	virtual ~DeckLinkInputDevice();
 
 	bool init();

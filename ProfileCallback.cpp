@@ -49,7 +49,8 @@ HRESULT ProfileCallback::ProfileChanging(IDeckLinkProfile * /* profileToBeActiva
 
 HRESULT ProfileCallback::ProfileActivated(IDeckLinkProfile *activatedProfile)
 {
-	QCoreApplication::postEvent(ui_delegate_, new DeckLinkProfileCallbackEvent(kProfileActivatedEvent, activatedProfile));
+//	QCoreApplication::postEvent(ui_delegate_, new DeckLinkProfileCallbackEvent(kProfileActivatedEvent, activatedProfile));
+	ui_delegate_->updateProfile(activatedProfile);
 	return S_OK;
 }
 

@@ -162,28 +162,6 @@ void MainWindow::setup()
 	m->video_capture.start();
 }
 
-void MainWindow::customEvent(QEvent *event)
-{
-	if (event->type() == kAddDeviceEvent) {
-		DeckLinkDeviceDiscoveryEvent* discoveryEvent = dynamic_cast<DeckLinkDeviceDiscoveryEvent*>(event);
-		addDevice(discoveryEvent->decklink());
-	} else if (event->type() == kRemoveDeviceEvent) {
-		DeckLinkDeviceDiscoveryEvent* discoveryEvent = dynamic_cast<DeckLinkDeviceDiscoveryEvent*>(event);
-		removeDevice(discoveryEvent->decklink());
-	} else if (event->type() == kVideoFormatChangedEvent) {
-		DeckLinkInputFormatChangedEvent* formatEvent = dynamic_cast<DeckLinkInputFormatChangedEvent*>(event);
-		changeDisplayMode(formatEvent->DisplayMode(), formatEvent->fps());
-	} else if (event->type() == kVideoFrameArrivedEvent) {
-		DeckLinkInputFrameArrivedEvent* frameArrivedEvent = dynamic_cast<DeckLinkInputFrameArrivedEvent*>(event);
-		setStatusBarText(frameArrivedEvent->SignalValid() ? QString() : tr("No valid input signal"));
-		delete frameArrivedEvent->AncillaryData();
-		delete frameArrivedEvent->HDRMetadata();
-	} else if (event->type() == kProfileActivatedEvent) {
-		DeckLinkProfileCallbackEvent* profileChangedEvent = dynamic_cast<DeckLinkProfileCallbackEvent*>(event);
-		updateProfile(profileChangedEvent->Profile());
-	}
-}
-
 void MainWindow::closeEvent(QCloseEvent *)
 {
 	m->closing = true;
@@ -199,6 +177,11 @@ void MainWindow::closeEvent(QCloseEvent *)
 
 	// Disable DeckLink device discovery
 	m->decklink_discovery->disable();
+}
+
+void MainWindow::setSignalStatus(bool valid)
+{
+	setStatusBarText(valid ? QString() : tr("No valid input signal"));
 }
 
 bool MainWindow::isAudioCaptureEnabled() const
@@ -344,7 +327,7 @@ void MainWindow::refreshDisplayModeMenu(void)
 
 void MainWindow::addDevice(IDeckLink *decklink)
 {
-	DeckLinkInputDevice *newDevice = new DeckLinkInputDevice(this, decklink);
+	DeckLinkInputDevice *newDevice = new DeckLinkInputDevice(this, decklink, &m->video_capture);
 
 	// Initialise new DeckLinkDevice object
 	if (!newDevice->init()) {

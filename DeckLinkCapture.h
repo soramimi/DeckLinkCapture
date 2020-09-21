@@ -16,24 +16,9 @@ enum class DeinterlaceMode {
 	MergeX2, // double frames
 };
 
-class DeckLinkCapture : public QThread, public IDeckLinkScreenPreviewCallback {
+class DeckLinkCapture : public QThread {
 	Q_OBJECT
-protected:
-	virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void **ppv)
-	{
-		(void)iid;
-		*ppv = nullptr;
-		return E_NOINTERFACE;
-	}
-	virtual ULONG STDMETHODCALLTYPE AddRef()
-	{
-		return 1;
-	}
-	virtual ULONG STDMETHODCALLTYPE Release()
-	{
-		return 1;
-	}
-	virtual HRESULT STDMETHODCALLTYPE DrawFrame(IDeckLinkVideoFrame *frame);
+	friend class DeckLinkInputDevice;
 private:
 	struct Private;
 	Private *m;

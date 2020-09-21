@@ -64,7 +64,7 @@ void ImageWidget::timerEvent(QTimerEvent *event)
 	(void)event;
 	fps_ = frame_counter_;
 	frame_counter_ = 0;
-	qDebug() << QString("----- %1fps").arg(fps_);
+//	qDebug() << QString("----- %1fps").arg(fps_);
 }
 
 void ImageWidget::setImage(const QImage &image0, const QImage &image1)

@@ -63,8 +63,8 @@ AVStream *add_stream(AVFormatContext *oc, AVCodec **codec, AVCodecID codec_id, V
 	case AVMEDIA_TYPE_VIDEO:
 		c->codec_id = codec_id;
 		/* Resolution must be a multiple of two. */
-		c->width    = 1920;//1280;
-		c->height   = 1080;//720;
+		c->width    = 1280;
+		c->height   = 720;
 		c->bit_rate = c->width * c->height * 8;//8000000;
 		/* timebase: This is the fundamental unit of time (in seconds) in terms
 		 * of which frame timestamps are represented. For fixed-fps content,

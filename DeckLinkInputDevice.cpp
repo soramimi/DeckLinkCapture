@@ -37,6 +37,8 @@ struct DeckLinkInputDevice::Private {
 	MainWindow *mainwindow = nullptr;
 	QAtomicInt refcount = 1;
 
+	DeckLinkCapture *capture = nullptr;
+
 	QString device_name;
 	IDeckLink *decklink = nullptr;
 	IDeckLinkInput *decklink_input = nullptr;
@@ -50,10 +52,11 @@ struct DeckLinkInputDevice::Private {
 	int64_t supported_input_connections = 0;
 };
 
-DeckLinkInputDevice::DeckLinkInputDevice(MainWindow *mw, IDeckLink *device)
+DeckLinkInputDevice::DeckLinkInputDevice(MainWindow *mw, IDeckLink *device, DeckLinkCapture *capture)
 	: m(new Private)
 {
 	m->mainwindow = mw;
+	m->capture = capture;
 	m->decklink = device;
 	m->decklink->AddRef();
 }
@@ -343,7 +346,8 @@ HRESULT DeckLinkInputDevice::VideoInputFormatChanged(BMDVideoInputFormatChangedE
 
 	// Notify UI of new display mode
 	if ((m->mainwindow) && (notificationEvents & bmdVideoInputDisplayModeChanged)) {
-		QCoreApplication::postEvent(m->mainwindow, new DeckLinkInputFormatChangedEvent(newMode->GetDisplayMode(), fps));
+		m->mainwindow->changeDisplayMode(newMode->GetDisplayMode(), fps);
+
 	}
 
 	return S_OK;
@@ -351,11 +355,28 @@ HRESULT DeckLinkInputDevice::VideoInputFormatChanged(BMDVideoInputFormatChangedE
 
 HRESULT DeckLinkInputDevice::VideoInputFrameArrived(IDeckLinkVideoInputFrame *videoFrame, IDeckLinkAudioInputPacket *audioPacket)
 {
-	bool validFrame;
-	AncillaryDataStruct *ancillaryData;
-	HDRMetadataStruct *hdrMetadata;
 
 	if (!videoFrame) return S_OK;
+
+	bool validFrame = (videoFrame->GetFlags() & bmdFrameHasNoInputSource) == 0;
+
+	if (0) {
+		// Get the various timecodes and userbits attached to this frame
+		AncillaryDataStruct ancillaryData;
+		getAncillaryDataFromFrame(videoFrame, bmdTimecodeVITC,					&ancillaryData.vitcF1Timecode,		&ancillaryData.vitcF1UserBits);
+		getAncillaryDataFromFrame(videoFrame, bmdTimecodeVITCField2,			&ancillaryData.vitcF2Timecode,		&ancillaryData.vitcF2UserBits);
+		getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188VITC1,			&ancillaryData.rp188vitc1Timecode,	&ancillaryData.rp188vitc1UserBits);
+		getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188VITC2,			&ancillaryData.rp188vitc2Timecode,	&ancillaryData.rp188vitc2UserBits);
+		getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188LTC,				&ancillaryData.rp188ltcTimecode,	&ancillaryData.rp188ltcUserBits);
+		getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188HighFrameRate,	&ancillaryData.rp188hfrtcTimecode,	&ancillaryData.rp188hfrtcUserBits);
+
+		HDRMetadataStruct hdrMetadata;
+		getHDRMetadataFromFrame(videoFrame, &hdrMetadata);
+	}
+
+	if (m->mainwindow) {
+		m->mainwindow->setSignalStatus(validFrame);
+	}
 
 	if (audioPacket) {
 		const int channels = 2;
@@ -369,26 +390,17 @@ HRESULT DeckLinkInputDevice::VideoInputFrameArrived(IDeckLinkVideoInputFrame *vi
 		}
 	}
 
-	validFrame = (videoFrame->GetFlags() & bmdFrameHasNoInputSource) == 0;
-
-	// Get the various timecodes and userbits attached to this frame
-	ancillaryData = new AncillaryDataStruct();
-	getAncillaryDataFromFrame(videoFrame, bmdTimecodeVITC,					&ancillaryData->vitcF1Timecode,		&ancillaryData->vitcF1UserBits);
-	getAncillaryDataFromFrame(videoFrame, bmdTimecodeVITCField2,			&ancillaryData->vitcF2Timecode,		&ancillaryData->vitcF2UserBits);
-	getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188VITC1,			&ancillaryData->rp188vitc1Timecode,	&ancillaryData->rp188vitc1UserBits);
-	getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188VITC2,			&ancillaryData->rp188vitc2Timecode,	&ancillaryData->rp188vitc2UserBits);
-	getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188LTC,				&ancillaryData->rp188ltcTimecode,	&ancillaryData->rp188ltcUserBits);
-	getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188HighFrameRate,	&ancillaryData->rp188hfrtcTimecode,	&ancillaryData->rp188hfrtcUserBits);
-
-	hdrMetadata = new HDRMetadataStruct();
-	getHDRMetadataFromFrame(videoFrame, hdrMetadata);
-
-	// Update the UI with new Ancillary data
-	if (m->mainwindow) {
-		QCoreApplication::postEvent(m->mainwindow, new DeckLinkInputFrameArrivedEvent(ancillaryData, hdrMetadata, validFrame));
-	} else {
-		delete ancillaryData;
-		delete hdrMetadata;
+	if (videoFrame) {
+		int w = videoFrame->GetWidth();
+		int h = videoFrame->GetHeight();
+		int stride = videoFrame->GetRowBytes();
+		uint8_t const *bytes = nullptr;
+		if (w > 0 && h > 0 && videoFrame->GetBytes((void **)&bytes) == S_OK && bytes) {
+			DeckLinkCapture::Task t;
+			t.sz = QSize(w, h);
+			t.ba = QByteArray((char const *)bytes, stride * h);
+			m->capture->pushFrame(t);
+		}
 	}
 
 	return S_OK;

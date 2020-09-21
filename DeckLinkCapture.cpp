@@ -16,10 +16,10 @@ static inline uint8_t clamp_uint8(int v)
 }
 
 struct DeckLinkCapture::Private {
-	Task task;
+	std::deque<Task> tasks;
 	QMutex mutex;
 	QWaitCondition waiter;
-	QSize image_size;
+//	QSize image_size;
 	QImage next_image0;
 	QImage next_image1;
 	DeinterlaceMode deinterlace = DeinterlaceMode::InterpolateEven;
@@ -57,24 +57,6 @@ DeinterlaceMode DeckLinkCapture::deinterlaceMode() const
 		return DeinterlaceMode::None;
 	}
 	return m->deinterlace;
-}
-
-HRESULT DeckLinkCapture::DrawFrame(IDeckLinkVideoFrame *frame)
-{
-	if (frame) {
-		int w = frame->GetWidth();
-		int h = frame->GetHeight();
-		int stride = frame->GetRowBytes();
-		uint8_t const *bytes = nullptr;
-		if (w > 0 && h > 0 && frame->GetBytes((void **)&bytes) == S_OK && bytes) {
-			m->image_size = QSize(w, h);
-			Task t;
-			t.sz = QSize(w, h);
-			t.ba = QByteArray((char const *)bytes, stride * h);
-			pushFrame(t);
-		}
-	}
-	return S_OK;
 }
 
 void DeckLinkCapture::newFrame_(const QImage &image0, const QImage &image1)
@@ -296,33 +278,38 @@ void DeckLinkCapture::process(Task const &task)
 				newFrame_(image, QImage());
 			}
 		}
-		qDebug() << QString("%1ms").arg(t.elapsed());
+//		qDebug() << QString("%1ms").arg(t.elapsed());
 	}
 }
 
 void DeckLinkCapture::run()
 {
-	while (!isInterruptionRequested()) {
+	while (1) {
 		Task task;
 		{
 			QMutexLocker lock(&m->mutex);
-			if (m->task.ba.isEmpty()) {
+			if (isInterruptionRequested()) break;
+			if (m->tasks.empty()) {
 				m->waiter.wait(&m->mutex);
-				continue;
 			}
-			std::swap(task, m->task);
+			if (!m->tasks.empty()) {
+				task = m->tasks.front();
+				m->tasks.pop_front();
+			}
 		}
-		process(task);
+		if (!task.sz.isEmpty() && !task.ba.isEmpty()) {
+			process(task);
+		}
 	}
 }
 
 void DeckLinkCapture::pushFrame(Task const &task)
 {
 	QMutexLocker lock(&m->mutex);
-	if (!m->task.ba.isEmpty()) {
-		qDebug() << "frame dropped";
+	while (m->tasks.size() > 2) {
+		m->tasks.pop_front();
 	}
-	m->task = task;
+	m->tasks.push_back(task);
 	m->waiter.wakeAll();
 }
 
@@ -337,7 +324,7 @@ bool DeckLinkCapture::startCapture(DeckLinkInputDevice *selectedDevice, BMDDispl
 {
 	clear();
 	if (selectedDevice) {
-		if (selectedDevice->startCapture(displayMode, this, applyDetectedInputMode, input_audio)) {
+		if (selectedDevice->startCapture(displayMode, nullptr, applyDetectedInputMode, input_audio)) {
 			m->field_dominance = fieldDominance;
 			return true;
 		}
@@ -349,7 +336,7 @@ void DeckLinkCapture::stop()
 {
 	{
 		QMutexLocker lock(&m->mutex);
-		m->task = Task();
+		m->tasks.clear();
 		requestInterruption();
 		m->waiter.wakeAll();
 	}
