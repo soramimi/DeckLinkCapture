@@ -32,19 +32,18 @@
 #pragma once
 
 #include "DeckLinkAPI.h"
-#include "MainWindow.h"
 #include <QEvent>
 
-class MainWindow;
+class DeckLinkCapture;
 
 class DeckLinkDeviceDiscovery : public IDeckLinkDeviceNotificationCallback {
 private:
 	IDeckLinkDiscovery *decklink_discovery_;
-	MainWindow *ui_delegate_;
+	DeckLinkCapture *delegate_;
 	QAtomicInt refcount_;
 
 public:
-	DeckLinkDeviceDiscovery(MainWindow *owner);
+	DeckLinkDeviceDiscovery(DeckLinkCapture *owner);
 	virtual ~DeckLinkDeviceDiscovery();
 
 	bool enable();

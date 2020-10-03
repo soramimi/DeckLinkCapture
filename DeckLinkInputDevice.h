@@ -33,8 +33,7 @@
 #include <QString>
 #include <stdint.h>
 
-class MainWindow;
-class AbstractDeckLinkCapture;
+class DeckLinkCaptureHandler;
 class DeckLinkCapture;
 
 class DeckLinkInputDevice : public QObject, public IDeckLinkInputCallback {
@@ -45,7 +44,6 @@ private:
 
 	static void getAncillaryDataFromFrame(IDeckLinkVideoInputFrame *frame, BMDTimecodeFormat format, QString *timecodeString, QString *userBitsString);
 	static void getHDRMetadataFromFrame(IDeckLinkVideoInputFrame *videoFrame, HDRMetadataStruct *hdrMetadata);
-
 public:
 	DeckLinkInputDevice(DeckLinkCapture *capture, IDeckLink *deckLink);
 	virtual ~DeckLinkInputDevice();
@@ -91,17 +89,18 @@ public:
 };
 
 class DeckLinkInputFrameArrivedEvent : public QEvent {
+	friend class DeckLinkInputDevice;
 private:
-	AncillaryDataStruct *ancillary_data_;
-	HDRMetadataStruct *hdr_metadata_;
+	AncillaryDataStruct ancillary_data_ = {};
+	HDRMetadataStruct hdr_metadata_ = {};
 	bool signal_valid_;
 
 public:
-	DeckLinkInputFrameArrivedEvent(AncillaryDataStruct *ancillaryData, HDRMetadataStruct *hdr_metadata_, bool signalValid);
+	DeckLinkInputFrameArrivedEvent(bool signalValid);
 	virtual ~DeckLinkInputFrameArrivedEvent() {}
 
-	AncillaryDataStruct *AncillaryData(void) const { return ancillary_data_; }
-	HDRMetadataStruct *HDRMetadata(void) const { return hdr_metadata_; }
+	AncillaryDataStruct const *AncillaryData(void) const { return &ancillary_data_; }
+	HDRMetadataStruct const *HDRMetadata(void) const { return &hdr_metadata_; }
 	bool SignalValid(void) const { return signal_valid_; }
 };
 

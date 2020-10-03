@@ -1,4 +1,5 @@
 #include "ImageUtil.h"
+#include <omp.h>
 
 static inline uint8_t clamp_uint8(int v)
 {
@@ -11,6 +12,7 @@ QImage ImageUtil::qimage(const Image &image)
 		int w = image.width();
 		int h = image.height();
 		QImage newimage = QImage(w, h, QImage::Format_RGB888);
+#pragma omp parallel for
 		for (int y = 0; y < h; y++) {
 			uint8_t const *s = image.scanLine(y);
 			uint8_t *d = newimage.scanLine(y);
@@ -64,7 +66,7 @@ QImage ImageUtil::qimage(const Image &image)
 	if (image.format() == Image::Format::RGB8) {
 		int w = image.width();
 		int h = image.height();
-		int stride = image.stride();
+		int stride = image.bytesPerLine();
 		QImage newimage = QImage(w, h, QImage::Format_RGB888);
 		for (int y = 0; y < h; y++) {
 			uint8_t const *s = image.scanLine(y);
@@ -76,7 +78,7 @@ QImage ImageUtil::qimage(const Image &image)
 	if (image.format() == Image::Format::UINT8) {
 		int w = image.width();
 		int h = image.height();
-		int stride = image.stride();
+		int stride = image.bytesPerLine();
 		QImage newimage = QImage(w, h, QImage::Format_Grayscale8);
 		for (int y = 0; y < h; y++) {
 			uint8_t const *s = image.scanLine(y);
@@ -100,7 +102,7 @@ Image ImageUtil::image(const QImage &image, Image::Format format)
 			for (int y = 0; y < h; y++) {
 				uint8_t const *s = image.scanLine(y);
 				uint8_t *d = newimage.scanLine(y);
-				memcpy(d, s, newimage.stride());
+				memcpy(d, s, newimage.bytesPerLine());
 			}
 			break;
 		}
@@ -113,7 +115,7 @@ Image ImageUtil::image(const QImage &image, Image::Format format)
 			for (int y = 0; y < h; y++) {
 				uint8_t const *s = image.scanLine(y);
 				uint8_t *d = newimage.scanLine(y);
-				memcpy(d, s, newimage.stride());
+				memcpy(d, s, newimage.bytesPerLine());
 			}
 			break;
 		}

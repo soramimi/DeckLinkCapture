@@ -18,10 +18,10 @@ static inline uint8_t clamp_uint8(int v)
 }
 
 struct DeckLinkCapture::Private {
+	DeckLinkCaptureHandler *mainwindow = nullptr;
 	std::deque<Task> tasks;
 	QMutex mutex;
 	QWaitCondition waiter;
-//	QSize image_size;
 	Image next_image0;
 	Image next_image1;
 	DeinterlaceMode deinterlace = DeinterlaceMode::InterpolateEven;
@@ -31,15 +31,21 @@ struct DeckLinkCapture::Private {
 	std::deque<Image> frame_queue;
 };
 
-DeckLinkCapture::DeckLinkCapture()
+DeckLinkCapture::DeckLinkCapture(DeckLinkCaptureHandler *mainwindow)
 	: m(new Private)
 {
+	m->mainwindow = mainwindow;
 }
 
 DeckLinkCapture::~DeckLinkCapture()
 {
 	stop();
 	delete m;
+}
+
+DeckLinkCaptureHandler *DeckLinkCapture::mainwindow()
+{
+	return m->mainwindow;
 }
 
 void DeckLinkCapture::setPixelFormat(BMDPixelFormat pixel_format)
@@ -76,39 +82,71 @@ void DeckLinkCapture::newFrame_(const Image &image0, const Image &image1)
 
 void DeckLinkCapture::addDevice(IDeckLink *decklink)
 {
-	Q_ASSERT(mainwindow_);
-	mainwindow_->addDevice(decklink);
-
+	Q_ASSERT(m->mainwindow);
+	m->mainwindow->addDevice(decklink);
 }
 
 void DeckLinkCapture::removeDevice(IDeckLink *decklink)
 {
-	Q_ASSERT(mainwindow_);
-	mainwindow_->removeDevice(decklink);
+	Q_ASSERT(m->mainwindow);
+	m->mainwindow->removeDevice(decklink);
 }
 
 void DeckLinkCapture::updateProfile(IDeckLinkProfile *newProfile)
 {
-	Q_ASSERT(mainwindow_);
-	mainwindow_->updateProfile(newProfile);
+	Q_ASSERT(m->mainwindow);
+	m->mainwindow->updateProfile(newProfile);
 }
 
 void DeckLinkCapture::changeDisplayMode(BMDDisplayMode dispmode, double fps)
 {
-	Q_ASSERT(mainwindow_);
-	mainwindow_->changeDisplayMode(dispmode, fps);
+	Q_ASSERT(m->mainwindow);
+	m->mainwindow->changeDisplayMode(dispmode, fps);
+}
+
+void DeckLinkCapture::videoFrameArrived(AncillaryDataStruct const *ancillary_data, HDRMetadataStruct const *hdr_metadata, bool signal_valid)
+{
+	Q_ASSERT(m->mainwindow);
+	m->mainwindow->videoFrameArrived(ancillary_data, hdr_metadata, signal_valid);
+}
+
+void DeckLinkCapture::haltStreams()
+{
+	Q_ASSERT(m->mainwindow);
+	m->mainwindow->haltStreams();
 }
 
 void DeckLinkCapture::setSignalStatus(bool valid)
 {
-	Q_ASSERT(mainwindow_);
-	mainwindow_->setSignalStatus(valid);
+	Q_ASSERT(m->mainwindow);
+	m->mainwindow->setSignalStatus(valid);
 }
 
 void DeckLinkCapture::criticalError(const QString &title, const QString &message)
 {
-	Q_ASSERT(mainwindow_);
-	mainwindow_->criticalError(title, message);
+	Q_ASSERT(m->mainwindow);
+	m->mainwindow->criticalError(title, message);
+}
+
+void DeckLinkCapture::customEvent(QEvent *event)
+{
+	if (event->type() == kAddDeviceEvent) {
+		DeckLinkDeviceDiscoveryEvent *discoveryEvent = dynamic_cast<DeckLinkDeviceDiscoveryEvent*>(event);
+		addDevice(discoveryEvent->decklink());
+	} else if (event->type() == kRemoveDeviceEvent) {
+		DeckLinkDeviceDiscoveryEvent *discoveryEvent = dynamic_cast<DeckLinkDeviceDiscoveryEvent*>(event);
+		removeDevice(discoveryEvent->decklink());
+	} else if (event->type() == kVideoFormatChangedEvent) {
+		DeckLinkInputFormatChangedEvent *formatEvent = dynamic_cast<DeckLinkInputFormatChangedEvent*>(event);
+		changeDisplayMode(formatEvent->DisplayMode(), formatEvent->fps());
+	} else if (event->type() == kVideoFrameArrivedEvent) {
+		DeckLinkInputFrameArrivedEvent *frameArrivedEvent = dynamic_cast<DeckLinkInputFrameArrivedEvent*>(event);
+		videoFrameArrived(frameArrivedEvent->AncillaryData(), frameArrivedEvent->HDRMetadata(), frameArrivedEvent->SignalValid());
+	} else if (event->type() == kProfileActivatedEvent) {
+		DeckLinkProfileCallbackEvent *profileChangedEvent = dynamic_cast<DeckLinkProfileCallbackEvent*>(event);
+		updateProfile(profileChangedEvent->Profile());
+	}
+
 }
 
 void DeckLinkCapture::process(Task const &task)
@@ -209,7 +247,7 @@ void DeckLinkCapture::process(Task const &task)
 			for (int y = 0; y < h; y++) {
 				uint8_t const *src = (uint8_t const *)task.ba.data() + w * y * 2;
 				uint8_t *dst = image.scanLine(y);
-				memcpy(dst, src, image.stride());
+				memcpy(dst, src, image.bytesPerLine());
 			}
 		}
 
@@ -335,10 +373,9 @@ void DeckLinkCapture::clear()
 	m->next_image1 = {};
 }
 
-bool DeckLinkCapture::startCapture(MainWindow *mainwindow, DeckLinkInputDevice *selectedDevice, BMDDisplayMode displayMode, BMDFieldDominance fieldDominance, bool applyDetectedInputMode, bool input_audio)
+bool DeckLinkCapture::startCapture(DeckLinkInputDevice *selectedDevice, BMDDisplayMode displayMode, BMDFieldDominance fieldDominance, bool applyDetectedInputMode, bool input_audio)
 {
 	clear();
-	mainwindow_ = mainwindow;
 	if (selectedDevice) {
 		if (selectedDevice->startCapture(displayMode, nullptr, applyDetectedInputMode, input_audio)) {
 			m->field_dominance = fieldDominance;

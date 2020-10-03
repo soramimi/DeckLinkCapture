@@ -9,18 +9,38 @@
 class Image;
 class DeckLinkInputDevice;
 
-class AbstractDeckLinkCapture {
+
+class DeviceEvent : public QEvent {
+public:
+	enum Operation {
+		Add,
+		Remove,
+	} op;
+	IDeckLink *decklink;
+	DeviceEvent(Operation op, IDeckLink *decklink)
+		: QEvent(QEvent::User)
+		, op(op)
+		, decklink(decklink)
+	{
+
+	}
+	virtual ~DeviceEvent()
+	{
+
+	}
+};
+
+class DeckLinkCaptureHandler {
 public:
 	virtual void addDevice(IDeckLink *decklink) = 0;
 	virtual void removeDevice(IDeckLink *decklink) = 0;
 	virtual void updateProfile(IDeckLinkProfile *newProfile) = 0;
 	virtual void changeDisplayMode(BMDDisplayMode dispmode, double fps) = 0;
-	virtual void setPixelFormat(BMDPixelFormat pixel_format) = 0;
+	virtual void videoFrameArrived(AncillaryDataStruct const *ancillary_data, HDRMetadataStruct const *hdr_metadata, bool signal_valid) = 0;
 	virtual void setSignalStatus(bool valid) = 0;
+	virtual void haltStreams() = 0;
 	virtual void criticalError(QString const &title, QString const &message) = 0;
 };
-
-
 
 enum class DeinterlaceMode {
 	None,
@@ -30,13 +50,14 @@ enum class DeinterlaceMode {
 	MergeX2, // double frames
 };
 
-class DeckLinkCapture : public QThread, public AbstractDeckLinkCapture {
+class DeckLinkCapture : public QThread {
 	Q_OBJECT
 	friend class DeckLinkInputDevice;
+	friend class ProfileCallback;
 private:
 	struct Private;
 	Private *m;
-	MainWindow *mainwindow_;
+	DeckLinkCaptureHandler *mainwindow();
 	struct Task {
 		QSize sz;
 		QByteArray ba;
@@ -47,20 +68,25 @@ private:
 	void clear();
 	void newFrame_(const Image &image0, const Image &image1);
 
-	void addDevice(IDeckLink *decklink) override;
-	void removeDevice(IDeckLink* decklink) override;
-	void updateProfile(IDeckLinkProfile *newProfile) override;
-	void changeDisplayMode(BMDDisplayMode dispmode, double fps) override;
-	void criticalError(QString const &title, QString const &message) override;
-	void setSignalStatus(bool valid) override;
-	void setPixelFormat(BMDPixelFormat pixel_format) override;
+	void addDevice(IDeckLink *decklink);
+	void removeDevice(IDeckLink* decklink);
+	void updateProfile(IDeckLinkProfile *newProfile);
+	void changeDisplayMode(BMDDisplayMode dispmode, double fps);
+	void videoFrameArrived(AncillaryDataStruct const *ancillary_data, HDRMetadataStruct const *hdr_metadata, bool signal_valid);
+	void haltStreams();
+	void criticalError(QString const &title, QString const &message);
+
+	void setSignalStatus(bool valid);
+	void setPixelFormat(BMDPixelFormat pixel_format);
+protected:
+	void customEvent(QEvent *event);
 
 public:
-	DeckLinkCapture();
+	DeckLinkCapture(DeckLinkCaptureHandler *mainwindow);
 	~DeckLinkCapture();
 	DeinterlaceMode deinterlaceMode() const;
 	void setDeinterlaceMode(DeinterlaceMode mode);
-	bool startCapture(MainWindow *mainwindow, DeckLinkInputDevice *selectedDevice_, BMDDisplayMode displayMode, BMDFieldDominance fieldDominance, bool applyDetectedInputMode, bool input_audio);
+	bool startCapture(DeckLinkInputDevice *selectedDevice_, BMDDisplayMode displayMode, BMDFieldDominance fieldDominance, bool applyDetectedInputMode, bool input_audio);
 	void stop();
 	Image nextFrame();
 signals:

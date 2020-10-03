@@ -110,18 +110,18 @@ public:
 	{
 		return bytesPerPixel(format());
 	}
-	int stride() const
+	int bytesPerLine() const
 	{
 		return bytesPerPixel() * width();
 	}
 	u_int8_t const *scanLine(int y) const
 	{
-		return core_ ? ((u_int8_t const *)core_->data + stride() * y) : nullptr;
+		return core_ ? ((u_int8_t const *)core_->data + bytesPerLine() * y) : nullptr;
 	}
 	u_int8_t *scanLine(int y)
 	{
 		copy_on_write();
-		return core_ ? ((u_int8_t *)core_->data + stride() * y) : nullptr;
+		return core_ ? ((u_int8_t *)core_->data + bytesPerLine() * y) : nullptr;
 	}
 	u_int8_t const *bits() const
 	{
@@ -136,7 +136,7 @@ public:
 	{
 		Image newimg;
 		if (core_) {
-			size_t datalen = stride() * height();
+			size_t datalen = bytesPerLine() * height();
 			Core *p = (Core *)malloc(sizeof(Core) + datalen);
 			*p = *core_;
 			p->ref = 0;

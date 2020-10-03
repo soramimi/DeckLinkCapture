@@ -105,7 +105,7 @@ MainWindow::MainWindow(QWidget *parent)
 		i++;
 	}
 
-	m->video_capture = std::make_unique<DeckLinkCapture>();
+	m->video_capture = std::make_unique<DeckLinkCapture>(this);
 	connect(m->video_capture.get(), &DeckLinkCapture::newFrame, this, &MainWindow::newFrame);
 
 	setStatusBarText(QString());
@@ -158,8 +158,8 @@ void MainWindow::setStatusBarText(QString const &text)
 void MainWindow::setup()
 {
 	// Create and initialise DeckLink device discovery and profile objects
-	m->decklink_discovery = new DeckLinkDeviceDiscovery(this);
-	m->profile_callback = new ProfileCallback(this);
+	m->decklink_discovery = new DeckLinkDeviceDiscovery(m->video_capture.get());
+	m->profile_callback = new ProfileCallback(m->video_capture.get());
 
 	if ((m->decklink_discovery) && (m->profile_callback)) {
 		if (!m->decklink_discovery->enable()) {
@@ -169,6 +169,26 @@ void MainWindow::setup()
 	}
 
 	m->video_capture->start();
+}
+
+void MainWindow::customEvent(QEvent *event)
+{
+	if (event->type() == kAddDeviceEvent) {
+		DeckLinkDeviceDiscoveryEvent *discoveryEvent = dynamic_cast<DeckLinkDeviceDiscoveryEvent*>(event);
+		addDevice(discoveryEvent->decklink());
+	} else if (event->type() == kRemoveDeviceEvent) {
+		DeckLinkDeviceDiscoveryEvent *discoveryEvent = dynamic_cast<DeckLinkDeviceDiscoveryEvent*>(event);
+		removeDevice(discoveryEvent->decklink());
+	} else if (event->type() == kVideoFormatChangedEvent) {
+		DeckLinkInputFormatChangedEvent *formatEvent = dynamic_cast<DeckLinkInputFormatChangedEvent*>(event);
+		changeDisplayMode(formatEvent->DisplayMode(), formatEvent->fps());
+	} else if (event->type() == kVideoFrameArrivedEvent) {
+		DeckLinkInputFrameArrivedEvent *frameArrivedEvent = dynamic_cast<DeckLinkInputFrameArrivedEvent*>(event);
+		setStatusBarText(frameArrivedEvent->SignalValid() ? QString() : tr("No valid input signal"));
+	} else if (event->type() == kProfileActivatedEvent) {
+		DeckLinkProfileCallbackEvent *profileChangedEvent = dynamic_cast<DeckLinkProfileCallbackEvent*>(event);
+		updateProfile(profileChangedEvent->Profile());
+	}
 }
 
 void MainWindow::closeEvent(QCloseEvent *)
@@ -232,7 +252,7 @@ void MainWindow::internalStartCapture(bool start)
 			m->fps = item->data(FrameRateRole).toDouble();
 		}
 		bool auto_detect = isVideoFormatAutoDetectionEnabled();
-		m->video_capture->startCapture(this, m->selected_device, m->display_mode, m->field_dominance, auto_detect, isAudioCaptureEnabled());
+		m->video_capture->startCapture(m->selected_device, m->display_mode, m->field_dominance, auto_detect, isAudioCaptureEnabled());
 	}
 	updateUI();
 }
@@ -361,7 +381,7 @@ void MainWindow::addDevice(IDeckLink *decklink)
 	changeInputDevice(0);
 }
 
-void MainWindow::removeDevice(IDeckLink* deckLink)
+void MainWindow::removeDevice(IDeckLink *decklink)
 {
 	int deviceIndex = -1;
 	DeckLinkInputDevice *deviceToRemove = nullptr;
@@ -370,7 +390,7 @@ void MainWindow::removeDevice(IDeckLink* deckLink)
 		auto *item = ui->listWidget_input_device->item(deviceIndex);
 		if (item) {
 			auto *device = reinterpret_cast<DeckLinkInputDevice *>(item->data(DeviceIndexRole).value<void *>());
-			if (device->getDeckLinkInstance() == deckLink) {
+			if (device->getDeckLinkInstance() == decklink) {
 				deviceToRemove = device;
 				break;
 			}
@@ -402,15 +422,6 @@ void MainWindow::removeDevice(IDeckLink* deckLink)
 bool MainWindow::isVideoFormatAutoDetectionEnabled() const
 {
 	return ui->checkBox_display_mode_auto_detection->isChecked();
-}
-
-
-
-void MainWindow::haltStreams(void)
-{
-	// Profile is changing, stop capture if running
-	stopCapture();
-	updateUI();
 }
 
 void MainWindow::updateProfile(IDeckLinkProfile* /* newProfile */)
@@ -516,9 +527,21 @@ void MainWindow::changeDisplayMode(BMDDisplayMode dispmode, double fps)
 	}
 }
 
+void MainWindow::videoFrameArrived(const AncillaryDataStruct *ancillary_data, const HDRMetadataStruct *hdr_metadata, bool signal_valid)
+{
+	setStatusBarText(signal_valid ? QString() : tr("No valid input signal"));
+}
+
+void MainWindow::haltStreams()
+{
+	// Profile is changing, stop capture if running
+	stopCapture();
+	updateUI();
+}
+
 void MainWindow::criticalError(const QString &title, const QString &message)
 {
-
+	QMessageBox::critical(this, title, message);
 }
 
 void MainWindow::on_listWidget_input_device_currentRowChanged(int currentRow)

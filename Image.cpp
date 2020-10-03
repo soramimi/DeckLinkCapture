@@ -87,13 +87,8 @@ Image Image::convertToFormat(Image::Format dformat) const
 			for (int y = 0; y < h; y++) {
 				uint8_t const *s = scanLine(y);
 				uint8_t *d = newimage.scanLine(y);
-				uint8_t U, V;
-				U = V = 0;
 				for (int x = 0; x < w; x++) {
-					uint8_t Y = *s++;
-					d[0] = Y;
-					d[1] = Y;
-					d[2] = Y;
+					d[0] = d[1] = d[2] = *s++;
 					d += 3;
 				}
 			}

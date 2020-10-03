@@ -28,10 +28,13 @@
 // DeckLink Device Profile Callback
 //
 
+#include "DeckLinkCapture.h"
 #include "ProfileCallback.h"
+#include "common.h"
+#include <QCoreApplication>
 
-ProfileCallback::ProfileCallback(MainWindow *owner)
-	: ui_delegate_(owner)
+ProfileCallback::ProfileCallback(DeckLinkCapture *owner)
+	: delegate_(owner)
 	, refcount_(1)
 {
 }
@@ -42,15 +45,15 @@ HRESULT ProfileCallback::ProfileChanging(IDeckLinkProfile * /* profileToBeActiva
 	// profile and capture will be stopped by the DeckLink driver. It is better to notify the
 	// controller to gracefully stop capture, so that the UI is set to a known state.
 	if (streamsWillBeForcedToStop) {
-		ui_delegate_->haltStreams();
+		delegate_->haltStreams();
 	}
 	return S_OK;
 }
 
 HRESULT ProfileCallback::ProfileActivated(IDeckLinkProfile *activatedProfile)
 {
-//	QCoreApplication::postEvent(ui_delegate_, new DeckLinkProfileCallbackEvent(kProfileActivatedEvent, activatedProfile));
-	ui_delegate_->updateProfile(activatedProfile);
+	QCoreApplication::postEvent(delegate_, new DeckLinkProfileCallbackEvent(kProfileActivatedEvent, activatedProfile));
+//	delegate_->updateProfile(activatedProfile);
 	return S_OK;
 }
 

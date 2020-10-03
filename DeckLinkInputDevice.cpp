@@ -26,12 +26,13 @@
 */
 
 #include "AncillaryDataTable.h"
+#include "DeckLinkCapture.h"
 #include "DeckLinkInputDevice.h"
-#include "MainWindow.h"
 #include <QCoreApplication>
 #include <QDebug>
 #include <QMessageBox>
 #include <QTextStream>
+#include "common.h"
 
 struct DeckLinkInputDevice::Private {
 	QAtomicInt refcount = 1;
@@ -88,6 +89,8 @@ DeckLinkInputDevice::~DeckLinkInputDevice()
 
 	delete m;
 }
+
+
 
 HRESULT	DeckLinkInputDevice::QueryInterface(REFIID iid, void **ppv)
 {
@@ -343,9 +346,8 @@ HRESULT DeckLinkInputDevice::VideoInputFormatChanged(BMDVideoInputFormatChangedE
 	}
 
 	// Notify UI of new display mode
-	if ((m->capture) && (notificationEvents & bmdVideoInputDisplayModeChanged)) {
-		m->capture->changeDisplayMode(newMode->GetDisplayMode(), fps);
-
+	if (notificationEvents & bmdVideoInputDisplayModeChanged) {
+		QCoreApplication::postEvent(m->capture, new DeckLinkInputFormatChangedEvent(newMode->GetDisplayMode(), fps));
 	}
 
 	return S_OK;
@@ -358,18 +360,21 @@ HRESULT DeckLinkInputDevice::VideoInputFrameArrived(IDeckLinkVideoInputFrame *vi
 
 	bool validFrame = (videoFrame->GetFlags() & bmdFrameHasNoInputSource) == 0;
 
-	if (0) {
-		// Get the various timecodes and userbits attached to this frame
-		AncillaryDataStruct ancillaryData;
-		getAncillaryDataFromFrame(videoFrame, bmdTimecodeVITC,					&ancillaryData.vitcF1Timecode,		&ancillaryData.vitcF1UserBits);
-		getAncillaryDataFromFrame(videoFrame, bmdTimecodeVITCField2,			&ancillaryData.vitcF2Timecode,		&ancillaryData.vitcF2UserBits);
-		getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188VITC1,			&ancillaryData.rp188vitc1Timecode,	&ancillaryData.rp188vitc1UserBits);
-		getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188VITC2,			&ancillaryData.rp188vitc2Timecode,	&ancillaryData.rp188vitc2UserBits);
-		getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188LTC,				&ancillaryData.rp188ltcTimecode,	&ancillaryData.rp188ltcUserBits);
-		getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188HighFrameRate,	&ancillaryData.rp188hfrtcTimecode,	&ancillaryData.rp188hfrtcUserBits);
+	if (m->capture) {
+		DeckLinkInputFrameArrivedEvent *e = new DeckLinkInputFrameArrivedEvent(validFrame);
 
-		HDRMetadataStruct hdrMetadata;
-		getHDRMetadataFromFrame(videoFrame, &hdrMetadata);
+		// Get the various timecodes and userbits attached to this frame
+
+		getAncillaryDataFromFrame(videoFrame, bmdTimecodeVITC,					&e->ancillary_data_.vitcF1Timecode,		&e->ancillary_data_.vitcF1UserBits);
+		getAncillaryDataFromFrame(videoFrame, bmdTimecodeVITCField2,			&e->ancillary_data_.vitcF2Timecode,		&e->ancillary_data_.vitcF2UserBits);
+		getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188VITC1,			&e->ancillary_data_.rp188vitc1Timecode,	&e->ancillary_data_.rp188vitc1UserBits);
+		getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188VITC2,			&e->ancillary_data_.rp188vitc2Timecode,	&e->ancillary_data_.rp188vitc2UserBits);
+		getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188LTC,				&e->ancillary_data_.rp188ltcTimecode,	&e->ancillary_data_.rp188ltcUserBits);
+		getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188HighFrameRate,	&e->ancillary_data_.rp188hfrtcTimecode,	&e->ancillary_data_.rp188hfrtcUserBits);
+
+		getHDRMetadataFromFrame(videoFrame, &e->hdr_metadata_);
+
+		QCoreApplication::postEvent(m->capture, e);
 	}
 
 	if (m->capture) {
@@ -547,10 +552,8 @@ DeckLinkInputFormatChangedEvent::DeckLinkInputFormatChangedEvent(BMDDisplayMode 
 {
 }
 
-DeckLinkInputFrameArrivedEvent::DeckLinkInputFrameArrivedEvent(AncillaryDataStruct *ancillaryData, HDRMetadataStruct *hdrMetadata, bool signalValid)
+DeckLinkInputFrameArrivedEvent::DeckLinkInputFrameArrivedEvent(bool signalValid)
 	: QEvent(kVideoFrameArrivedEvent)
-	, ancillary_data_(ancillaryData)
-	, hdr_metadata_(hdrMetadata)
 	, signal_valid_(signalValid)
 {
 }

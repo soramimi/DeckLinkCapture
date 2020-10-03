@@ -30,20 +30,19 @@
 
 #pragma once
 
-#include "MainWindow.h"
-
 #include "DeckLinkAPI.h"
 
-// Forward declarations
-class MainWindow;
+#include <QEvent>
+
+class DeckLinkCapture;
 
 class ProfileCallback : public IDeckLinkProfileCallback {
 private:
-	MainWindow *ui_delegate_;
+	DeckLinkCapture *delegate_;
 	QAtomicInt refcount_;
 
 public:
-	ProfileCallback(MainWindow *owner);
+	ProfileCallback(DeckLinkCapture *owner);
 	virtual ~ProfileCallback() {}
 
 	// IDeckLinkProfileCallback interface
@@ -54,9 +53,6 @@ public:
 	virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void **ppv);
 	virtual ULONG STDMETHODCALLTYPE AddRef();
 	virtual ULONG STDMETHODCALLTYPE Release();
-
-	// IDeckLinkProfileCallback interface
-public:
 };
 
 class DeckLinkProfileCallbackEvent : public QEvent {

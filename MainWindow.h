@@ -16,7 +16,7 @@ class DeckLinkDeviceDiscovery;
 class DeckLinkInputDevice;
 class ProfileCallback;
 
-class MainWindow : public QMainWindow {
+class MainWindow : public QMainWindow, public DeckLinkCaptureHandler {
 	Q_OBJECT
 private:
 	Ui::MainWindow *ui;
@@ -42,23 +42,27 @@ public:
 	void restartCapture();
 	void toggleCapture();
 
-	void refreshDisplayModeMenu(void);
-	void refreshInputConnectionMenu(void);
-	void addDevice(IDeckLink *decklink);
-	void removeDevice(IDeckLink *deckLink);
-	void haltStreams(void);
-	void updateProfile(IDeckLinkProfile* newProfile);
+	void refreshDisplayModeMenu();
+	void refreshInputConnectionMenu();
+
+	void addDevice(IDeckLink *decklink) override;
+	void removeDevice(IDeckLink *decklink) override;
+	void haltStreams() override;
+	void videoFrameArrived(AncillaryDataStruct const *ancillary_data, HDRMetadataStruct const *hdr_metadata, bool signal_valid) override;
+	void updateProfile(IDeckLinkProfile* newProfile) override;
+	void criticalError(const QString &title, const QString &message) override;
+	void changeDisplayMode(BMDDisplayMode dispmode, double fps) override;
+	void setSignalStatus(bool valid) override;
 
 	bool isCapturing() const;
 
 	void changeInputDevice(int selectedDeviceIndex);
 	void changeInputConnection(BMDVideoConnection conn, bool errorcheck);
-	void changeDisplayMode(BMDDisplayMode dispmode, double fps);
-	void criticalError(const QString &title, const QString &message);
 	void setDeinterlaceMode(DeinterlaceMode mode);
 	bool isAudioCaptureEnabled() const;
 	void stopRecord();
-	void setSignalStatus(bool valid);
+protected:
+	void customEvent(QEvent *event) override;
 private slots:
 	void onPlayAudio(QByteArray const &samples);
 	void on_checkBox_display_mode_auto_detection_clicked(bool checked);

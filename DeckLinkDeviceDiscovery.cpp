@@ -31,9 +31,11 @@
 
 #include <QCoreApplication>
 #include "DeckLinkDeviceDiscovery.h"
+#include "DeckLinkCapture.h"
+#include "common.h"
 
-DeckLinkDeviceDiscovery::DeckLinkDeviceDiscovery(MainWindow *owner)
-	: ui_delegate_(owner)
+DeckLinkDeviceDiscovery::DeckLinkDeviceDiscovery(DeckLinkCapture *owner)
+	: delegate_(owner)
 	, refcount_(1)
 {
 #ifdef Q_OS_WIN
@@ -79,16 +81,16 @@ void DeckLinkDeviceDiscovery::disable()
 HRESULT DeckLinkDeviceDiscovery::DeckLinkDeviceArrived(IDeckLink *decklink)
 {
 	// Update UI (add new device to menu) from main thread
-//	QCoreApplication::postEvent(ui_delegate_, new DeckLinkDeviceDiscoveryEvent(kAddDeviceEvent, decklink));
-	ui_delegate_->addDevice(decklink);
+	QCoreApplication::postEvent(delegate_, new DeckLinkDeviceDiscoveryEvent(kAddDeviceEvent, decklink));
+//	ui_delegate_->addDevice(decklink);
 	return S_OK;
 }
 
 HRESULT DeckLinkDeviceDiscovery::DeckLinkDeviceRemoved(IDeckLink *decklink)
 {
 	// Update UI (remove new device to menu) from main thread
-//	QCoreApplication::postEvent(ui_delegate_, new DeckLinkDeviceDiscoveryEvent(kRemoveDeviceEvent, decklink));
-	ui_delegate_->removeDevice(decklink);
+	QCoreApplication::postEvent(delegate_, new DeckLinkDeviceDiscoveryEvent(kRemoveDeviceEvent, decklink));
+//	ui_delegate_->removeDevice(decklink);
 	return S_OK;
 }
 
