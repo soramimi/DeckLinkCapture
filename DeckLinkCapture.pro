@@ -3,7 +3,7 @@ CONFIG(release,debug|release):TARGET = DeckLinkCapture
 CONFIG(debug,debug|release):TARGET = DeckLinkCaptured
 TEMPLATE = app
 QT += core gui widgets opengl multimedia
-CONFIG += c++11
+CONFIG += c++1z
 
 DESTDIR = $$PWD/_bin
 

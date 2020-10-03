@@ -33,8 +33,6 @@ public:
 	explicit MainWindow(QWidget *parent = 0);
 	virtual ~MainWindow();
 
-	void setPixelFormat(BMDPixelFormat pixel_format);
-
 	void closeEvent(QCloseEvent *event);
 
 	void setup();
@@ -56,6 +54,7 @@ public:
 	void changeInputDevice(int selectedDeviceIndex);
 	void changeInputConnection(BMDVideoConnection conn, bool errorcheck);
 	void changeDisplayMode(BMDDisplayMode dispmode, double fps);
+	void criticalError(const QString &title, const QString &message);
 	void setDeinterlaceMode(DeinterlaceMode mode);
 	bool isAudioCaptureEnabled() const;
 	void stopRecord();
@@ -72,6 +71,7 @@ private slots:
 	void on_checkBox_audio_stateChanged(int arg1);
 	void newFrame();
 	void on_action_record_triggered(bool);
+	void test();
 };
 
 #endif // MAINWINDOW_H

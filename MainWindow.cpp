@@ -7,6 +7,7 @@
 #include <QBuffer>
 #include <QDebug>
 #include <QMessageBox>
+#include <QShortcut>
 #include <functional>
 #ifdef USE_VIDEO_RECORDING
 #include "VideoEncoder.h"
@@ -16,6 +17,8 @@ enum {
 	DisplayModeRole = Qt::UserRole,
 	FieldDominanceRole,
 	FrameRateRole,
+	DeviceIndexRole,
+	InputConnectionRole,
 };
 
 static inline void BlockSignals(QWidget *w, std::function<void ()> const &callback)
@@ -46,7 +49,9 @@ const QVector<QPair<DeinterlaceMode, QString>> deinterlace_mode_list = {
 struct MainWindow::Private {
 	QAction *a_record = nullptr;
 
-	DeckLinkCapture video_capture;
+	std::unique_ptr<DeckLinkCapture> video_capture;
+
+	std::vector<std::shared_ptr<DeckLinkInputDevice>> input_devices;
 
 	DeckLinkInputDevice *selected_device = nullptr;
 	BMDVideoConnection selected_input_connection = bmdVideoConnectionHDMI;
@@ -98,7 +103,8 @@ MainWindow::MainWindow(QWidget *parent)
 		i++;
 	}
 
-	connect(&m->video_capture, &DeckLinkCapture::newFrame, this, &MainWindow::newFrame);
+	m->video_capture = std::make_unique<DeckLinkCapture>();
+	connect(m->video_capture.get(), &DeckLinkCapture::newFrame, this, &MainWindow::newFrame);
 
 	setStatusBarText(QString());
 
@@ -116,10 +122,14 @@ MainWindow::MainWindow(QWidget *parent)
 
 	ui->checkBox_display_mode_auto_detection->setCheckState(Qt::Checked);
 	ui->checkBox_audio->click();
+
+	connect(new QShortcut(QKeySequence("Ctrl+T"), this), &QShortcut::activated, this, &MainWindow::test);
 }
 
 MainWindow::~MainWindow()
 {
+	m->input_devices.clear();
+
 	if (m->profile_callback) {
 		m->profile_callback->Release();
 		m->profile_callback = nullptr;
@@ -130,16 +140,13 @@ MainWindow::~MainWindow()
 		m->decklink_discovery = nullptr;
 	}
 
-	m->video_capture.stop();
+	m->video_capture->stop();
 
 	delete m;
 	delete ui;
 }
 
-void MainWindow::setPixelFormat(BMDPixelFormat pixel_format)
-{
-	m->video_capture.setPixelFormat(pixel_format);
-}
+
 
 void MainWindow::setStatusBarText(QString const &text)
 {
@@ -159,12 +166,14 @@ void MainWindow::setup()
 		}
 	}
 
-	m->video_capture.start();
+	m->video_capture->start();
 }
 
 void MainWindow::closeEvent(QCloseEvent *)
 {
 	m->closing = true;
+
+	m->video_capture->stop();
 
 	if (m->selected_device) {
 		stopCapture();
@@ -221,7 +230,7 @@ void MainWindow::internalStartCapture(bool start)
 			m->fps = item->data(FrameRateRole).toDouble();
 		}
 		bool auto_detect = isVideoFormatAutoDetectionEnabled();
-		m->video_capture.startCapture(m->selected_device, m->display_mode, m->field_dominance, auto_detect, isAudioCaptureEnabled());
+		m->video_capture->startCapture(this, m->selected_device, m->display_mode, m->field_dominance, auto_detect, isAudioCaptureEnabled());
 	}
 	updateUI();
 }
@@ -265,7 +274,7 @@ void MainWindow::refreshInputConnectionMenu(void)
 		if (inputConnection.first & supportedConnections) {
 			int row = ui->listWidget_input_connection->currentRow();
 			auto *item = new QListWidgetItem(inputConnection.second);
-			item->setData(Qt::UserRole, QVariant::fromValue((int64_t)inputConnection.first));
+			item->setData(InputConnectionRole, QVariant::fromValue((int64_t)inputConnection.first));
 			ui->listWidget_input_connection->addItem(item);
 			if (inputConnection.first == m->selected_input_connection) {
 				ui->listWidget_input_connection->setCurrentRow(row);
@@ -327,7 +336,8 @@ void MainWindow::refreshDisplayModeMenu(void)
 
 void MainWindow::addDevice(IDeckLink *decklink)
 {
-	DeckLinkInputDevice *newDevice = new DeckLinkInputDevice(this, decklink, &m->video_capture);
+	std::shared_ptr<DeckLinkInputDevice> newDevice = std::make_shared<DeckLinkInputDevice>(m->video_capture.get(), decklink);
+	m->input_devices.push_back(newDevice);
 
 	// Initialise new DeckLinkDevice object
 	if (!newDevice->init()) {
@@ -336,10 +346,10 @@ void MainWindow::addDevice(IDeckLink *decklink)
 		return;
 	}
 
-	connect(newDevice, &DeckLinkInputDevice::audio, this, &MainWindow::onPlayAudio);
+	connect(newDevice.get(), &DeckLinkInputDevice::audio, this, &MainWindow::onPlayAudio);
 
 	auto *item = new QListWidgetItem(newDevice->getDeviceName());
-	item->setData(Qt::UserRole, QVariant::fromValue((void *)newDevice));
+	item->setData(DeviceIndexRole, QVariant::fromValue((void *)newDevice.get()));
 	ui->listWidget_input_device->addItem(item);
 
 	ui->listWidget_input_device->sortItems();
@@ -357,7 +367,7 @@ void MainWindow::removeDevice(IDeckLink* deckLink)
 	for (deviceIndex = 0; deviceIndex < ui->listWidget_input_device->count(); deviceIndex++) {
 		auto *item = ui->listWidget_input_device->item(deviceIndex);
 		if (item) {
-			auto *device = reinterpret_cast<DeckLinkInputDevice *>(item->data(Qt::UserRole).value<void *>());
+			auto *device = reinterpret_cast<DeckLinkInputDevice *>(item->data(DeviceIndexRole).value<void *>());
 			if (device->getDeckLinkInstance() == deckLink) {
 				deviceToRemove = device;
 				break;
@@ -423,7 +433,7 @@ void MainWindow::changeInputDevice(int selectedDeviceIndex)
 		m->selected_device->getProfileManager()->SetCallback(nullptr);
 	}
 
-	QVariant selectedDeviceVariant = ui->listWidget_input_device->item(selectedDeviceIndex)->data(Qt::UserRole);
+	QVariant selectedDeviceVariant = ui->listWidget_input_device->item(selectedDeviceIndex)->data(DeviceIndexRole);
 
 	m->selected_device = reinterpret_cast<DeckLinkInputDevice *>(selectedDeviceVariant.value<void *>());
 
@@ -466,7 +476,7 @@ void MainWindow::changeInputConnection(BMDVideoConnection conn, bool errorcheck)
 
 	for (int i = 0; i < ui->listWidget_input_connection->count(); i++) {
 		auto *item = ui->listWidget_input_connection->item(i);
-		if (item && (BMDVideoConnection)item->data(Qt::UserRole).toLongLong() == conn) {
+		if (item && (BMDVideoConnection)item->data(InputConnectionRole).toLongLong() == conn) {
 			BlockSignals(ui->listWidget_input_connection, [&](){
 				ui->listWidget_input_connection->setCurrentRow(i);
 			});
@@ -491,7 +501,7 @@ void MainWindow::changeDisplayMode(BMDDisplayMode dispmode, double fps)
 	for (int i = 0; i < ui->listWidget_display_mode->count(); i++) {
 		auto *item = ui->listWidget_display_mode->item(i);
 		if (item) {
-			if ((BMDDisplayMode)item->data(Qt::UserRole).toInt() == dispmode) {
+			if ((BMDDisplayMode)item->data(DisplayModeRole).toInt() == dispmode) {
 				BlockSignals(ui->listWidget_display_mode, [&](){
 					ui->listWidget_display_mode->setCurrentRow(i);
 				});
@@ -504,6 +514,11 @@ void MainWindow::changeDisplayMode(BMDDisplayMode dispmode, double fps)
 	}
 }
 
+void MainWindow::criticalError(const QString &title, const QString &message)
+{
+
+}
+
 void MainWindow::on_listWidget_input_device_currentRowChanged(int currentRow)
 {
 	changeInputDevice(currentRow);
@@ -514,7 +529,7 @@ void MainWindow::on_listWidget_input_connection_currentRowChanged(int currentRow
 	(void)currentRow;
 	auto *item = ui->listWidget_input_connection->currentItem();
 	if (item) {
-		auto conn = (BMDVideoConnection)item->data(Qt::UserRole).toLongLong();
+		auto conn = (BMDVideoConnection)item->data(InputConnectionRole).toLongLong();
 		changeInputConnection(conn, true);
 	}
 }
@@ -549,13 +564,15 @@ void MainWindow::on_checkBox_display_mode_auto_detection_clicked(bool checked)
 
 void MainWindow::setDeinterlaceMode(DeinterlaceMode mode)
 {
+	if (!m->video_capture) return;
+
 	for (int i = 0; i < ui->comboBox_deinterlace->count(); i++) {
 		DeinterlaceMode v = (DeinterlaceMode)ui->comboBox_deinterlace->itemData(i).toInt();
 		if (v == mode) {
 			BlockSignals(ui->comboBox_deinterlace, [&](){
 				ui->comboBox_deinterlace->setCurrentIndex(i);
 			});
-			m->video_capture.setDeinterlaceMode(mode);
+			m->video_capture->setDeinterlaceMode(mode);
 			break;
 		}
 	}
@@ -588,9 +605,9 @@ void MainWindow::on_checkBox_audio_stateChanged(int arg1)
 void MainWindow::newFrame()
 {
 	while (1) {
-		QImage image0 = m->video_capture.nextFrame();
+		QImage image0 = m->video_capture->nextFrame();
 		if (image0.isNull()) return;
-		QImage image1 = m->video_capture.nextFrame();
+		QImage image1 = m->video_capture->nextFrame();
 
 		ui->widget_image->setImage(image0, image1);
 
@@ -636,4 +653,9 @@ void MainWindow::toggleRecord()
 void MainWindow::on_action_record_triggered(bool)
 {
 	toggleRecord();
+}
+
+void MainWindow::test()
+{
+	qDebug() << Q_FUNC_INFO;
 }

@@ -1,5 +1,6 @@
 #include "DeckLinkCapture.h"
 #include "Deinterlace.h"
+#include "MainWindow.h"
 #include <QDebug>
 #include <QElapsedTimer>
 #include <stdint.h>
@@ -70,6 +71,43 @@ void DeckLinkCapture::newFrame_(const QImage &image0, const QImage &image1)
 		if (!image1.isNull()) m->frame_queue.push_back(image1);
 	}
 	emit newFrame();
+}
+
+void DeckLinkCapture::addDevice(IDeckLink *decklink)
+{
+	Q_ASSERT(mainwindow_);
+	mainwindow_->addDevice(decklink);
+
+}
+
+void DeckLinkCapture::removeDevice(IDeckLink *decklink)
+{
+	Q_ASSERT(mainwindow_);
+	mainwindow_->removeDevice(decklink);
+}
+
+void DeckLinkCapture::updateProfile(IDeckLinkProfile *newProfile)
+{
+	Q_ASSERT(mainwindow_);
+	mainwindow_->updateProfile(newProfile);
+}
+
+void DeckLinkCapture::changeDisplayMode(BMDDisplayMode dispmode, double fps)
+{
+	Q_ASSERT(mainwindow_);
+	mainwindow_->changeDisplayMode(dispmode, fps);
+}
+
+void DeckLinkCapture::setSignalStatus(bool valid)
+{
+	Q_ASSERT(mainwindow_);
+	mainwindow_->setSignalStatus(valid);
+}
+
+void DeckLinkCapture::criticalError(const QString &title, const QString &message)
+{
+	Q_ASSERT(mainwindow_);
+	mainwindow_->criticalError(title, message);
 }
 
 void DeckLinkCapture::process(Task const &task)
@@ -320,9 +358,10 @@ void DeckLinkCapture::clear()
 	m->next_image1 = QImage();
 }
 
-bool DeckLinkCapture::startCapture(DeckLinkInputDevice *selectedDevice, BMDDisplayMode displayMode, BMDFieldDominance fieldDominance, bool applyDetectedInputMode, bool input_audio)
+bool DeckLinkCapture::startCapture(MainWindow *mainwindow, DeckLinkInputDevice *selectedDevice, BMDDisplayMode displayMode, BMDFieldDominance fieldDominance, bool applyDetectedInputMode, bool input_audio)
 {
 	clear();
+	mainwindow_ = mainwindow;
 	if (selectedDevice) {
 		if (selectedDevice->startCapture(displayMode, nullptr, applyDetectedInputMode, input_audio)) {
 			m->field_dominance = fieldDominance;

@@ -34,7 +34,6 @@
 #include <QTextStream>
 
 struct DeckLinkInputDevice::Private {
-	MainWindow *mainwindow = nullptr;
 	QAtomicInt refcount = 1;
 
 	DeckLinkCapture *capture = nullptr;
@@ -52,10 +51,9 @@ struct DeckLinkInputDevice::Private {
 	int64_t supported_input_connections = 0;
 };
 
-DeckLinkInputDevice::DeckLinkInputDevice(MainWindow *mw, IDeckLink *device, DeckLinkCapture *capture)
+DeckLinkInputDevice::DeckLinkInputDevice(DeckLinkCapture *capture, IDeckLink *device)
 	: m(new Private)
 {
-	m->mainwindow = mw;
 	m->capture = capture;
 	m->decklink = device;
 	m->decklink->AddRef();
@@ -155,14 +153,14 @@ bool DeckLinkInputDevice::init()
 	// We hold onto IDeckLinkConfiguration until destructor to retain input connector setting
 	result = m->decklink->QueryInterface(IID_IDeckLinkConfiguration, (void**)&m->decklink_config);
 	if (result != S_OK) {
-		QMessageBox::critical(m->mainwindow, "DeckLink Input initialization error", "Unable to query IDeckLinkConfiguration object interface");
+		m->capture->criticalError("DeckLink Input initialization error", "Unable to query IDeckLinkConfiguration object interface");
 		return false;
 	}
 
 	// Get attributes interface
 	result = m->decklink->QueryInterface(IID_IDeckLinkProfileAttributes, (void**) &deckLinkAttributes);
 	if (result != S_OK) {
-		QMessageBox::critical(m->mainwindow, "DeckLink Input initialization error", "Unable to query IDeckLinkProfileAttributes object interface");
+		m->capture->criticalError("DeckLink Input initialization error", "Unable to query IDeckLinkProfileAttributes object interface");
 		return false;
 	}
 
@@ -243,7 +241,7 @@ bool DeckLinkInputDevice::startCapture(BMDDisplayMode displayMode, IDeckLinkScre
 	// Set the video input mode
 	result = m->decklink_input->EnableVideoInput(displayMode, bmdFormat8BitYUV, video_input_flags);
 	if (result != S_OK) {
-		QMessageBox::critical(m->mainwindow, "Error starting the capture", "This application was unable to select the chosen video mode. Perhaps, the selected device is currently in-use.");
+		m->capture->criticalError("Error starting the capture", "This application was unable to select the chosen video mode. Perhaps, the selected device is currently in-use.");
 		return false;
 	}
 
@@ -256,7 +254,7 @@ bool DeckLinkInputDevice::startCapture(BMDDisplayMode displayMode, IDeckLinkScre
 	// Start the capture
 	result = m->decklink_input->StartStreams();
 	if (result != S_OK) {
-		QMessageBox::critical(m->mainwindow, "Error starting the capture", "This application was unable to start the capture. Perhaps, the selected device is currently in-use.");
+		m->capture->criticalError("Error starting the capture", "This application was unable to start the capture. Perhaps, the selected device is currently in-use.");
 		return false;
 	}
 
@@ -323,7 +321,7 @@ HRESULT DeckLinkInputDevice::VideoInputFormatChanged(BMDVideoInputFormatChangedE
 		pixel_format = bmdFormat10BitRGB;
 	}
 
-	m->mainwindow->setPixelFormat(pixel_format);
+	m->capture->setPixelFormat(pixel_format);
 
 	// Stop the capture
 	m->decklink_input->StopStreams();
@@ -331,7 +329,7 @@ HRESULT DeckLinkInputDevice::VideoInputFormatChanged(BMDVideoInputFormatChangedE
 	// Set the video input mode
 	result = m->decklink_input->EnableVideoInput(newMode->GetDisplayMode(), pixel_format, bmdVideoInputEnableFormatDetection);
 	if (result != S_OK) {
-		QMessageBox::critical(m->mainwindow, "Error restarting the capture", "This application was unable to set new display mode");
+		m->capture->criticalError("Error restarting the capture", "This application was unable to set new display mode");
 		return result;
 	}
 
@@ -340,13 +338,13 @@ HRESULT DeckLinkInputDevice::VideoInputFormatChanged(BMDVideoInputFormatChangedE
 	// Start the capture
 	result = m->decklink_input->StartStreams();
 	if (result != S_OK) {
-		QMessageBox::critical(m->mainwindow, "Error restarting the capture", "This application was unable to restart capture");
+		m->capture->criticalError("Error restarting the capture", "This application was unable to restart capture");
 		return result;
 	}
 
 	// Notify UI of new display mode
-	if ((m->mainwindow) && (notificationEvents & bmdVideoInputDisplayModeChanged)) {
-		m->mainwindow->changeDisplayMode(newMode->GetDisplayMode(), fps);
+	if ((m->capture) && (notificationEvents & bmdVideoInputDisplayModeChanged)) {
+		m->capture->changeDisplayMode(newMode->GetDisplayMode(), fps);
 
 	}
 
@@ -374,8 +372,8 @@ HRESULT DeckLinkInputDevice::VideoInputFrameArrived(IDeckLinkVideoInputFrame *vi
 		getHDRMetadataFromFrame(videoFrame, &hdrMetadata);
 	}
 
-	if (m->mainwindow) {
-		m->mainwindow->setSignalStatus(validFrame);
+	if (m->capture) {
+		m->capture->setSignalStatus(validFrame);
 	}
 
 	if (audioPacket) {
