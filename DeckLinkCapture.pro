@@ -16,6 +16,8 @@ linux:LIBS += -ldl
 win32:LIBS += -lole32 -loleaut32
 macx:LIBS += -framework CoreFoundation
 
+QMAKE_CXXFLAGS += -Wno-switch
+
 # recording
 
 #CONFIG += use_video_recording
@@ -51,6 +53,8 @@ SOURCES += \
 	DeckLinkCapture.cpp \
 	DeckLinkDeviceDiscovery.cpp \
 	DeckLinkInputDevice.cpp \
+	Image.cpp \
+	ImageUtil.cpp \
 	ImageWidget.cpp \
 	MainWindow.cpp \
 	ProfileCallback.cpp \
@@ -64,6 +68,8 @@ HEADERS += \
 	DeckLinkCapture.h \
 	DeckLinkDeviceDiscovery.h \
 	DeckLinkInputDevice.h \
+	Image.h \
+	ImageUtil.h \
 	ImageWidget.h \
 	MainWindow.h \
 	ProfileCallback.h \

@@ -6,6 +6,7 @@
 #include <QThread>
 #include <QWaitCondition>
 
+class Image;
 class DeckLinkInputDevice;
 
 class AbstractDeckLinkCapture {
@@ -44,7 +45,7 @@ private:
 	void run();
 	void pushFrame(const Task &task);
 	void clear();
-	void newFrame_(QImage const &image0, QImage const &image1);
+	void newFrame_(const Image &image0, const Image &image1);
 
 	void addDevice(IDeckLink *decklink) override;
 	void removeDevice(IDeckLink* decklink) override;
@@ -61,7 +62,7 @@ public:
 	void setDeinterlaceMode(DeinterlaceMode mode);
 	bool startCapture(MainWindow *mainwindow, DeckLinkInputDevice *selectedDevice_, BMDDisplayMode displayMode, BMDFieldDominance fieldDominance, bool applyDetectedInputMode, bool input_audio);
 	void stop();
-	QImage nextFrame();
+	Image nextFrame();
 signals:
 	void newFrame();
 };

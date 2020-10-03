@@ -6,6 +6,8 @@
 #ifndef DEINTERLACE_H
 #define DEINTERLACE_H
 
+#include "Image.h"
+
 #include <stdint.h>
 #include <vector>
 #include <memory>
@@ -22,7 +24,7 @@ private:
 		uint8_t const *src1 = nullptr;
 	};
 public:
-	std::pair<QImage, QImage> filter(QImage image);
+	std::pair<Image, Image> filter(Image image);
 };
 
 #endif // DEINTERLACE_H

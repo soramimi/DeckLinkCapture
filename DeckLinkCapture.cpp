@@ -1,5 +1,6 @@
 #include "DeckLinkCapture.h"
 #include "Deinterlace.h"
+#include "Image.h"
 #include "MainWindow.h"
 #include <QDebug>
 #include <QElapsedTimer>
@@ -21,13 +22,13 @@ struct DeckLinkCapture::Private {
 	QMutex mutex;
 	QWaitCondition waiter;
 //	QSize image_size;
-	QImage next_image0;
-	QImage next_image1;
+	Image next_image0;
+	Image next_image1;
 	DeinterlaceMode deinterlace = DeinterlaceMode::InterpolateEven;
 	BMDPixelFormat pixel_format = bmdFormat8BitYUV;
 	BMDFieldDominance field_dominance = bmdUnknownFieldDominance;
 	Deinterlace di;
-	std::deque<QImage> frame_queue;
+	std::deque<Image> frame_queue;
 };
 
 DeckLinkCapture::DeckLinkCapture()
@@ -60,7 +61,7 @@ DeinterlaceMode DeckLinkCapture::deinterlaceMode() const
 	return m->deinterlace;
 }
 
-void DeckLinkCapture::newFrame_(const QImage &image0, const QImage &image1)
+void DeckLinkCapture::newFrame_(const Image &image0, const Image &image1)
 {
 	{
 		QMutexLocker lock(&m->mutex);
@@ -118,11 +119,11 @@ void DeckLinkCapture::process(Task const &task)
 		QElapsedTimer t;
 		t.start();
 
-		QImage image;
+		Image image;
 
 		if (m->pixel_format == bmdFormat10BitRGB) {
 			if (w * h * 4 == task.ba.size()) {
-				image = QImage(w, h, QImage::Format_RGB888);
+				image = Image(w, h, Image::Format::RGB8);
 				void const *data = task.ba.data();
 				int stride = w * 4;
 #pragma omp parallel for
@@ -139,7 +140,7 @@ void DeckLinkCapture::process(Task const &task)
 			}
 		} else if (m->pixel_format == bmdFormat10BitRGBX) {
 			if (w * h * 4 == task.ba.size()) {
-				image = QImage(w, h, QImage::Format_RGB888);
+				image = Image(w, h, Image::Format::RGB8);
 				void const *data = task.ba.data();
 				int stride = w * 4;
 #pragma omp parallel for
@@ -156,7 +157,7 @@ void DeckLinkCapture::process(Task const &task)
 			}
 		} else if (m->pixel_format == bmdFormat10BitRGBXLE) {
 			if (w * h * 4 == task.ba.size()) {
-				image = QImage(w, h, QImage::Format_RGB888);
+				image = Image(w, h, Image::Format::RGB8);
 				void const *data = task.ba.data();
 				int stride = w * 4;
 #pragma omp parallel for
@@ -173,7 +174,7 @@ void DeckLinkCapture::process(Task const &task)
 			}
 		} else if (m->pixel_format == bmdFormat8BitBGRA) {
 			if (w * h * 4 == task.ba.size()) {
-				image = QImage(w, h, QImage::Format_RGB888);
+				image = Image(w, h, Image::Format::RGB8);
 				void const *data = task.ba.data();
 				int stride = w * 4;
 #pragma omp parallel for
@@ -189,7 +190,7 @@ void DeckLinkCapture::process(Task const &task)
 			}
 		} else if (m->pixel_format == bmdFormat8BitARGB) {
 			if (w * h * 4 == task.ba.size()) {
-				image = QImage(w, h, QImage::Format_RGB888);
+				image = Image(w, h, Image::Format::RGB8);
 				void const *data = task.ba.data();
 				int stride = w * 4;
 #pragma omp parallel for
@@ -204,45 +205,21 @@ void DeckLinkCapture::process(Task const &task)
 				}
 			}
 		} else if (m->pixel_format == bmdFormat8BitYUV || m->pixel_format == bmdFormat10BitYUV) {
-			image = QImage(w, h, QImage::Format_RGB888);
-#ifdef USE_OPENCV
-			cv::Mat mat_yuyv(h, w, CV_8UC2, const_cast<void *>((void const *)task.ba.data()));
-			cv::Mat mat_rgb;
-			cv::cvtColor(mat_yuyv, mat_rgb, cv::COLOR_YUV2RGB_UYVY);
-			memcpy(image.bits(), mat_rgb.ptr(0), w * h * 3);
-#else
-#pragma omp parallel for
+			image = Image(w, h, Image::Format::UYUV8);
 			for (int y = 0; y < h; y++) {
 				uint8_t const *src = (uint8_t const *)task.ba.data() + w * y * 2;
 				uint8_t *dst = image.scanLine(y);
-				uint8_t u, v;
-				u = v = 0;
-				for (int x = 0; x < w; x++) {
-					uint8_t y = src[1];
-					if ((x & 1) == 0) {
-						u = src[0];
-						v = src[2];
-					}
-					int r = ((y - 16) * 1192 +                    (v - 128) * 1634) / 1024;
-					int g = ((y - 16) * 1192 - (u - 128) * 400  - (v - 128) * 832 ) / 1024;
-					int b = ((y - 16) * 1192 + (u - 128) * 2065                   ) / 1024;
-					dst[0] = clamp_uint8(r);
-					dst[1] = clamp_uint8(g);
-					dst[2] = clamp_uint8(b);
-					src += 2;
-					dst += 3;
-				}
+				memcpy(dst, src, image.stride());
 			}
-#endif
 		}
 
 		if (image.width() == w && image.height() == h) {
 			int stride = w * 3;
 
-			QImage bytes1(w, h, QImage::Format_RGB888);
+			Image bytes1(w, h, Image::Format::RGB8);
 
 			if (m->deinterlace == DeinterlaceMode::None || m->field_dominance == bmdProgressiveFrame) {
-				newFrame_(image, QImage());
+				newFrame_(image, {});
 			} else if (m->deinterlace == DeinterlaceMode::InterpolateEven) {
 				uint8_t const *s = (uint8_t const *)image.scanLine(0);
 				uint8_t *d0 = (uint8_t *)bytes1.scanLine(0);
@@ -265,7 +242,7 @@ void DeckLinkCapture::process(Task const &task)
 					y += 2;
 				}
 				memcpy((uint8_t *)bytes1.scanLine(h - 1), d0, stride);
-				newFrame_(bytes1, QImage());
+				newFrame_(bytes1, {});
 			} else if (m->deinterlace == DeinterlaceMode::InterpolateOdd) {
 				uint8_t const *s = (uint8_t const *)image.scanLine(1);
 				uint8_t *d0 = (uint8_t *)bytes1.scanLine(0);
@@ -289,22 +266,22 @@ void DeckLinkCapture::process(Task const &task)
 					d0 = d2;
 					y += 2;
 				}
-				newFrame_(bytes1, QImage());
+				newFrame_(bytes1, {});
 			} else if (m->deinterlace == DeinterlaceMode::Merge || m->deinterlace == DeinterlaceMode::MergeX2) {
 				const bool x2frame = (m->deinterlace == DeinterlaceMode::MergeX2);
-				QImage image0;
-				QImage image1;
+				Image image0;
+				Image image1;
 				{
 					QMutexLocker lock(&m->mutex);
 					image0 = m->next_image0;
 					image1 = m->next_image1;
 				}
 				if (m->field_dominance == bmdUpperFieldFirst) {
-					newFrame_(image0, x2frame ? image1 : QImage());
+					newFrame_(image0, x2frame ? image1 : Image());
 				} else if (m->field_dominance == bmdLowerFieldFirst) {
-					newFrame_(image1, x2frame ? image0 : QImage());
+					newFrame_(image1, x2frame ? image0 : Image());
 				} else {
-					newFrame_(image1, QImage());
+					newFrame_(image1, {});
 				}
 				auto pair = m->di.filter(image);
 				{
@@ -313,7 +290,7 @@ void DeckLinkCapture::process(Task const &task)
 					m->next_image1 = pair.second;
 				}
 			} else {
-				newFrame_(image, QImage());
+				newFrame_(image, {});
 			}
 		}
 //		qDebug() << QString("%1ms").arg(t.elapsed());
@@ -354,8 +331,8 @@ void DeckLinkCapture::pushFrame(Task const &task)
 void DeckLinkCapture::clear()
 {
 	QMutexLocker lock(&m->mutex);
-	m->next_image0 = QImage();
-	m->next_image1 = QImage();
+	m->next_image0 = {};
+	m->next_image1 = {};
 }
 
 bool DeckLinkCapture::startCapture(MainWindow *mainwindow, DeckLinkInputDevice *selectedDevice, BMDDisplayMode displayMode, BMDFieldDominance fieldDominance, bool applyDetectedInputMode, bool input_audio)
@@ -387,9 +364,9 @@ void DeckLinkCapture::stop()
 	}
 }
 
-QImage DeckLinkCapture::nextFrame()
+Image DeckLinkCapture::nextFrame()
 {
-	QImage image;
+	Image image;
 	QMutexLocker lock(&m->mutex);
 	if (!m->frame_queue.empty()) {
 		image = m->frame_queue.front();

@@ -3,6 +3,8 @@
 #include "ui_MainWindow.h"
 #include "DeckLinkCapture.h"
 #include "StatusLabel.h"
+#include "Image.h"
+#include "ImageUtil.h"
 #include <QAudioOutput>
 #include <QBuffer>
 #include <QDebug>
@@ -605,11 +607,11 @@ void MainWindow::on_checkBox_audio_stateChanged(int arg1)
 void MainWindow::newFrame()
 {
 	while (1) {
-		QImage image0 = m->video_capture->nextFrame();
+		Image image0 = m->video_capture->nextFrame();
 		if (image0.isNull()) return;
-		QImage image1 = m->video_capture->nextFrame();
+		Image image1 = m->video_capture->nextFrame();
 
-		ui->widget_image->setImage(image0, image1);
+		ui->widget_image->setImage(ImageUtil::qimage(image0), ImageUtil::qimage(image1));
 
 #ifdef USE_VIDEO_RECORDING
 		if (m->video_encoder) {

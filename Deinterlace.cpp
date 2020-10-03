@@ -22,11 +22,11 @@ struct Task {
 	uint8_t const *src1 = nullptr;
 };
 
-std::pair<QImage, QImage> Deinterlace::filter(QImage image)
+std::pair<Image, Image> Deinterlace::filter(Image image)
 {
-	QImage newimage0;
-	QImage newimage1;
-	image = image.convertToFormat(QImage::Format_RGB888);
+	Image newimage0;
+	Image newimage1;
+	image = image.convertToFormat(Image::Format::RGB8);
 	int w = image.width();
 	int h = image.height();
 	if (w > 0 && h > 2) {
@@ -200,6 +200,6 @@ std::pair<QImage, QImage> Deinterlace::filter(QImage image)
 			//
 		}
 	}
-	return std::make_pair<QImage, QImage>(std::move(newimage0), std::move(newimage1));
+	return std::make_pair<Image, Image>(std::move(newimage0), std::move(newimage1));
 }
 
