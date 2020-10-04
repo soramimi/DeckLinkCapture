@@ -33,6 +33,7 @@
 #include <QMessageBox>
 #include <QTextStream>
 #include "common.h"
+#include <omp.h>
 
 struct DeckLinkInputDevice::Private {
 	QAtomicInt refcount = 1;
@@ -377,10 +378,6 @@ HRESULT DeckLinkInputDevice::VideoInputFrameArrived(IDeckLinkVideoInputFrame *vi
 		QCoreApplication::postEvent(m->capture, e);
 	}
 
-	if (m->capture) {
-		m->capture->setSignalStatus(validFrame);
-	}
-
 	if (audioPacket) {
 		const int channels = 2;
 		const int frames = audioPacket->GetSampleFrameCount();
@@ -399,10 +396,12 @@ HRESULT DeckLinkInputDevice::VideoInputFrameArrived(IDeckLinkVideoInputFrame *vi
 		int stride = videoFrame->GetRowBytes();
 		uint8_t const *bytes = nullptr;
 		if (w > 0 && h > 0 && videoFrame->GetBytes((void **)&bytes) == S_OK && bytes) {
+//			QElapsedTimer et;
+//			et.start();
 			DeckLinkCapture::Task t;
-			t.sz = QSize(w, h);
-			t.ba = QByteArray((char const *)bytes, stride * h);
+			t.image = DeckLinkCapture::createImage(w, h, m->capture->pixelFormat(), bytes, stride * h);
 			m->capture->pushFrame(t);
+//			qDebug() << et.elapsed();
 		}
 	}
 

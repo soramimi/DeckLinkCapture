@@ -6,11 +6,10 @@
 #include <QElapsedTimer>
 #include <stdint.h>
 #include <deque>
-#include <omp.h>
 
-#ifdef USE_OPENCV
-#include <opencv2/imgproc/imgproc.hpp>
-#endif
+//#ifdef USE_OPENCV
+//#include <opencv2/imgproc/imgproc.hpp>
+//#endif
 
 static inline uint8_t clamp_uint8(int v)
 {
@@ -18,7 +17,7 @@ static inline uint8_t clamp_uint8(int v)
 }
 
 struct DeckLinkCapture::Private {
-	DeckLinkCaptureHandler *mainwindow = nullptr;
+	DeckLinkCaptureDelegate *mainwindow = nullptr;
 	std::deque<Task> tasks;
 	QMutex mutex;
 	QWaitCondition waiter;
@@ -31,7 +30,7 @@ struct DeckLinkCapture::Private {
 	std::deque<Image> frame_queue;
 };
 
-DeckLinkCapture::DeckLinkCapture(DeckLinkCaptureHandler *mainwindow)
+DeckLinkCapture::DeckLinkCapture(DeckLinkCaptureDelegate *mainwindow)
 	: m(new Private)
 {
 	m->mainwindow = mainwindow;
@@ -43,9 +42,14 @@ DeckLinkCapture::~DeckLinkCapture()
 	delete m;
 }
 
-DeckLinkCaptureHandler *DeckLinkCapture::mainwindow()
+DeckLinkCaptureDelegate *DeckLinkCapture::delegate()
 {
 	return m->mainwindow;
+}
+
+BMDPixelFormat DeckLinkCapture::pixelFormat() const
+{
+	return m->pixel_format;
 }
 
 void DeckLinkCapture::setPixelFormat(BMDPixelFormat pixel_format)
@@ -116,12 +120,6 @@ void DeckLinkCapture::haltStreams()
 	m->mainwindow->haltStreams();
 }
 
-void DeckLinkCapture::setSignalStatus(bool valid)
-{
-	Q_ASSERT(m->mainwindow);
-	m->mainwindow->setSignalStatus(valid);
-}
-
 void DeckLinkCapture::criticalError(const QString &title, const QString &message)
 {
 	Q_ASSERT(m->mainwindow);
@@ -146,119 +144,129 @@ void DeckLinkCapture::customEvent(QEvent *event)
 		DeckLinkProfileCallbackEvent *profileChangedEvent = dynamic_cast<DeckLinkProfileCallbackEvent*>(event);
 		updateProfile(profileChangedEvent->Profile());
 	}
+}
 
+Image DeckLinkCapture::createImage(int w, int h, BMDPixelFormat pixel_format, uint8_t const *data, int size)
+{
+	switch (pixel_format) {
+	case bmdFormat10BitRGB:
+		if (w * h * 4 == size) {
+			Image image(w, h, Image::Format::RGB8);
+			for (int y = 0; y < h; y++) {
+				uint8_t const *src = data + 4 * w * y;
+				uint8_t *dst = image.scanLine(y);
+				for (int x = 0; x < w; x++) {
+					uint32_t t = (src[0] << 24) | (src[1] << 16) | (src[2] << 8) | src[3];
+					dst[0] = t >> 22;
+					dst[1] = t >> 12;
+					dst[2] = t >> 2;
+					src += 4;
+					dst += 3;
+				}
+			}
+			return image;
+		}
+		break;
+	case bmdFormat10BitRGBX:
+		if (w * h * 4 == size) {
+			Image image(w, h, Image::Format::RGB8);
+			for (int y = 0; y < h; y++) {
+				uint8_t const *src = data + 4 * w * y;
+				uint8_t *dst = image.scanLine(y);
+				for (int x = 0; x < w; x++) {
+					uint32_t t = (src[0] << 24) | (src[1] << 16) | (src[2] << 8) | src[3];
+					dst[0] = t >> 24;
+					dst[1] = t >> 14;
+					dst[2] = t >> 4;
+					src += 4;
+					dst += 3;
+				}
+			}
+			return image;
+		}
+		break;
+	case bmdFormat10BitRGBXLE:
+		if (w * h * 4 == size) {
+			Image image(w, h, Image::Format::RGB8);
+			for (int y = 0; y < h; y++) {
+				uint8_t const *src = data + 4 * w * y;
+				uint8_t *dst = image.scanLine(y);
+				for (int x = 0; x < w; x++) {
+					uint32_t t = (src[3] << 24) | (src[2] << 16) | (src[1] << 8) | src[0];
+					dst[0] = t >> 24;
+					dst[1] = t >> 14;
+					dst[2] = t >> 4;
+					src += 4;
+					dst += 3;
+				}
+			}
+			return image;
+		}
+		break;
+	case bmdFormat8BitBGRA:
+		if (w * h * 4 == size) {
+			Image image(w, h, Image::Format::RGB8);
+			for (int y = 0; y < h; y++) {
+				uint8_t const *src = data + 4 * w * y;
+				uint8_t *dst = image.scanLine(y);
+				for (int x = 0; x < w; x++) {
+					dst[0] = src[2];
+					dst[1] = src[1];
+					dst[2] = src[0];
+					src += 4;
+					dst += 3;
+				}
+			}
+			return image;
+		}
+		break;
+	case bmdFormat8BitARGB:
+		if (w * h * 4 == size) {
+			Image image(w, h, Image::Format::RGB8);
+			for (int y = 0; y < h; y++) {
+				uint8_t const *src = data + 4 * w * y;
+				uint8_t *dst = image.scanLine(y);
+				for (int x = 0; x < w; x++) {
+					dst[0] = src[1];
+					dst[1] = src[2];
+					dst[2] = src[3];
+					src += 4;
+					dst += 3;
+				}
+			}
+			return image;
+		}
+		break;
+	case bmdFormat8BitYUV:
+	case bmdFormat10BitYUV:
+		if (w * h * 2 == size) {
+			Image image(w, h, Image::Format::UYUV8);
+			for (int y = 0; y < h; y++) {
+				uint8_t const *src = data + w * y * 2;
+				uint8_t *dst = image.scanLine(y);
+				memcpy(dst, src, image.bytesPerLine());
+			}
+			return image;
+		}
+		break;
+	}
+	return {};
 }
 
 void DeckLinkCapture::process(Task const &task)
 {
-	int w = task.sz.width();
-	int h = task.sz.height();
-	if (w > 0 && h > 0 && !task.ba.isEmpty()) {
-		QElapsedTimer t;
-		t.start();
-
-		Image image;
-
-		if (m->pixel_format == bmdFormat10BitRGB) {
-			if (w * h * 4 == task.ba.size()) {
-				image = Image(w, h, Image::Format::RGB8);
-				void const *data = task.ba.data();
-				int stride = w * 4;
-#pragma omp parallel for
-				for (int y = 0; y < h; y++) {
-					uint8_t const *src = (uint8_t const *)data + stride * y;
-					uint8_t *dst = image.scanLine(y);
-					for (int x = 0; x < w; x++) {
-						uint32_t t = (src[x * 4 + 0] << 24) | (src[x * 4 + 1] << 16) | (src[x * 4 + 2] << 8) | src[x * 4 + 3];
-						dst[x * 3 + 0] = t >> 22;
-						dst[x * 3 + 1] = t >> 12;
-						dst[x * 3 + 2] = t >> 2;
-					}
-				}
-			}
-		} else if (m->pixel_format == bmdFormat10BitRGBX) {
-			if (w * h * 4 == task.ba.size()) {
-				image = Image(w, h, Image::Format::RGB8);
-				void const *data = task.ba.data();
-				int stride = w * 4;
-#pragma omp parallel for
-				for (int y = 0; y < h; y++) {
-					uint8_t const *src = (uint8_t const *)data + stride * y;
-					uint8_t *dst = image.scanLine(y);
-					for (int x = 0; x < w; x++) {
-						uint32_t t = (src[x * 4 + 0] << 24) | (src[x * 4 + 1] << 16) | (src[x * 4 + 2] << 8) | src[x * 4 + 3];
-						dst[x * 3 + 0] = t >> 24;
-						dst[x * 3 + 1] = t >> 14;
-						dst[x * 3 + 2] = t >> 4;
-					}
-				}
-			}
-		} else if (m->pixel_format == bmdFormat10BitRGBXLE) {
-			if (w * h * 4 == task.ba.size()) {
-				image = Image(w, h, Image::Format::RGB8);
-				void const *data = task.ba.data();
-				int stride = w * 4;
-#pragma omp parallel for
-				for (int y = 0; y < h; y++) {
-					uint8_t const *src = (uint8_t const *)data + stride * y;
-					uint8_t *dst = image.scanLine(y);
-					for (int x = 0; x < w; x++) {
-						uint32_t t = (src[x * 4 + 3] << 24) | (src[x * 4 + 2] << 16) | (src[x * 4 + 1] << 8) | src[x * 4 + 0];
-						dst[x * 3 + 0] = t >> 24;
-						dst[x * 3 + 1] = t >> 14;
-						dst[x * 3 + 2] = t >> 4;
-					}
-				}
-			}
-		} else if (m->pixel_format == bmdFormat8BitBGRA) {
-			if (w * h * 4 == task.ba.size()) {
-				image = Image(w, h, Image::Format::RGB8);
-				void const *data = task.ba.data();
-				int stride = w * 4;
-#pragma omp parallel for
-				for (int y = 0; y < h; y++) {
-					uint8_t const *src = (uint8_t const *)data + stride * y;
-					uint8_t *dst = image.scanLine(y);
-					for (int x = 0; x < w; x++) {
-						dst[x * 3 + 0] = src[x * 4 + 2];
-						dst[x * 3 + 1] = src[x * 4 + 1];
-						dst[x * 3 + 2] = src[x * 4 + 0];
-					}
-				}
-			}
-		} else if (m->pixel_format == bmdFormat8BitARGB) {
-			if (w * h * 4 == task.ba.size()) {
-				image = Image(w, h, Image::Format::RGB8);
-				void const *data = task.ba.data();
-				int stride = w * 4;
-#pragma omp parallel for
-				for (int y = 0; y < h; y++) {
-					uint8_t const *src = (uint8_t const *)data + stride * y;
-					uint8_t *dst = image.scanLine(y);
-					for (int x = 0; x < w; x++) {
-						dst[x * 3 + 0] = src[x * 4 + 1];
-						dst[x * 3 + 1] = src[x * 4 + 2];
-						dst[x * 3 + 2] = src[x * 4 + 3];
-					}
-				}
-			}
-		} else if (m->pixel_format == bmdFormat8BitYUV || m->pixel_format == bmdFormat10BitYUV) {
-			image = Image(w, h, Image::Format::UYUV8);
-			for (int y = 0; y < h; y++) {
-				uint8_t const *src = (uint8_t const *)task.ba.data() + w * y * 2;
-				uint8_t *dst = image.scanLine(y);
-				memcpy(dst, src, image.bytesPerLine());
-			}
+	if (task.isValid()) {
+		if (m->deinterlace == DeinterlaceMode::None || m->field_dominance == bmdProgressiveFrame) {
+			newFrame_(task.image, {});
+			goto done;
 		}
-
-		if (image.width() == w && image.height() == h) {
-			int stride = w * 3;
-
+		{
+			Image image = task.image;
+			const int w = image.width();
+			const int h = image.height();
 			Image bytes1(w, h, Image::Format::RGB8);
-
-			if (m->deinterlace == DeinterlaceMode::None || m->field_dominance == bmdProgressiveFrame) {
-				newFrame_(image, {});
-			} else if (m->deinterlace == DeinterlaceMode::InterpolateEven) {
+			const int stride = image.bytesPerLine();
+			if (m->deinterlace == DeinterlaceMode::InterpolateEven) {
 				uint8_t const *s = (uint8_t const *)image.scanLine(0);
 				uint8_t *d0 = (uint8_t *)bytes1.scanLine(0);
 				memcpy(bytes1.scanLine(0), s, stride);
@@ -281,7 +289,9 @@ void DeckLinkCapture::process(Task const &task)
 				}
 				memcpy((uint8_t *)bytes1.scanLine(h - 1), d0, stride);
 				newFrame_(bytes1, {});
-			} else if (m->deinterlace == DeinterlaceMode::InterpolateOdd) {
+				goto done;
+			}
+			if (m->deinterlace == DeinterlaceMode::InterpolateOdd) {
 				uint8_t const *s = (uint8_t const *)image.scanLine(1);
 				uint8_t *d0 = (uint8_t *)bytes1.scanLine(0);
 				memcpy(d0, s, stride);
@@ -305,7 +315,9 @@ void DeckLinkCapture::process(Task const &task)
 					y += 2;
 				}
 				newFrame_(bytes1, {});
-			} else if (m->deinterlace == DeinterlaceMode::Merge || m->deinterlace == DeinterlaceMode::MergeX2) {
+				goto done;
+			}
+			if (m->deinterlace == DeinterlaceMode::Merge || m->deinterlace == DeinterlaceMode::MergeX2) {
 				const bool x2frame = (m->deinterlace == DeinterlaceMode::MergeX2);
 				Image image0;
 				Image image1;
@@ -327,11 +339,10 @@ void DeckLinkCapture::process(Task const &task)
 					m->next_image0 = pair.first;
 					m->next_image1 = pair.second;
 				}
-			} else {
-				newFrame_(image, {});
+				goto done;
 			}
 		}
-//		qDebug() << QString("%1ms").arg(t.elapsed());
+done:;
 	}
 }
 
@@ -350,7 +361,7 @@ void DeckLinkCapture::run()
 				m->tasks.pop_front();
 			}
 		}
-		if (!task.sz.isEmpty() && !task.ba.isEmpty()) {
+		if (task.isValid()) {
 			process(task);
 		}
 	}

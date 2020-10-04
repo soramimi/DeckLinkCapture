@@ -16,7 +16,7 @@ class DeckLinkDeviceDiscovery;
 class DeckLinkInputDevice;
 class ProfileCallback;
 
-class MainWindow : public QMainWindow, public DeckLinkCaptureHandler {
+class MainWindow : public QMainWindow, public DeckLinkCaptureDelegate {
 	Q_OBJECT
 private:
 	Ui::MainWindow *ui;
@@ -29,6 +29,7 @@ private:
 	void updateUI();
 	void internalStartCapture(bool start);
 	void toggleRecord();
+	void setSignalStatus(bool valid);
 public:
 	explicit MainWindow(QWidget *parent = 0);
 	virtual ~MainWindow();
@@ -52,7 +53,6 @@ public:
 	void updateProfile(IDeckLinkProfile* newProfile) override;
 	void criticalError(const QString &title, const QString &message) override;
 	void changeDisplayMode(BMDDisplayMode dispmode, double fps) override;
-	void setSignalStatus(bool valid) override;
 
 	bool isCapturing() const;
 
@@ -61,8 +61,6 @@ public:
 	void setDeinterlaceMode(DeinterlaceMode mode);
 	bool isAudioCaptureEnabled() const;
 	void stopRecord();
-protected:
-	void customEvent(QEvent *event) override;
 private slots:
 	void onPlayAudio(QByteArray const &samples);
 	void on_checkBox_display_mode_auto_detection_clicked(bool checked);

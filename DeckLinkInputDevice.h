@@ -33,7 +33,7 @@
 #include <QString>
 #include <stdint.h>
 
-class DeckLinkCaptureHandler;
+class DeckLinkCaptureDelegate;
 class DeckLinkCapture;
 
 class DeckLinkInputDevice : public QObject, public IDeckLinkInputCallback {

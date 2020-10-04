@@ -58,7 +58,8 @@ private:
 	void copy_on_write()
 	{
 		if (core_ && core_->ref > 1) {
-			assign(copy().core_);
+			Image img = copy();
+			assign(img.core_);
 		}
 	}
 public:
@@ -67,12 +68,7 @@ public:
 	}
 	Image(int w, int h, Format format)
 	{
-		size_t datalen = bytesPerPixel(format) * w * h;
-		Core *p = (Core *)malloc(sizeof(Core) + datalen);
-		p->width = w;
-		p->height = h;
-		p->format = format;
-		assign(p);
+		create(w, h, format);
 	}
 	~Image()
 	{
@@ -93,6 +89,16 @@ public:
 	bool isNull() const
 	{
 		return !core_;
+	}
+	void create(int w, int h, Format format)
+	{
+		size_t datalen = bytesPerPixel(format) * w * h;
+		Core *p = (Core *)malloc(sizeof(Core) + datalen);
+		*p = {};
+		p->width = w;
+		p->height = h;
+		p->format = format;
+		assign(p);
 	}
 	int width() const
 	{
@@ -136,12 +142,11 @@ public:
 	{
 		Image newimg;
 		if (core_) {
-			size_t datalen = bytesPerLine() * height();
-			Core *p = (Core *)malloc(sizeof(Core) + datalen);
-			*p = *core_;
-			p->ref = 0;
-			memcpy(p->data, core_->data, datalen);
-			newimg.assign(p);
+			int w = width();
+			int h = height();
+			Format f = format();
+			newimg.create(w, h, f);
+			memcpy(newimg.core_->data, core_->data, bytesPerPixel(f) * w * h);
 		}
 		return newimg;
 	}

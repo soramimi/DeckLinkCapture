@@ -171,26 +171,6 @@ void MainWindow::setup()
 	m->video_capture->start();
 }
 
-void MainWindow::customEvent(QEvent *event)
-{
-	if (event->type() == kAddDeviceEvent) {
-		DeckLinkDeviceDiscoveryEvent *discoveryEvent = dynamic_cast<DeckLinkDeviceDiscoveryEvent*>(event);
-		addDevice(discoveryEvent->decklink());
-	} else if (event->type() == kRemoveDeviceEvent) {
-		DeckLinkDeviceDiscoveryEvent *discoveryEvent = dynamic_cast<DeckLinkDeviceDiscoveryEvent*>(event);
-		removeDevice(discoveryEvent->decklink());
-	} else if (event->type() == kVideoFormatChangedEvent) {
-		DeckLinkInputFormatChangedEvent *formatEvent = dynamic_cast<DeckLinkInputFormatChangedEvent*>(event);
-		changeDisplayMode(formatEvent->DisplayMode(), formatEvent->fps());
-	} else if (event->type() == kVideoFrameArrivedEvent) {
-		DeckLinkInputFrameArrivedEvent *frameArrivedEvent = dynamic_cast<DeckLinkInputFrameArrivedEvent*>(event);
-		setStatusBarText(frameArrivedEvent->SignalValid() ? QString() : tr("No valid input signal"));
-	} else if (event->type() == kProfileActivatedEvent) {
-		DeckLinkProfileCallbackEvent *profileChangedEvent = dynamic_cast<DeckLinkProfileCallbackEvent*>(event);
-		updateProfile(profileChangedEvent->Profile());
-	}
-}
-
 void MainWindow::closeEvent(QCloseEvent *)
 {
 	m->closing = true;
@@ -529,7 +509,10 @@ void MainWindow::changeDisplayMode(BMDDisplayMode dispmode, double fps)
 
 void MainWindow::videoFrameArrived(const AncillaryDataStruct *ancillary_data, const HDRMetadataStruct *hdr_metadata, bool signal_valid)
 {
-	setStatusBarText(signal_valid ? QString() : tr("No valid input signal"));
+	(void)ancillary_data;
+	(void)hdr_metadata;
+
+	setSignalStatus(signal_valid);
 }
 
 void MainWindow::haltStreams()

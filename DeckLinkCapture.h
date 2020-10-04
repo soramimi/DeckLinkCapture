@@ -2,6 +2,7 @@
 #define DECKLINKCAPTURE_H
 
 #include "DeckLinkInputDevice.h"
+#include "Image.h"
 #include <QImage>
 #include <QThread>
 #include <QWaitCondition>
@@ -30,14 +31,13 @@ public:
 	}
 };
 
-class DeckLinkCaptureHandler {
+class DeckLinkCaptureDelegate {
 public:
 	virtual void addDevice(IDeckLink *decklink) = 0;
 	virtual void removeDevice(IDeckLink *decklink) = 0;
 	virtual void updateProfile(IDeckLinkProfile *newProfile) = 0;
 	virtual void changeDisplayMode(BMDDisplayMode dispmode, double fps) = 0;
 	virtual void videoFrameArrived(AncillaryDataStruct const *ancillary_data, HDRMetadataStruct const *hdr_metadata, bool signal_valid) = 0;
-	virtual void setSignalStatus(bool valid) = 0;
 	virtual void haltStreams() = 0;
 	virtual void criticalError(QString const &title, QString const &message) = 0;
 };
@@ -57,10 +57,16 @@ class DeckLinkCapture : public QThread {
 private:
 	struct Private;
 	Private *m;
-	DeckLinkCaptureHandler *mainwindow();
+
+	static Image createImage(int w, int h, BMDPixelFormat pixel_format, uint8_t const *data, int size);
+
+	DeckLinkCaptureDelegate *delegate();
 	struct Task {
-		QSize sz;
-		QByteArray ba;
+		Image image;
+		bool isValid() const
+		{
+			return !image.isNull();
+		}
 	};
 	void process(const Task &task);
 	void run();
@@ -76,13 +82,13 @@ private:
 	void haltStreams();
 	void criticalError(QString const &title, QString const &message);
 
-	void setSignalStatus(bool valid);
+	BMDPixelFormat pixelFormat() const;
 	void setPixelFormat(BMDPixelFormat pixel_format);
 protected:
 	void customEvent(QEvent *event);
 
 public:
-	DeckLinkCapture(DeckLinkCaptureHandler *mainwindow);
+	DeckLinkCapture(DeckLinkCaptureDelegate *delegate);
 	~DeckLinkCapture();
 	DeinterlaceMode deinterlaceMode() const;
 	void setDeinterlaceMode(DeinterlaceMode mode);
