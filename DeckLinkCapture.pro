@@ -16,7 +16,7 @@ linux:LIBS += -ldl
 win32:LIBS += -lole32 -loleaut32
 macx:LIBS += -framework CoreFoundation
 
-QMAKE_CXXFLAGS += -Wno-switch
+gcc:QMAKE_CXXFLAGS += -Wno-switch
 
 # recording
 

@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 class Image {
 public:
@@ -37,7 +38,11 @@ private:
 		int width = 0;
 		int height = 0;
 		enum Format format = Format::RGB8;
-		char data[0];
+		char *data() const
+		{
+			return (char *)this + sizeof(Core);
+		}
+//		char data[0];
 	};
 	Core *core_ = nullptr;
 	void assign(Core *p)
@@ -120,23 +125,23 @@ public:
 	{
 		return bytesPerPixel() * width();
 	}
-	u_int8_t const *scanLine(int y) const
+	uint8_t const *scanLine(int y) const
 	{
-		return core_ ? ((u_int8_t const *)core_->data + bytesPerLine() * y) : nullptr;
+		return core_ ? ((uint8_t const *)core_->data() + bytesPerLine() * y) : nullptr;
 	}
-	u_int8_t *scanLine(int y)
+	uint8_t *scanLine(int y)
 	{
 		copy_on_write();
-		return core_ ? ((u_int8_t *)core_->data + bytesPerLine() * y) : nullptr;
+		return core_ ? ((uint8_t *)core_->data() + bytesPerLine() * y) : nullptr;
 	}
-	u_int8_t const *bits() const
+	uint8_t const *bits() const
 	{
-		return core_ ? (u_int8_t const *)core_->data : nullptr;
+		return core_ ? (uint8_t const *)core_->data() : nullptr;
 	}
-	u_int8_t *bits()
+	uint8_t *bits()
 	{
 		copy_on_write();
-		return core_ ? (u_int8_t *)core_->data : nullptr;
+		return core_ ? (uint8_t *)core_->data() : nullptr;
 	}
 	Image copy() const
 	{
@@ -146,7 +151,7 @@ public:
 			int h = height();
 			Format f = format();
 			newimg.create(w, h, f);
-			memcpy(newimg.core_->data, core_->data, bytesPerPixel(f) * w * h);
+			memcpy(newimg.core_->data(), core_->data(), bytesPerPixel(f) * w * h);
 		}
 		return newimg;
 	}
