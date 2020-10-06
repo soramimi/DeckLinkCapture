@@ -8,7 +8,7 @@ static inline uint8_t clamp_uint8(int v)
 
 QImage ImageUtil::qimage(const Image &image)
 {
-	if (image.format() == Image::Format::UYUV8) {
+	if (image.format() == Image::Format::UYVY8) {
 		int w = image.width();
 		int h = image.height();
 		QImage newimage = QImage(w, h, QImage::Format_RGB888);
@@ -92,6 +92,9 @@ QImage ImageUtil::qimage(const Image &image)
 
 Image ImageUtil::image(const QImage &image, Image::Format format)
 {
+	if (image.format() == QImage::Format_RGB32) {
+		return ImageUtil::image(image.convertToFormat(QImage::Format_RGB888), format);
+	}
 	int w = image.width();
 	int h = image.height();
 	if (format == Image::Format::UINT8) {
@@ -121,7 +124,7 @@ Image ImageUtil::image(const QImage &image, Image::Format format)
 		}
 		return newimage;
 	}
-	if (format == Image::Format::UYUV8) {
+	if (format == Image::Format::UYVY8) {
 		Image newimage(w, h, format);
 		switch (image.format()) {
 		case QImage::Format_RGB888:
@@ -138,8 +141,8 @@ Image ImageUtil::image(const QImage &image, Image::Format format)
 					int V = ( 450 * R - 377 * G -  73 * B) / 1024 + 128;
 					d[0] = U;
 					d[2] = V;
-					s += 3;
-					d += 3;
+					s += 6;
+					d += 4;
 				}
 				if (w & 1) {
 					d[1] = ( 263 * s[0] + 516 * s[1] + 100 * s[2]) / 1024 + 16;
@@ -167,8 +170,8 @@ Image ImageUtil::image(const QImage &image, Image::Format format)
 					int V = ( 450 * R - 377 * G -  73 * B) / 1024 + 128;
 					d[1] = U;
 					d[3] = V;
-					s += 3;
-					d += 3;
+					s += 6;
+					d += 4;
 				}
 				if (w & 1) {
 					d[0] = ( 263 * s[0] + 516 * s[1] + 100 * s[2]) / 1024 + 16;

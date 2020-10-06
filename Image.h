@@ -10,7 +10,7 @@ public:
 	enum class Format {
 		None,
 		RGB8,
-		UYUV8,
+		UYVY8,
 		YUYV8,
 		UINT8,
 		UINT16,
@@ -23,7 +23,7 @@ public:
 			return 1;
 		case Format::RGB8:
 			return 3;
-		case Format::UYUV8:
+		case Format::UYVY8:
 		case Format::YUYV8:
 		case Format::UINT16:
 			return 2;
@@ -94,6 +94,10 @@ public:
 	bool isNull() const
 	{
 		return !core_;
+	}
+	operator bool () const
+	{
+		return !isNull();
 	}
 	void create(int w, int h, Format format)
 	{

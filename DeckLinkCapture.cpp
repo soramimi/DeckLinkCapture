@@ -240,7 +240,7 @@ Image DeckLinkCapture::createImage(int w, int h, BMDPixelFormat pixel_format, ui
 	case bmdFormat8BitYUV:
 	case bmdFormat10BitYUV:
 		if (w * h * 2 == size) {
-			Image image(w, h, Image::Format::UYUV8);
+			Image image(w, h, Image::Format::UYVY8);
 			for (int y = 0; y < h; y++) {
 				uint8_t const *src = data + w * y * 2;
 				uint8_t *dst = image.scanLine(y);
