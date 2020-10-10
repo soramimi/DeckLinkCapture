@@ -17,15 +17,15 @@ Image Image::convertToFormat(Image::Format dformat) const
 	const int h = height();
 
 	if ((sformat == Format::UYVY8 && dformat == Format::YUYV8) || (sformat == Format::YUYV8 && dformat == Format::UYVY8)) {
-		Image newimage = *this;
-		newimage.copy_on_write();
-		newimage.core_->format = dformat;
+		Image newimage(w, h, dformat);
 		for (int y = 0; y < h; y++) {
-			uint8_t *p = newimage.scanLine(y);
-			for (int x = 0; x < w / 2; x++) {
-				std::swap(p[0], p[1]);
-				std::swap(p[2], p[3]);
-				p += 4;
+			uint8_t const *s = scanLine(y);
+			uint8_t *d = newimage.scanLine(y);
+			for (int x = 0; x < w; x++) {
+				d[0] = s[1];
+				d[1] = s[0];
+				s += 2;
+				d += 2;
 			}
 		}
 		return newimage;

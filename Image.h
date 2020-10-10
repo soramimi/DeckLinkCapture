@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <utility>
 
 class Image {
 public:
@@ -160,6 +161,18 @@ public:
 		return newimg;
 	}
 	Image convertToFormat(Image::Format dformat) const;
+
+	void swap(Image &r)
+	{
+		std::swap(core_, r.core_);
+	}
 };
+
+namespace std {
+template <> inline void swap<Image>(Image &l, Image &r)
+{
+	l.swap(r);
+}
+}
 
 #endif // IMAGE_H

@@ -1,3 +1,4 @@
+#include "Image.h"
 #include "VideoEncoder.h"
 
 #include <stdlib.h>
@@ -63,8 +64,8 @@ AVStream *add_stream(AVFormatContext *oc, AVCodec **codec, AVCodecID codec_id, V
 	case AVMEDIA_TYPE_VIDEO:
 		c->codec_id = codec_id;
 		/* Resolution must be a multiple of two. */
-		c->width    = 1280;
-		c->height   = 720;
+		c->width    = 1920;
+		c->height   = 1080;
 		c->bit_rate = c->width * c->height * 8;//8000000;
 		/* timebase: This is the fundamental unit of time (in seconds) in terms
 		 * of which frame timestamps are represented. For fixed-fps content,
@@ -135,7 +136,7 @@ struct VideoEncoder::Private {
 	AVStream *video_st = nullptr;
 
 	QMutex mutex;
-	std::deque<QImage> video_frames;
+	std::deque<Image> video_frames;
 	std::deque<QByteArray> audio_frames;
 };
 
@@ -186,40 +187,20 @@ bool VideoEncoder::get_audio_frame(int16_t *samples, int frame_size, int nb_chan
 
 bool VideoEncoder::get_video_frame(AVPicture *pict, int frame_index, int width, int height)
 {
-#if 0
-	int x, y, i;
-	i = frame_index;
-	for (y = 0; y < height; y++) {
-		uint8_t *p = &pict->data[0][y * pict->linesize[0]];
-		for (x = 0; x < width; x++) {
-			int r = x * 255 / width;
-			int g = y * 255 / height;
-			int b = (((x + i) ^ (y + i)) & 64) ? 0 : 255;
-			p[0] = r;
-			p[1] = g;
-			p[2] = b;
-			p += 3;
-		}
-	}
-#else
+	Image img;
 	{
-		QImage img;
-		{
-			QMutexLocker lock(&m->mutex);
-			if (m->video_frames.empty()) {
-				return false;
-			}
-			img = m->video_frames.front();
+		QMutexLocker lock(&m->mutex);
+		if (!m->video_frames.empty()) {
+			std::swap(img, m->video_frames.front());
 			m->video_frames.pop_front();
 		}
-		if (img.isNull()) return false;
-
-		img = img.scaled(width, height, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-		img = img.convertToFormat(QImage::Format_RGB888);
-		uint8_t *p = &pict->data[0][0];
-		memcpy(p, img.bits(), width * height * 3);
 	}
-#endif
+	if (img.width() != width || img.height() != height) return false;
+
+	img = img.convertToFormat(Image::Format::YUYV8);
+	uint8_t *p = &pict->data[0][0];
+	memcpy(p, img.bits(), width * height * 2);
+
 	return true;
 }
 
@@ -383,7 +364,7 @@ void VideoEncoder::open_video(AVFormatContext *oc, AVCodec *codec, AVStream *st)
 		//		fprintf(stderr, "Could not allocate picture: %s\n", av_err2str(ret));
 		exit(1);
 	}
-	ret = avpicture_alloc(&m->src_picture, AV_PIX_FMT_RGB24, c->width, c->height);
+	ret = avpicture_alloc(&m->src_picture, AV_PIX_FMT_YUYV422, c->width, c->height);
 	if (ret < 0) {
 		//			fprintf(stderr, "Could not allocate temporary picture: %s\n", av_err2str(ret));
 		exit(1);
@@ -401,7 +382,7 @@ void VideoEncoder::write_video_frame(AVFormatContext *oc, AVStream *st, bool flu
 		/* as we only generate a YUV420P picture, we must convert it
 		 * to the codec pixel format if needed */
 		if (!sws_ctx) {
-			sws_ctx = sws_getContext(c->width, c->height, AV_PIX_FMT_RGB24, c->width, c->height, c->pix_fmt, sws_flags, nullptr, nullptr, nullptr);
+			sws_ctx = sws_getContext(c->width, c->height, AV_PIX_FMT_YUYV422, c->width, c->height, c->pix_fmt, sws_flags, nullptr, nullptr, nullptr);
 			if (!sws_ctx) {
 				fprintf(stderr, "Could not initialize the conversion context\n");
 				exit(1);
@@ -588,14 +569,17 @@ void VideoEncoder::thread_stop()
 	}
 }
 
-bool VideoEncoder::putVideoFrame(const QImage &img)
+bool VideoEncoder::putVideoFrame(const Image &img)
 {
-	if (img.isNull()) return false;
-
-	QMutexLocker lock(&m->mutex);
-	if (is_recording()) {
-		m->video_frames.push_back(img);
-		return true;
+	if (!img.isNull()) {
+		QMutexLocker lock(&m->mutex);
+		if (is_recording()) {
+			m->video_frames.push_back(img);
+			while (m->video_frames.size() > 3) {
+				m->video_frames.pop_front();
+			}
+			return true;
+		}
 	}
 	return false;
 }

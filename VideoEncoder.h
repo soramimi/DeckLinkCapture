@@ -38,7 +38,7 @@ public:
 	virtual ~VideoEncoder();
 	void thread_start(QString const &filepath, VideoOption const &vopt, AudioOption const &aopt);
 	void thread_stop();
-	bool putVideoFrame(const QImage &img);
+	bool putVideoFrame(const Image &img);
 	bool putAudioFrame(const QByteArray &pcm);
 };
 

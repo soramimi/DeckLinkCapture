@@ -20,7 +20,7 @@ gcc:QMAKE_CXXFLAGS += -Wno-switch
 
 # recording
 
-#CONFIG += use_video_recording
+CONFIG += use_video_recording
 use_video_recording {
 	DEFINES += USE_VIDEO_RECORDING
 	win32 {
