@@ -23,7 +23,7 @@ extern "C" {
 
 namespace {
 //static const int STREAM_DURATION = 5.0;
-//static const double STREAM_FRAME_RATE = 29.97;
+//static const double STREAM_FRAME_RATE = 50;
 static const AVPixelFormat STREAM_PIX_FMT = AV_PIX_FMT_YUV420P;
 static const int sws_flags = SWS_BILINEAR;
 
