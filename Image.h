@@ -5,6 +5,29 @@
 #include <string.h>
 #include <stdint.h>
 #include <utility>
+#include <atomic>
+
+class RefCounter {
+private:
+	std::atomic_uint32_t ref;
+public:
+	void operator = (RefCounter const &r)
+	{
+		ref.store(r.ref.load());
+	}
+	operator unsigned int () const
+	{
+		return ref;
+	}
+	void operator ++ (int)
+	{
+		ref++;
+	}
+	void operator -- (int)
+	{
+		ref--;
+	}
+};
 
 class Image {
 public:
@@ -35,7 +58,7 @@ public:
 	}
 private:
 	struct Core {
-		unsigned int ref = 0;
+		RefCounter ref;
 		int width = 0;
 		int height = 0;
 		enum Format format = Format::RGB8;
