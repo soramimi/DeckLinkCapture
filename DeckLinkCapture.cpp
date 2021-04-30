@@ -238,7 +238,6 @@ Image DeckLinkCapture::createImage(int w, int h, BMDPixelFormat pixel_format, ui
 		}
 		break;
 	case bmdFormat8BitYUV:
-	case bmdFormat10BitYUV:
 		if (w * h * 2 == size) {
 			Image image(w, h, Image::Format::UYVY8);
 			for (int y = 0; y < h; y++) {

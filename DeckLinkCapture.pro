@@ -53,6 +53,7 @@ SOURCES += \
 	DeckLinkCapture.cpp \
 	DeckLinkDeviceDiscovery.cpp \
 	DeckLinkInputDevice.cpp \
+	FrameRateCounter.cpp \
 	Image.cpp \
 	ImageUtil.cpp \
 	ImageWidget.cpp \
@@ -68,6 +69,7 @@ HEADERS += \
 	DeckLinkCapture.h \
 	DeckLinkDeviceDiscovery.h \
 	DeckLinkInputDevice.h \
+	FrameRateCounter.h \
 	Image.h \
 	ImageUtil.h \
 	ImageWidget.h \

@@ -318,7 +318,7 @@ HRESULT DeckLinkInputDevice::VideoInputFormatChanged(BMDVideoInputFormatChangedE
 
 	// Unexpected callback when auto-detect mode not enabled
 	if (!m->apply_detected_input_mode) {
-		return E_FAIL;;
+		return E_FAIL;
 	}
 
 	if (detectedSignalFlags & bmdDetectedVideoInputRGB444) {
@@ -356,7 +356,6 @@ HRESULT DeckLinkInputDevice::VideoInputFormatChanged(BMDVideoInputFormatChangedE
 
 HRESULT DeckLinkInputDevice::VideoInputFrameArrived(IDeckLinkVideoInputFrame *videoFrame, IDeckLinkAudioInputPacket *audioPacket)
 {
-
 	if (!videoFrame) return S_OK;
 
 	bool validFrame = (videoFrame->GetFlags() & bmdFrameHasNoInputSource) == 0;
@@ -396,12 +395,9 @@ HRESULT DeckLinkInputDevice::VideoInputFrameArrived(IDeckLinkVideoInputFrame *vi
 		int stride = videoFrame->GetRowBytes();
 		uint8_t const *bytes = nullptr;
 		if (w > 0 && h > 0 && videoFrame->GetBytes((void **)&bytes) == S_OK && bytes) {
-//			QElapsedTimer et;
-//			et.start();
 			DeckLinkCapture::Task t;
 			t.image = DeckLinkCapture::createImage(w, h, m->capture->pixelFormat(), bytes, stride * h);
 			m->capture->pushFrame(t);
-//			qDebug() << et.elapsed();
 		}
 	}
 

@@ -12,6 +12,7 @@
 #include <QShortcut>
 #include <functional>
 #ifdef USE_VIDEO_RECORDING
+#include "FrameRateCounter.h"
 #include "VideoEncoder.h"
 #endif
 
@@ -72,6 +73,8 @@ struct MainWindow::Private {
 
 	StatusLabel *status_label = nullptr;
 
+	FrameRateCounter frame_rate_counter_;
+
 	bool closing = false;
 };
 
@@ -126,6 +129,8 @@ MainWindow::MainWindow(QWidget *parent)
 	ui->checkBox_audio->click();
 
 	connect(new QShortcut(QKeySequence("Ctrl+T"), this), &QShortcut::activated, this, &MainWindow::test);
+
+	m->frame_rate_counter_.start();
 }
 
 MainWindow::~MainWindow()
@@ -143,6 +148,8 @@ MainWindow::~MainWindow()
 	}
 
 	m->video_capture->stop();
+
+	m->frame_rate_counter_.stop();
 
 	delete m;
 	delete ui;
@@ -617,6 +624,8 @@ void MainWindow::on_checkBox_audio_stateChanged(int arg1)
 
 void MainWindow::newFrame()
 {
+	m->frame_rate_counter_.increment();
+
 	while (1) {
 		Image image0 = m->video_capture->nextFrame();
 		if (image0.isNull()) return;
@@ -672,3 +681,5 @@ void MainWindow::test()
 {
 	qDebug() << Q_FUNC_INFO;
 }
+
+
