@@ -30,7 +30,7 @@ protected:
 	void run();
 public:
 	struct VideoOption {
-		double fps = 30;
+		double fps = 50;
 	};
 	struct AudioOption {
 	};

@@ -33,20 +33,20 @@ static inline void BlockSignals(QWidget *w, std::function<void ()> const &callba
 
 // Video input connector map
 const QVector<QPair<BMDVideoConnection, QString>> kVideoInputConnections = {
-	qMakePair(bmdVideoConnectionSDI,		QString("SDI")),
-	qMakePair(bmdVideoConnectionHDMI,		QString("HDMI")),
+	qMakePair(bmdVideoConnectionSDI,	QString("SDI")),
+	qMakePair(bmdVideoConnectionHDMI,	QString("HDMI")),
 	qMakePair(bmdVideoConnectionOpticalSDI,	QString("Optical SDI")),
 	qMakePair(bmdVideoConnectionComponent,	QString("Component")),
 	qMakePair(bmdVideoConnectionComposite,	QString("Composite")),
-	qMakePair(bmdVideoConnectionSVideo,		QString("S-Video")),
+	qMakePair(bmdVideoConnectionSVideo,	QString("S-Video")),
 };
 
 const QVector<QPair<DeinterlaceMode, QString>> deinterlace_mode_list = {
-	qMakePair(DeinterlaceMode::None,				QString("None")),
-	qMakePair(DeinterlaceMode::InterpolateEven,		QString("Interporate Even")),
-	qMakePair(DeinterlaceMode::InterpolateOdd,		QString("Interporate Odd")),
-	qMakePair(DeinterlaceMode::Merge,				QString("Merge")),
-	qMakePair(DeinterlaceMode::MergeX2,				QString("Merge x2 Frames")),
+	qMakePair(DeinterlaceMode::None,	    QString("None")),
+	qMakePair(DeinterlaceMode::InterpolateEven, QString("Interporate Even")),
+	qMakePair(DeinterlaceMode::InterpolateOdd,  QString("Interporate Odd")),
+	qMakePair(DeinterlaceMode::Merge,	    QString("Merge")),
+	qMakePair(DeinterlaceMode::MergeX2,	    QString("Merge x2 Frames")),
 };
 
 struct MainWindow::Private {
