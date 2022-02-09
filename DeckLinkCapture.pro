@@ -58,9 +58,10 @@ SOURCES += \
 	ImageUtil.cpp \
 	ImageWidget.cpp \
 	MainWindow.cpp \
+	OverlayWindow.cpp \
 	ProfileCallback.cpp \
+	RecoringDialog.cpp \
 	main.cpp \
-	Deinterlace.cpp \
 	StatusLabel.cpp
 
 HEADERS += \
@@ -74,13 +75,17 @@ HEADERS += \
 	ImageUtil.h \
 	ImageWidget.h \
 	MainWindow.h \
+	OverlayWindow.h \
 	ProfileCallback.h \
+	RecoringDialog.h \
 	common.h \
-	Deinterlace.h \
-	StatusLabel.h
+	StatusLabel.h \
+	main.h
 
 FORMS += \
-    MainWindow.ui
+    MainWindow.ui \
+    OverlayWindow.ui \
+    RecoringDialog.ui
 
 use_video_recording {
 	SOURCES += VideoEncoder.cpp
@@ -91,4 +96,7 @@ win32:SOURCES += sdk/Win/DeckLinkAPI_i.c
 win32:HEADERS += sdk/Win/DeckLinkAPI_h.h
 linux:SOURCES += sdk/Linux/include/DeckLinkAPIDispatch.cpp
 macx:SOURCES += sdk/Mac/include/DeckLinkAPIDispatch.cpp
+
+RESOURCES += \
+	resources.qrc
 

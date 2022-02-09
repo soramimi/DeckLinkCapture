@@ -1,5 +1,4 @@
 #include "DeckLinkCapture.h"
-#include "Deinterlace.h"
 #include "Image.h"
 #include "MainWindow.h"
 #include <QDebug>
@@ -26,7 +25,7 @@ struct DeckLinkCapture::Private {
 	DeinterlaceMode deinterlace = DeinterlaceMode::InterpolateEven;
 	BMDPixelFormat pixel_format = bmdFormat8BitYUV;
 	BMDFieldDominance field_dominance = bmdUnknownFieldDominance;
-	Deinterlace di;
+//	Deinterlace di;
 	std::deque<Image> frame_queue;
 };
 
@@ -265,81 +264,6 @@ void DeckLinkCapture::process(Task const &task)
 			const int h = image.height();
 			Image bytes1(w, h, Image::Format::RGB8);
 			const int stride = image.bytesPerLine();
-			if (m->deinterlace == DeinterlaceMode::InterpolateEven) {
-				uint8_t const *s = (uint8_t const *)image.scanLine(0);
-				uint8_t *d0 = (uint8_t *)bytes1.scanLine(0);
-				memcpy(bytes1.scanLine(0), s, stride);
-				int y = 1;
-				while (y + 1 < h) {
-					s = (uint8_t const *)image.scanLine(y + 1);
-					uint8_t *d1 = d0 + stride;
-					uint8_t *d2 = d0 + stride * 2;
-					memcpy(d2, s, stride);
-					for (int x = 0; x < w; x++) {
-						int i = x * 3;
-						int j = i + 1;
-						int k = i + 2;
-						d1[i] = (d0[i] + d2[i]) / 2;
-						d1[j] = (d0[j] + d2[j]) / 2;
-						d1[k] = (d0[k] + d2[k]) / 2;
-					}
-					d0 = d2;
-					y += 2;
-				}
-				memcpy((uint8_t *)bytes1.scanLine(h - 1), d0, stride);
-				newFrame_(bytes1, {});
-				goto done;
-			}
-			if (m->deinterlace == DeinterlaceMode::InterpolateOdd) {
-				uint8_t const *s = (uint8_t const *)image.scanLine(1);
-				uint8_t *d0 = (uint8_t *)bytes1.scanLine(0);
-				memcpy(d0, s, stride);
-				d0 += stride;
-				memcpy(d0, s, stride);
-				int y = 3;
-				while (y < h) {
-					s = (uint8_t const *)image.scanLine(y);
-					uint8_t *d1 = d0 + stride;
-					uint8_t *d2 = d0 + stride * 2;
-					memcpy(d2, s, stride);
-					for (int x = 0; x < w; x++) {
-						int i = x * 3;
-						int j = i + 1;
-						int k = i + 2;
-						d1[i] = (d0[i] + d2[i]) / 2;
-						d1[j] = (d0[j] + d2[j]) / 2;
-						d1[k] = (d0[k] + d2[k]) / 2;
-					}
-					d0 = d2;
-					y += 2;
-				}
-				newFrame_(bytes1, {});
-				goto done;
-			}
-			if (m->deinterlace == DeinterlaceMode::Merge || m->deinterlace == DeinterlaceMode::MergeX2) {
-				const bool x2frame = (m->deinterlace == DeinterlaceMode::MergeX2);
-				Image image0;
-				Image image1;
-				{
-					QMutexLocker lock(&m->mutex);
-					image0 = m->next_image0;
-					image1 = m->next_image1;
-				}
-				if (m->field_dominance == bmdUpperFieldFirst) {
-					newFrame_(image0, x2frame ? image1 : Image());
-				} else if (m->field_dominance == bmdLowerFieldFirst) {
-					newFrame_(image1, x2frame ? image0 : Image());
-				} else {
-					newFrame_(image1, {});
-				}
-				auto pair = m->di.filter(image);
-				{
-					QMutexLocker lock(&m->mutex);
-					m->next_image0 = pair.first;
-					m->next_image1 = pair.second;
-				}
-				goto done;
-			}
 		}
 done:;
 	}

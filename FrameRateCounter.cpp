@@ -24,7 +24,7 @@ void FrameRateCounter::run()
 		if (isInterruptionRequested()) break;
 		fps_ = counter_;
 		counter_ = 0;
-		qDebug() << fps_;
+//		qDebug() << fps_;
 	}
 }
 

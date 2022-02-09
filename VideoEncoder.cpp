@@ -77,6 +77,7 @@ AVStream *add_stream(AVFormatContext *oc, AVCodec **codec, AVCodecID codec_id, V
 #else
 		c->time_base.num = 100;
 		c->time_base.den = vopt.fps * c->time_base.num;
+//		qDebug() << c->time_base.den << c->time_base.num;
 #endif
 		c->gop_size      = 12; /* emit one intra frame every twelve frames at most */
 		c->pix_fmt       = STREAM_PIX_FMT;
@@ -483,6 +484,7 @@ int VideoEncoder::save()
 		open_video(oc, video_codec, m->video_st);
 		m->video_st->time_base.den = 100 * m->vopt.fps;//STREAM_FRAME_RATE;
 		m->video_st->time_base.num = 100;
+//		qDebug() << m->video_st->time_base.den << m->video_st->time_base.num;
 	}
 	if (m->audio_st) {
 		open_audio(oc, audio_codec, m->audio_st);
@@ -575,7 +577,8 @@ bool VideoEncoder::putVideoFrame(const Image &img)
 		QMutexLocker lock(&m->mutex);
 		if (is_recording()) {
 			m->video_frames.push_back(img);
-			while (m->video_frames.size() > 3) {
+//			qDebug() << m->video_frames.size();
+			while (m->video_frames.size() > 100) {
 				m->video_frames.pop_front();
 			}
 			return true;

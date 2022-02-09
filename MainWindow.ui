@@ -15,133 +15,21 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QHBoxLayout" name="horizontalLayout">
-    <item>
-     <layout class="QVBoxLayout" name="verticalLayout_2">
-      <item>
-       <widget class="QGroupBox" name="propertiesGroupBox">
-        <property name="enabled">
-         <bool>true</bool>
-        </property>
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Fixed" vsizetype="Minimum">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="minimumSize">
-         <size>
-          <width>240</width>
-          <height>0</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>240</width>
-          <height>16777215</height>
-         </size>
-        </property>
-        <property name="title">
-         <string>Capture Properties</string>
-        </property>
-        <layout class="QVBoxLayout" name="verticalLayout">
-         <item>
-          <widget class="QLabel" name="label_5">
-           <property name="text">
-            <string>Input Device:</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QListWidget" name="listWidget_input_device">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="maximumSize">
-            <size>
-             <width>16777215</width>
-             <height>60</height>
-            </size>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLabel" name="label">
-           <property name="text">
-            <string>Input Connection:</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QListWidget" name="listWidget_input_connection">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="maximumSize">
-            <size>
-             <width>16777215</width>
-             <height>60</height>
-            </size>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLabel" name="label_4">
-           <property name="text">
-            <string>Video Format:</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QCheckBox" name="checkBox_display_mode_auto_detection">
-           <property name="text">
-            <string>Auto Format Detection</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QListWidget" name="listWidget_display_mode"/>
-         </item>
-        </layout>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLabel" name="label_2">
-        <property name="text">
-         <string>Deinterlace:</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QComboBox" name="comboBox_deinterlace"/>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="checkBox_audio">
-        <property name="text">
-         <string>Audio</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="pushButton_start">
-        <property name="minimumSize">
-         <size>
-          <width>0</width>
-          <height>60</height>
-         </size>
-        </property>
-        <property name="text">
-         <string>Start</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </item>
+    <property name="spacing">
+     <number>0</number>
+    </property>
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
+     <number>0</number>
+    </property>
     <item>
      <widget class="ImageWidget" name="widget_image" native="true">
       <property name="sizePolicy">
@@ -160,9 +48,18 @@
      <x>0</x>
      <y>0</y>
      <width>1013</width>
-     <height>24</height>
+     <height>21</height>
     </rect>
    </property>
+   <widget class="QMenu" name="menu_View">
+    <property name="title">
+     <string>&amp;View</string>
+    </property>
+    <addaction name="action_view_small_lq"/>
+    <addaction name="action_view_fit_window"/>
+    <addaction name="action_view_dot_by_dot"/>
+   </widget>
+   <addaction name="menu_View"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="action_record">
@@ -171,6 +68,30 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+R</string>
+   </property>
+  </action>
+  <action name="action_view_small_lq">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Small LQ</string>
+   </property>
+  </action>
+  <action name="action_view_fit_window">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Fit to window</string>
+   </property>
+  </action>
+  <action name="action_view_dot_by_dot">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Dot by dot</string>
    </property>
   </action>
  </widget>
