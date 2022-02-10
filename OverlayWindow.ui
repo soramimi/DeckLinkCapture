@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>270</width>
+    <width>315</width>
     <height>663</height>
    </rect>
   </property>
@@ -41,7 +41,7 @@
         <property name="maximumSize">
          <size>
           <width>16777215</width>
-          <height>60</height>
+          <height>100</height>
          </size>
         </property>
        </widget>
@@ -64,7 +64,7 @@
         <property name="maximumSize">
          <size>
           <width>16777215</width>
-          <height>60</height>
+          <height>100</height>
          </size>
         </property>
        </widget>
@@ -100,20 +100,6 @@
     <widget class="QCheckBox" name="checkBox_audio">
      <property name="text">
       <string>Audio</string>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QPushButton" name="pushButton_record">
-     <property name="text">
-      <string>Record...</string>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QLabel" name="label_recording_status">
-     <property name="text">
-      <string>TextLabel</string>
      </property>
     </widget>
    </item>

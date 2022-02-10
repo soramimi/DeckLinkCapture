@@ -49,48 +49,49 @@ use_opencv {
 
 SOURCES += \
 	AncillaryDataTable.cpp \
-	DeckLinkAPI.cpp \
 	DeckLinkCapture.cpp \
 	DeckLinkDeviceDiscovery.cpp \
 	DeckLinkInputDevice.cpp \
 	FrameRateCounter.cpp \
 	Image.cpp \
+	ImageConvertThread.cpp \
 	ImageUtil.cpp \
 	ImageWidget.cpp \
 	MainWindow.cpp \
+	MyDeckLinkAPI.cpp \
 	OverlayWindow.cpp \
 	ProfileCallback.cpp \
 	RecoringDialog.cpp \
+	VideoFrame.cpp \
 	main.cpp \
+	VideoEncoder.cpp \
 	StatusLabel.cpp
 
 HEADERS += \
 	AncillaryDataTable.h \
-	DeckLinkAPI.h \
 	DeckLinkCapture.h \
 	DeckLinkDeviceDiscovery.h \
 	DeckLinkInputDevice.h \
 	FrameRateCounter.h \
 	Image.h \
+	ImageConvertThread.h \
 	ImageUtil.h \
 	ImageWidget.h \
 	MainWindow.h \
+	MyDeckLinkAPI.h \
 	OverlayWindow.h \
 	ProfileCallback.h \
 	RecoringDialog.h \
+	VideoFrame.h \
 	common.h \
 	StatusLabel.h \
+	VideoEncoder.h \
 	main.h
 
 FORMS += \
     MainWindow.ui \
     OverlayWindow.ui \
     RecoringDialog.ui
-
-use_video_recording {
-	SOURCES += VideoEncoder.cpp
-	HEADERS += VideoEncoder.h
-}
 
 win32:SOURCES += sdk/Win/DeckLinkAPI_i.c
 win32:HEADERS += sdk/Win/DeckLinkAPI_h.h

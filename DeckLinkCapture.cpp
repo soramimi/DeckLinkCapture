@@ -1,14 +1,7 @@
 #include "DeckLinkCapture.h"
-#include "Image.h"
-#include "MainWindow.h"
-#include <QDebug>
-#include <QElapsedTimer>
-#include <stdint.h>
-#include <deque>
-
-//#ifdef USE_OPENCV
-//#include <opencv2/imgproc/imgproc.hpp>
-//#endif
+#include "DeckLinkDeviceDiscovery.h"
+#include "ProfileCallback.h"
+#include "common.h"
 
 static inline uint8_t clamp_uint8(int v)
 {
@@ -17,16 +10,8 @@ static inline uint8_t clamp_uint8(int v)
 
 struct DeckLinkCapture::Private {
 	DeckLinkCaptureDelegate *mainwindow = nullptr;
-	std::deque<Task> tasks;
-	QMutex mutex;
-	QWaitCondition waiter;
-	Image next_image0;
-	Image next_image1;
-	DeinterlaceMode deinterlace = DeinterlaceMode::InterpolateEven;
 	BMDPixelFormat pixel_format = bmdFormat8BitYUV;
 	BMDFieldDominance field_dominance = bmdUnknownFieldDominance;
-//	Deinterlace di;
-	std::deque<Image> frame_queue;
 };
 
 DeckLinkCapture::DeckLinkCapture(DeckLinkCaptureDelegate *mainwindow)
@@ -37,7 +22,6 @@ DeckLinkCapture::DeckLinkCapture(DeckLinkCaptureDelegate *mainwindow)
 
 DeckLinkCapture::~DeckLinkCapture()
 {
-	stop();
 	delete m;
 }
 
@@ -54,33 +38,6 @@ BMDPixelFormat DeckLinkCapture::pixelFormat() const
 void DeckLinkCapture::setPixelFormat(BMDPixelFormat pixel_format)
 {
 	m->pixel_format = pixel_format;
-}
-
-void DeckLinkCapture::setDeinterlaceMode(DeinterlaceMode mode)
-{
-	clear();
-	m->deinterlace = mode;
-}
-
-DeinterlaceMode DeckLinkCapture::deinterlaceMode() const
-{
-	if (m->field_dominance == bmdProgressiveFrame) {
-		return DeinterlaceMode::None;
-	}
-	return m->deinterlace;
-}
-
-void DeckLinkCapture::newFrame_(const Image &image0, const Image &image1)
-{
-	{
-		QMutexLocker lock(&m->mutex);
-		while (m->frame_queue.size() > 2) {
-			m->frame_queue.pop_front();
-		}
-		if (!image0.isNull()) m->frame_queue.push_back(image0);
-		if (!image1.isNull()) m->frame_queue.push_back(image1);
-	}
-	emit newFrame();
 }
 
 void DeckLinkCapture::addDevice(IDeckLink *decklink)
@@ -251,65 +208,8 @@ Image DeckLinkCapture::createImage(int w, int h, BMDPixelFormat pixel_format, ui
 	return {};
 }
 
-void DeckLinkCapture::process(Task const &task)
-{
-	if (task.isValid()) {
-		if (m->deinterlace == DeinterlaceMode::None || m->field_dominance == bmdProgressiveFrame) {
-			newFrame_(task.image, {});
-			goto done;
-		}
-		{
-			Image image = task.image;
-			const int w = image.width();
-			const int h = image.height();
-			Image bytes1(w, h, Image::Format::RGB8);
-			const int stride = image.bytesPerLine();
-		}
-done:;
-	}
-}
-
-void DeckLinkCapture::run()
-{
-	while (1) {
-		Task task;
-		{
-			QMutexLocker lock(&m->mutex);
-			if (isInterruptionRequested()) break;
-			if (m->tasks.empty()) {
-				m->waiter.wait(&m->mutex);
-			}
-			if (!m->tasks.empty()) {
-				task = m->tasks.front();
-				m->tasks.pop_front();
-			}
-		}
-		if (task.isValid()) {
-			process(task);
-		}
-	}
-}
-
-void DeckLinkCapture::pushFrame(Task const &task)
-{
-	QMutexLocker lock(&m->mutex);
-	while (m->tasks.size() > 2) {
-		m->tasks.pop_front();
-	}
-	m->tasks.push_back(task);
-	m->waiter.wakeAll();
-}
-
-void DeckLinkCapture::clear()
-{
-	QMutexLocker lock(&m->mutex);
-	m->next_image0 = {};
-	m->next_image1 = {};
-}
-
 bool DeckLinkCapture::startCapture(DeckLinkInputDevice *selectedDevice, BMDDisplayMode displayMode, BMDFieldDominance fieldDominance, bool applyDetectedInputMode, bool input_audio)
 {
-	clear();
 	if (selectedDevice) {
 		if (selectedDevice->startCapture(displayMode, nullptr, applyDetectedInputMode, input_audio)) {
 			m->field_dominance = fieldDominance;
@@ -317,32 +217,5 @@ bool DeckLinkCapture::startCapture(DeckLinkInputDevice *selectedDevice, BMDDispl
 		}
 	}
 	return false;
-}
-
-void DeckLinkCapture::stop()
-{
-	{
-		QMutexLocker lock(&m->mutex);
-		m->tasks.clear();
-		requestInterruption();
-		m->waiter.wakeAll();
-	}
-
-	clear();
-
-	if (!wait(300)) {
-		terminate();
-	}
-}
-
-Image DeckLinkCapture::nextFrame()
-{
-	Image image;
-	QMutexLocker lock(&m->mutex);
-	if (!m->frame_queue.empty()) {
-		image = m->frame_queue.front();
-		m->frame_queue.pop_front();
-	}
-	return image;
 }
 

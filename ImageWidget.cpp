@@ -5,95 +5,119 @@
 #include <QThread>
 #include <QStyle>
 #include <QPainterPath>
+#include <QWaitCondition>
+#include "Image.h"
+#include "ImageConvertThread.h"
+#include "ImageUtil.h"
 
-QSize fitSize(QSize const &size, int dw, int dh)
-{
-	int w = size.width();
-	int h = size.height();
-	if (w < 1 || h < 1) {
-		return QSize();
-	}
-	if (dh * w > dw * h) {
-		h = h * dw / w;
-		w = dw;
-	} else {
-		w = w * dh / h;
-		h = dh;
-	}
-	return QSize(w, h);
-}
+struct ImageWidget::Private {
+	QImage scaled_image;
+	ViewMode view_mode = ViewMode::SmallLQ;
+	qint64 recording_pregress_current = 0;
+	qint64 recording_pregress_length = 0;
+	QFont font;
+	ImageConvertThread image_convert_thread;
+};
 
 ImageWidget::ImageWidget(QWidget *parent)
 	: QGLWidget(parent)
+	, m(new Private)
 {
 	startTimer(1000);
-	connect(&timer_, &QTimer::timeout, [&](){
-		image_ = next_image_;
-		frame_counter_++;
-		update();
-	});
+	m->font = QFont("Monospace", 24);
+	m->font.setStyleHint(QFont::TypeWriter);
 
-	font_ = QFont("Monospace", 24);
-	font_.setStyleHint(QFont::TypeWriter);
+	connect(&m->image_convert_thread, &ImageConvertThread::ready, this, &ImageWidget::ready);
+	m->image_convert_thread.start();
+}
+
+ImageWidget::~ImageWidget()
+{
+	m->image_convert_thread.stop();
+	delete m;
 }
 
 void ImageWidget::clear()
 {
-	fps_ = 0;
-	frame_counter_ = 0;
-	time_ = QDateTime();
-	image_ = QImage();
-	next_image_ = QImage();
-	timer_.stop();
-	recording_pregress_current_ = 0;
-	recording_pregress_length_ = 0;
+	m->recording_pregress_current = 0;
+	m->recording_pregress_length = 0;
 }
 
-void ImageWidget::setRecordingProgress(qint64 current, qint64 length)
+void ImageWidget::setViewMode(ImageWidget::ViewMode vm)
 {
-	recording_pregress_current_ = current;
-	recording_pregress_length_ = length;
+	m->view_mode = vm;
 	update();
+}
+
+ImageWidget::ViewMode ImageWidget::viewMode() const
+{
+	return m->view_mode;
+}
+
+void ImageWidget::updateRecordingProgress(qint64 current, qint64 length)
+{
+	m->recording_pregress_current = current;
+	m->recording_pregress_length = length;
+	update();
+}
+
+QSize ImageWidget::scaledSize(Image const &image)
+{
+	auto FitSize = [](QSize const &size, int dw, int dh){
+		int w = size.width();
+		int h = size.height();
+		if (w < 1 || h < 1) {
+			return QSize();
+		}
+		if (dh * w > dw * h) {
+			h = h * dw / w;
+			w = dw;
+		} else {
+			w = w * dh / h;
+			h = dh;
+		}
+		return QSize(w, h);
+	};
+
+	if (m->view_mode == ViewMode::SmallLQ) {
+		return {image.width() / 2, image.height() / 2};
+	} else if (m->view_mode == ViewMode::FitToWindow) {
+		return FitSize({image.width(), image.height()}, width(), height());
+	} else if (m->view_mode == ViewMode::DotByDot) {
+		return {image.width(), image.height()};
+	}
+	return {};
 }
 
 void ImageWidget::paintEvent(QPaintEvent *)
 {
 	QPainter pr(this);
 
-	QSize sz;
-	if (view_mode_ == ViewMode::SmallLQ) {
-		QSize sz(image_.width() / 4, image_.height() / 4);
-		image_for_view_ = image_.scaled(sz, Qt::IgnoreAspectRatio, Qt::FastTransformation);
-	} else if (view_mode_ == ViewMode::FitToWindow) {
-		QSize sz = fitSize(image_.size(), width(), height());
-		image_for_view_ = image_.scaled(sz, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-	} else if (view_mode_ == ViewMode::DotByDot) {
-		image_for_view_ = image_;
+	if (!m->scaled_image.isNull()) {
+		pr.save();
+		QPainterPath path1;
+		path1.addRect(rect());
+		const int w = m->scaled_image.width();
+		const int h = m->scaled_image.height();
+		if (w > 0 && h > 0) {
+			int x = (width() - w) / 2;
+			int y = (height() - h) / 2;
+			QRect r(x, y, w, h);
+			pr.drawImage(r, m->scaled_image);
+			QPainterPath path2;
+			path2.addRect(r);
+			path1 = path1.subtracted(path2);
+		}
+		pr.setClipPath(path1);
+		pr.fillRect(0, 0, width(), height(), Qt::black);
+		pr.restore();
 	}
 
-	pr.save();
-	QPainterPath path1;
-	path1.addRect(rect());
-	const int w = image_for_view_.width();
-	const int h = image_for_view_.height();
-	if (w > 0 && h > 0) {
-		int x = (width() - w) / 2;
-		int y = (height() - h) / 2;
-		QRect r(x, y, w, h);
-		pr.drawImage(r, image_for_view_);
-		QPainterPath path2;
-		path2.addRect(r);
-		path1 = path1.subtracted(path2);
-	}
-	pr.setClipPath(path1);
-	pr.fillRect(0, 0, width(), height(), Qt::black);
-	pr.restore();
-
-	if (recording_pregress_current_ > 0) {
-		pr.setFont(font_);
+	if (m->recording_pregress_current > 0) {
+		pr.setFont(m->font);
 		pr.setPen(Qt::white);
 		auto fm = pr.fontMetrics();
-		int y = fm.height();
+		int y = fm.ascent();
 		auto TimeString = [](qint64 secs){
 			auto h = secs;
 			int s = h % 60;
@@ -102,38 +126,20 @@ void ImageWidget::paintEvent(QPaintEvent *)
 			h /= 60;
 			return QString::asprintf("%02d:%02d:%02d", h, m, s);
 		};
-		QString s = QString("REC ") + TimeString(recording_pregress_current_) + " / " + TimeString(recording_pregress_length_);
+		QString s = QString("REC ") + TimeString(m->recording_pregress_current) + " / " + TimeString(m->recording_pregress_length);
 		pr.drawText(0, y, s);
 	}
 }
 
-void ImageWidget::timerEvent(QTimerEvent *event)
+void ImageWidget::setImage(Image const &image)
 {
-	(void)event;
-	fps_ = frame_counter_;
-	frame_counter_ = 0;
-//	qDebug() << QString("----- %1fps").arg(fps_);
+	m->image_convert_thread.request(image, scaledSize(image));
 }
 
-void ImageWidget::setImage(const QImage &image0, const QImage &image1)
+void ImageWidget::ready(QImage image)
 {
-	QDateTime now = QDateTime::currentDateTime();
-
-	image_ = image0;
-	next_image_ = image1;
-
-	if (!image_.isNull()) {
-		frame_counter_++;
-		update();
-	}
-	if (!next_image_.isNull() && time_.isValid()) {
-		next_image_ = image1;
-		qint64 ms = time_.msecsTo(now);
-		timer_.setSingleShot(true);
-		timer_.start(ms / 2);
-	}
-
-	time_ = now;
+	m->scaled_image = image;
+	update();
 }
 
 

@@ -28,7 +28,7 @@
 #pragma once
 
 #include "AncillaryDataTable.h"
-#include "DeckLinkAPI.h"
+#include "MyDeckLinkAPI.h"
 #include <QEvent>
 #include <QString>
 #include <stdint.h>

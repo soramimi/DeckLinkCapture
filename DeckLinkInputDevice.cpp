@@ -395,9 +395,9 @@ HRESULT DeckLinkInputDevice::VideoInputFrameArrived(IDeckLinkVideoInputFrame *vi
 		int stride = videoFrame->GetRowBytes();
 		uint8_t const *bytes = nullptr;
 		if (w > 0 && h > 0 && videoFrame->GetBytes((void **)&bytes) == S_OK && bytes) {
-			DeckLinkCapture::Task t;
+			VideoFrame t;
 			t.image = DeckLinkCapture::createImage(w, h, m->capture->pixelFormat(), bytes, stride * h);
-			m->capture->pushFrame(t);
+			emit m->capture->newFrame(t);
 		}
 	}
 

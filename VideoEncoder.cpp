@@ -573,11 +573,10 @@ void VideoEncoder::thread_stop()
 
 bool VideoEncoder::putVideoFrame(const Image &img)
 {
-	if (!img.isNull()) {
+	if (img) {
 		QMutexLocker lock(&m->mutex);
 		if (is_recording()) {
 			m->video_frames.push_back(img);
-//			qDebug() << m->video_frames.size();
 			while (m->video_frames.size() > 100) {
 				m->video_frames.pop_front();
 			}

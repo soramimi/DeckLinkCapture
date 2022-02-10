@@ -31,7 +31,7 @@
      <number>0</number>
     </property>
     <item>
-     <widget class="ImageWidget" name="widget_image" native="true">
+     <widget class="ImageWidget" name="image_widget" native="true">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
         <horstretch>0</horstretch>
@@ -48,7 +48,7 @@
      <x>0</x>
      <y>0</y>
      <width>1013</width>
-     <height>21</height>
+     <height>35</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_View">
@@ -59,7 +59,15 @@
     <addaction name="action_view_fit_window"/>
     <addaction name="action_view_dot_by_dot"/>
    </widget>
+   <widget class="QMenu" name="menuRecording">
+    <property name="title">
+     <string>&amp;Recording</string>
+    </property>
+    <addaction name="action_recording_start"/>
+    <addaction name="action_recording_stop"/>
+   </widget>
    <addaction name="menu_View"/>
+   <addaction name="menuRecording"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="action_record">
@@ -92,6 +100,16 @@
    </property>
    <property name="text">
     <string>Dot by dot</string>
+   </property>
+  </action>
+  <action name="action_recording_start">
+   <property name="text">
+    <string>Start...</string>
+   </property>
+  </action>
+  <action name="action_recording_stop">
+   <property name="text">
+    <string>Stop</string>
    </property>
   </action>
  </widget>

@@ -1,26 +1,24 @@
 
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
-#include "DeckLinkCapture.h"
-#include "StatusLabel.h"
-#include "Image.h"
-#include "ImageUtil.h"
-#include <QAudioOutput>
-#include <QBuffer>
-#include <QDebug>
-#include <QMessageBox>
-#include <QShortcut>
-#include <functional>
-#include <QListWidget>
-#include <QListWidgetItem>
-#include <QCheckBox>
-#ifdef USE_VIDEO_RECORDING
 #include "FrameRateCounter.h"
 #include "OverlayWindow.h"
 #include "RecoringDialog.h"
+#include "StatusLabel.h"
 #include "VideoEncoder.h"
 #include "main.h"
-#endif
+#include <QAudioOutput>
+#include <QCheckBox>
+#include <QDateTime>
+#include <QDebug>
+#include <QListWidget>
+#include <QMessageBox>
+#include <QShortcut>
+
+qint64 seconds(QTime const &t)
+{
+	return QTime(0, 0, 0).secsTo(t);
+}
 
 enum {
 	DisplayModeRole = Qt::UserRole,
@@ -47,18 +45,7 @@ const QVector<QPair<BMDVideoConnection, QString>> kVideoInputConnections = {
 	qMakePair(bmdVideoConnectionSVideo,		QString("S-Video")),
 };
 
-const QVector<QPair<DeinterlaceMode, QString>> deinterlace_mode_list = {
-	qMakePair(DeinterlaceMode::None,				QString("None")),
-	qMakePair(DeinterlaceMode::InterpolateEven,		QString("Interporate Even")),
-	qMakePair(DeinterlaceMode::InterpolateOdd,		QString("Interporate Odd")),
-	qMakePair(DeinterlaceMode::Merge,				QString("Merge")),
-	qMakePair(DeinterlaceMode::MergeX2,				QString("Merge x2 Frames")),
-};
-
 struct MainWindow::Private {
-	QAction *a_start_record = nullptr;
-	QAction *a_stop_record = nullptr;
-
 	std::unique_ptr<DeckLinkCapture> video_capture;
 
 	std::vector<std::shared_ptr<DeckLinkInputDevice>> input_devices;
@@ -76,9 +63,7 @@ struct MainWindow::Private {
 	std::shared_ptr<QAudioOutput> audio_output;
 	QIODevice *audio_output_device = nullptr;
 
-#ifdef USE_VIDEO_RECORDING
 	std::shared_ptr<VideoEncoder> video_encoder;
-#endif
 
 	StatusLabel *status_label = nullptr;
 
@@ -105,20 +90,6 @@ MainWindow::MainWindow(QWidget *parent)
 	ui->setupUi(this);
 
 	m->overlay_window = new OverlayWindow(this);
-
-#ifdef USE_VIDEO_RECORDING
-	{
-		QMenu *menu = new QMenu(tr("Experimental"), this);
-		m->a_start_record = new QAction("Start record", this);
-//		m->a_record->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_R));
-		m->a_stop_record = new QAction("Stop record", this);
-		menu->addAction(m->a_start_record);
-		menu->addAction(m->a_stop_record);
-		ui->menubar->addMenu(menu);
-		connect(m->a_start_record, SIGNAL(triggered(bool)), this, SLOT(on_action_start_record_triggered(bool)));
-		connect(m->a_stop_record, SIGNAL(triggered(bool)), this, SLOT(on_action_stop_record_triggered(bool)));
-	}
-#endif
 
 	m->status_label = new StatusLabel(this);
 	ui->statusbar->addWidget(m->status_label);
@@ -163,8 +134,6 @@ MainWindow::~MainWindow()
 		m->decklink_discovery->Release();
 		m->decklink_discovery = nullptr;
 	}
-
-	m->video_capture->stop();
 
 	m->frame_rate_counter_.stop();
 
@@ -223,8 +192,6 @@ void MainWindow::setup()
 			return;
 		}
 	}
-
-	m->video_capture->start();
 }
 
 void MainWindow::closeEvent(QCloseEvent *)
@@ -232,8 +199,6 @@ void MainWindow::closeEvent(QCloseEvent *)
 	m->closing = true;
 
 	m->overlay_window->done(QDialog::Accepted);
-
-	m->video_capture->stop();
 
 	if (m->selected_device) {
 		stopCapture();
@@ -271,14 +236,10 @@ bool MainWindow::isCapturing() const
 
 void MainWindow::updateUI()
 {
-	ImageWidget::ViewMode vm = ui->widget_image->viewMode();
+	ImageWidget::ViewMode vm = ui->image_widget->viewMode();
 	ui->action_view_small_lq->setChecked(vm == ImageWidget::ViewMode::SmallLQ);
 	ui->action_view_fit_window->setChecked(vm == ImageWidget::ViewMode::FitToWindow);
 	ui->action_view_dot_by_dot->setChecked(vm == ImageWidget::ViewMode::DotByDot);
-
-	bool rec = isRecording();
-	m->a_start_record->setEnabled(!rec);
-	m->a_stop_record->setEnabled(rec);
 }
 
 void MainWindow::internalStartCapture(bool start)
@@ -288,7 +249,7 @@ void MainWindow::internalStartCapture(bool start)
 		// stop capture
 		m->selected_device->stopCapture();
 	}
-	ui->widget_image->clear();
+	ui->image_widget->clear();
 	if (start) {
 		// start capture
 		auto *item = listWidget_display_mode()->currentItem();
@@ -422,7 +383,7 @@ void MainWindow::addDevice(IDeckLink *decklink)
 
 	listWidget_input_device()->sortItems();
 
-	ui->widget_image->setImage(QImage(), QImage());
+	ui->image_widget->setImage({});
 	changeInputDevice(0);
 }
 
@@ -483,7 +444,6 @@ void MainWindow::changeInputDevice(int selectedDeviceIndex)
 		listWidget_input_device()->setCurrentRow(selectedDeviceIndex);
 	});
 
-//	bool capturing = isCapturing();
 	stopCapture();
 
 	// Disable profile callback for previous selected device
@@ -633,11 +593,9 @@ void MainWindow::onPlayAudio(const QByteArray &samples)
 	if (m->audio_output_device) {
 		m->audio_output_device->write(samples);
 	}
-#ifdef USE_VIDEO_RECORDING
 	if (m->video_encoder) {
 		m->video_encoder->putAudioFrame(samples);
 	}
-#endif
 }
 
 void MainWindow::on_checkBox_audio_stateChanged(int arg1)
@@ -646,25 +604,14 @@ void MainWindow::on_checkBox_audio_stateChanged(int arg1)
 	restartCapture();
 }
 
-void MainWindow::newFrame()
+void MainWindow::newFrame(VideoFrame const &frame)
 {
 	m->frame_rate_counter_.increment();
 
-	while (1) {
-		Image image0 = m->video_capture->nextFrame();
-		if (image0.isNull()) return;
-		Image image1 = m->video_capture->nextFrame();
+	ui->image_widget->setImage(frame.image);
 
-		ui->widget_image->setImage(ImageUtil::qimage(image0), ImageUtil::qimage(image1));
-
-#ifdef USE_VIDEO_RECORDING
-		if (m->video_encoder) {
-			m->video_encoder->putVideoFrame(image0);
-			if (m->video_capture->deinterlaceMode() == DeinterlaceMode::MergeX2) {
-				m->video_encoder->putVideoFrame(image1);
-			}
-		}
-#endif
+	if (m->video_encoder) {
+		m->video_encoder->putVideoFrame(frame.image);
 	}
 }
 
@@ -675,32 +622,28 @@ bool MainWindow::isRecording() const
 
 void MainWindow::stopRecord()
 {
-#ifdef USE_VIDEO_RECORDING
 	if (isRecording()) {
-		qDebug() << "stop recording";
+		if (isRecording()) {
+			qDebug() << "stop recording";
 
-		m->video_encoder->thread_stop();
-		m->video_encoder.reset();
+			m->video_encoder->thread_stop();
+			m->video_encoder.reset();
+		}
+
+		notifyRecordingProgress(0, 0);
+
+		updateUI();
 	}
-#endif
-
-	notifyRecordingProgress(0, 0);
-
-	updateUI();
 }
 
 void MainWindow::toggleRecord()
 {
-#ifdef USE_VIDEO_RECORDING
 	if (isRecording()) {
 		stopRecord();
 	} else {
 		m->recording_start_time = QDateTime::currentDateTime();
 		VideoEncoder::VideoOption vopt;
 		vopt.fps = m->fps;
-		if (m->video_capture->deinterlaceMode() == DeinterlaceMode::MergeX2) {
-			vopt.fps *= 2;
-		}
 		VideoEncoder::AudioOption aopt;
 		m->video_encoder = std::make_shared<VideoEncoder>();
 #ifdef Q_OS_WIN
@@ -709,9 +652,26 @@ void MainWindow::toggleRecord()
 		m->video_encoder->thread_start("/tmp/a.avi", vopt, aopt);
 #endif
 	}
-#endif
-
 	updateUI();
+}
+
+void MainWindow::startRecord()
+{
+	RecoringDialog dlg(this);
+	if (dlg.exec() == QDialog::Accepted) {
+		stopRecord();
+
+		QTime t = dlg.maximumLength();
+		if (seconds(t) > 0) {
+			auto now = QDateTime::currentDateTime();
+			auto secs = seconds(t);
+			m->recording_stop_time = now.addSecs(secs);
+		} else {
+			m->recording_stop_time = {};
+		}
+
+		toggleRecord();
+	}
 }
 
 void MainWindow::onInterval1s()
@@ -730,7 +690,7 @@ void MainWindow::onInterval1s()
 
 void MainWindow::notifyRecordingProgress(qint64 current, qint64 length)
 {
-	ui->widget_image->setRecordingProgress(current, length);
+	ui->image_widget->updateRecordingProgress(current, length);
 }
 
 void MainWindow::timerEvent(QTimerEvent *event)
@@ -769,7 +729,7 @@ void MainWindow::timerEvent(QTimerEvent *event)
 
 void MainWindow::updateOverlayWindowGeometry()
 {
-	if (m->overlay_window) {
+	if (m->overlay_window && !(windowState() & Qt::WindowFullScreen)) {
 		auto r = ui->centralwidget->geometry();
 		QPoint topleft = mapToGlobal({r.x(), r.y()});
 		QPoint bottomright = mapToGlobal({r.x() + m->overlay_window_width, r.y() + r.height()});
@@ -825,63 +785,36 @@ bool MainWindow::event(QEvent *event)
 	return QMainWindow::event(event);
 }
 
-qint64 seconds(QTime const &t)
-{
-	return QTime(0, 0, 0).secsTo(t);
-}
-
-void MainWindow::on_action_start_record_triggered(bool)
-{
-	RecoringDialog dlg(this);
-	if (dlg.exec() == QDialog::Accepted) {
-		stopRecord();
-
-		QTime t = dlg.maximumLength();
-		if (seconds(t) > 0) {
-			auto now = QDateTime::currentDateTime();
-			auto secs = seconds(t);
-			m->recording_stop_time = now.addSecs(secs);
-		} else {
-			m->recording_stop_time = {};
-		}
-
-		toggleRecord();
-	}
-}
-
-void MainWindow::on_action_stop_record_triggered(bool)
-{
-	if (isRecording()) {
-		stopRecord();
-	}
-}
-
-void MainWindow::on_pushButton_record_clicked()
-{
-	on_action_start_record_triggered(true);
-}
-
 void MainWindow::on_action_view_small_lq_triggered()
 {
-	ui->widget_image->setViewMode(ImageWidget::ViewMode::SmallLQ);
+	ui->image_widget->setViewMode(ImageWidget::ViewMode::SmallLQ);
 	updateUI();
 }
 
 void MainWindow::on_action_view_fit_window_triggered()
 {
-	ui->widget_image->setViewMode(ImageWidget::ViewMode::FitToWindow);
+	ui->image_widget->setViewMode(ImageWidget::ViewMode::FitToWindow);
 	updateUI();
 }
 
 void MainWindow::on_action_view_dot_by_dot_triggered()
 {
-	ui->widget_image->setViewMode(ImageWidget::ViewMode::DotByDot);
+	ui->image_widget->setViewMode(ImageWidget::ViewMode::DotByDot);
 	updateUI();
+}
+
+void MainWindow::on_action_recording_start_triggered()
+{
+	startRecord();
+}
+
+void MainWindow::on_action_recording_stop_triggered()
+{
+	stopRecord();
 }
 
 void MainWindow::test()
 {
 	qDebug() << Q_FUNC_INFO;
 }
-
 

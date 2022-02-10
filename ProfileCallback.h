@@ -30,7 +30,7 @@
 
 #pragma once
 
-#include "DeckLinkAPI.h"
+#include "MyDeckLinkAPI.h"
 
 #include <QEvent>
 

@@ -3,13 +3,10 @@
 
 #include "DeckLinkInputDevice.h"
 #include "Image.h"
-#include <QImage>
-#include <QThread>
-#include <QWaitCondition>
+#include "VideoFrame.h"
 
 class Image;
 class DeckLinkInputDevice;
-
 
 class DeviceEvent : public QEvent {
 public:
@@ -27,7 +24,6 @@ public:
 	}
 	virtual ~DeviceEvent()
 	{
-
 	}
 };
 
@@ -42,15 +38,7 @@ public:
 	virtual void criticalError(QString const &title, QString const &message) = 0;
 };
 
-enum class DeinterlaceMode {
-	None,
-	InterpolateEven,
-	InterpolateOdd,
-	Merge,
-	MergeX2, // double frames
-};
-
-class DeckLinkCapture : public QThread {
+class DeckLinkCapture : public QObject {
 	Q_OBJECT
 	friend class DeckLinkInputDevice;
 	friend class ProfileCallback;
@@ -61,18 +49,6 @@ private:
 	static Image createImage(int w, int h, BMDPixelFormat pixel_format, uint8_t const *data, int size);
 
 	DeckLinkCaptureDelegate *delegate();
-	struct Task {
-		Image image;
-		bool isValid() const
-		{
-			return !image.isNull();
-		}
-	};
-	void process(const Task &task);
-	void run();
-	void pushFrame(const Task &task);
-	void clear();
-	void newFrame_(const Image &image0, const Image &image1);
 
 	void addDevice(IDeckLink *decklink);
 	void removeDevice(IDeckLink* decklink);
@@ -90,13 +66,9 @@ protected:
 public:
 	DeckLinkCapture(DeckLinkCaptureDelegate *delegate);
 	~DeckLinkCapture();
-	DeinterlaceMode deinterlaceMode() const;
-	void setDeinterlaceMode(DeinterlaceMode mode);
 	bool startCapture(DeckLinkInputDevice *selectedDevice_, BMDDisplayMode displayMode, BMDFieldDominance fieldDominance, bool applyDetectedInputMode, bool input_audio);
-	void stop();
-	Image nextFrame();
 signals:
-	void newFrame();
+	void newFrame(VideoFrame const &frame);
 };
 
 #endif // DECKLINKCAPTURE_H
