@@ -46,6 +46,7 @@ SOURCES += \
 	OverlayWindow.cpp \
 	ProfileCallback.cpp \
 	RecoringDialog.cpp \
+	TestForm.cpp \
 	VideoFrame.cpp \
 	joinpath.cpp \
 	main.cpp \
@@ -68,6 +69,7 @@ HEADERS += \
 	OverlayWindow.h \
 	ProfileCallback.h \
 	RecoringDialog.h \
+	TestForm.h \
 	VideoFrame.h \
 	common.h \
 	StatusLabel.h \
@@ -78,7 +80,8 @@ HEADERS += \
 FORMS += \
     MainWindow.ui \
     OverlayWindow.ui \
-    RecoringDialog.ui
+    RecoringDialog.ui \
+    TestForm.ui
 
 RESOURCES += \
 	resources.qrc

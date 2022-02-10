@@ -12,16 +12,21 @@ namespace Ui {
 class OverlayWindow;
 }
 
-class OverlayWindow : public QDialog {
+class OverlayWindow : public QWidget {
 	Q_OBJECT
 private:
 	Ui::OverlayWindow *ui;
+	MainWindow *mainwindow_ = nullptr;
 	MainWindow *mainwindow();
 protected:
 	void closeEvent(QCloseEvent *event);
 public:
 	explicit OverlayWindow(QWidget *parent = nullptr);
 	~OverlayWindow();
+	void bindMainWindow(MainWindow *mw)
+	{
+		mainwindow_ = mw;
+	}
 	QListWidget *listWidget_input_device();
 	QListWidget *listWidget_input_connection();
 	QListWidget *listWidget_display_mode();

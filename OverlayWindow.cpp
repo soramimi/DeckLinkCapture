@@ -3,11 +3,11 @@
 #include "ui_OverlayWindow.h"
 
 OverlayWindow::OverlayWindow(QWidget *parent)
-	: QDialog(parent)
+	: QWidget(parent)
 	, ui(new Ui::OverlayWindow)
 {
 	ui->setupUi(this);
-	setWindowFlags(Qt::Popup | Qt::Sheet | Qt::FramelessWindowHint);
+//	setWindowFlags(Qt::Popup | Qt::Sheet | Qt::FramelessWindowHint);
 
 //	connect(ui->pushButton_start, &QPushButton::clicked, mainwindow(), &MainWindow::on_pushButton_start_clicked);
 }
@@ -44,7 +44,8 @@ QCheckBox *OverlayWindow::checkBox_display_mode_auto_detection()
 
 MainWindow *OverlayWindow::mainwindow()
 {
-	return qobject_cast<MainWindow *>(parent());
+//	return qobject_cast<MainWindow *>(parent());
+	return mainwindow_;
 }
 
 void OverlayWindow::closeEvent(QCloseEvent *event)

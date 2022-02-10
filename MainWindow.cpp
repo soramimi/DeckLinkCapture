@@ -14,6 +14,7 @@
 #include <QListWidget>
 #include <QMessageBox>
 #include <QShortcut>
+#include <QTimer>
 
 qint64 seconds(QTime const &t)
 {
@@ -89,7 +90,9 @@ MainWindow::MainWindow(QWidget *parent)
 {
 	ui->setupUi(this);
 
-	m->overlay_window = new OverlayWindow(this);
+	ui->widget_ui->bindMainWindow(this);
+
+	m->overlay_window = ui->widget_ui;
 
 	m->status_label = new StatusLabel(this);
 	ui->statusbar->addWidget(m->status_label);
@@ -145,9 +148,9 @@ void MainWindow::show()
 {
 	QMainWindow::show();
 
-	m->overlay_window_width = m->overlay_window->width();
-	m->overlay_window->setWindowOpacity(0.5);
-	m->overlay_window->show();
+//	m->overlay_window_width = m->overlay_window->width();
+//	m->overlay_window->setWindowOpacity(0.5);
+//	m->overlay_window->show();
 }
 
 QListWidget *MainWindow::listWidget_input_device()
@@ -198,7 +201,7 @@ void MainWindow::closeEvent(QCloseEvent *)
 {
 	m->closing = true;
 
-	m->overlay_window->done(QDialog::Accepted);
+//	m->overlay_window->done(QDialog::Accepted);
 
 	if (m->selected_device) {
 		stopCapture();
@@ -727,28 +730,6 @@ void MainWindow::timerEvent(QTimerEvent *event)
 	}
 }
 
-void MainWindow::updateOverlayWindowGeometry()
-{
-	if (m->overlay_window && !(windowState() & Qt::WindowFullScreen)) {
-		auto r = ui->centralwidget->geometry();
-		QPoint topleft = mapToGlobal({r.x(), r.y()});
-		QPoint bottomright = mapToGlobal({r.x() + m->overlay_window_width, r.y() + r.height()});
-		m->overlay_window->setGeometry(QRect(topleft, bottomright));
-	}
-}
-
-void MainWindow::moveEvent(QMoveEvent *event)
-{
-	updateOverlayWindowGeometry();
-	QMainWindow::moveEvent(event);
-}
-
-void MainWindow::resizeEvent(QResizeEvent *event)
-{
-	updateOverlayWindowGeometry();
-	QMainWindow::resizeEvent(event);
-}
-
 void MainWindow::mouseDoubleClickEvent(QMouseEvent *event)
 {
 	bool v = false;
@@ -762,7 +743,7 @@ void MainWindow::mouseDoubleClickEvent(QMouseEvent *event)
 	}
 	ui->menubar->setVisible(v);
 	ui->statusbar->setVisible(v);
-	m->overlay_window->setVisible(v);
+	ui->frame_ui->setVisible(v);
 	setWindowState(state);
 }
 
@@ -779,8 +760,10 @@ void MainWindow::mouseMoveEvent(QMouseEvent *event)
 
 bool MainWindow::event(QEvent *event)
 {
-	if (event->type() == QEvent::HoverMove) {
+	switch (event->type()) {
+	case QEvent::HoverMove:
 		updateCursor();
+		break;
 	}
 	return QMainWindow::event(event);
 }

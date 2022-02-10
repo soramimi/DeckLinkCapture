@@ -23,6 +23,11 @@ class QCheckBox;
 class MainWindow : public QMainWindow, public DeckLinkCaptureDelegate {
 	Q_OBJECT
 	friend class OverlayWindow;
+public:
+	enum {
+		Dummy_ = QEvent::User,
+
+	};
 private:
 	Ui::MainWindow *ui;
 
@@ -42,15 +47,12 @@ private:
 	void toggleRecord();
 	void setSignalStatus(bool valid);
 	bool isRecording() const;
-	void updateOverlayWindowGeometry();
 	bool isValidSignal() const;
 	void onInterval1s();
 	void notifyRecordingProgress(qint64 current, qint64 length);
 	void updateCursor();
 protected:
 	void timerEvent(QTimerEvent *event);
-	void moveEvent(QMoveEvent *event);
-	void resizeEvent(QResizeEvent *event);
 	void mouseDoubleClickEvent(QMouseEvent *event);
 	void mouseMoveEvent(QMouseEvent *event);
 	bool event(QEvent *event);

@@ -31,6 +31,39 @@
      <number>0</number>
     </property>
     <item>
+     <widget class="QFrame" name="frame_ui">
+      <property name="minimumSize">
+       <size>
+        <width>200</width>
+        <height>0</height>
+       </size>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::NoFrame</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Raised</enum>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
+       <item>
+        <widget class="OverlayWindow" name="widget_ui" native="true"/>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
      <widget class="ImageWidget" name="image_widget" native="true">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
@@ -48,7 +81,7 @@
      <x>0</x>
      <y>0</y>
      <width>1013</width>
-     <height>21</height>
+     <height>31</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_View">
@@ -118,6 +151,12 @@
    <class>ImageWidget</class>
    <extends>QWidget</extends>
    <header>ImageWidget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>OverlayWindow</class>
+   <extends>QWidget</extends>
+   <header>OverlayWindow.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

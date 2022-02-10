@@ -10,6 +10,15 @@
 
 GlobalData *global;
 
+static bool isHighDpiScalingEnabled()
+{
+//	MySettings s;
+//	s.beginGroup("UI");
+//	QVariant v = s.value("EnableHighDpiScaling");
+//	return v.isNull() || v.toBool();
+	return false;
+}
+
 int main(int argc, char *argv[])
 {
 #ifdef Q_OS_WIN
@@ -28,6 +37,18 @@ int main(int argc, char *argv[])
 	}
 
 	QApplication a(argc, argv);
+
+	if (isHighDpiScalingEnabled()){
+#if (QT_VERSION < QT_VERSION_CHECK(5, 6, 0))
+		qDebug() << "High DPI scaling is not supported";
+#else
+		QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+#endif
+		a.setAttribute(Qt::AA_UseHighDpiPixmaps);
+	} else {
+		QCoreApplication::setAttribute(Qt::AA_DisableHighDpiScaling);
+	}
+
 
 	qRegisterMetaType<VideoFrame>();
 
