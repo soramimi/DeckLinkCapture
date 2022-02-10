@@ -238,8 +238,8 @@ void MainWindow::updateUI()
 {
 	ImageWidget::ViewMode vm = ui->image_widget->viewMode();
 	ui->action_view_small_lq->setChecked(vm == ImageWidget::ViewMode::SmallLQ);
-	ui->action_view_fit_window->setChecked(vm == ImageWidget::ViewMode::FitToWindow);
 	ui->action_view_dot_by_dot->setChecked(vm == ImageWidget::ViewMode::DotByDot);
+	ui->action_view_fit_window->setChecked(vm == ImageWidget::ViewMode::FitToWindow);
 }
 
 void MainWindow::internalStartCapture(bool start)
@@ -791,15 +791,15 @@ void MainWindow::on_action_view_small_lq_triggered()
 	updateUI();
 }
 
-void MainWindow::on_action_view_fit_window_triggered()
-{
-	ui->image_widget->setViewMode(ImageWidget::ViewMode::FitToWindow);
-	updateUI();
-}
-
 void MainWindow::on_action_view_dot_by_dot_triggered()
 {
 	ui->image_widget->setViewMode(ImageWidget::ViewMode::DotByDot);
+	updateUI();
+}
+
+void MainWindow::on_action_view_fit_window_triggered()
+{
+	ui->image_widget->setViewMode(ImageWidget::ViewMode::FitToWindow);
 	updateUI();
 }
 

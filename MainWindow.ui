@@ -48,7 +48,7 @@
      <x>0</x>
      <y>0</y>
      <width>1013</width>
-     <height>35</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_View">
@@ -56,8 +56,8 @@
      <string>&amp;View</string>
     </property>
     <addaction name="action_view_small_lq"/>
-    <addaction name="action_view_fit_window"/>
     <addaction name="action_view_dot_by_dot"/>
+    <addaction name="action_view_fit_window"/>
    </widget>
    <widget class="QMenu" name="menuRecording">
     <property name="title">
@@ -86,20 +86,20 @@
     <string>Small LQ</string>
    </property>
   </action>
-  <action name="action_view_fit_window">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Fit to window</string>
-   </property>
-  </action>
   <action name="action_view_dot_by_dot">
    <property name="checkable">
     <bool>true</bool>
    </property>
    <property name="text">
     <string>Dot by dot</string>
+   </property>
+  </action>
+  <action name="action_view_fit_window">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Fit to window</string>
    </property>
   </action>
   <action name="action_recording_start">

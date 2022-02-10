@@ -9,12 +9,17 @@ class RecoringDialog;
 
 class RecoringDialog : public QDialog {
 	Q_OBJECT
+private:
+	Ui::RecoringDialog *ui;
 public:
 	explicit RecoringDialog(QWidget *parent = nullptr);
 	~RecoringDialog();
 	QTime maximumLength() const;
-private:
-	Ui::RecoringDialog *ui;
+	QString path() const;
+private slots:
+	void on_pushButton_browse_clicked();
+public slots:
+	void done(int v);
 };
 
 #endif // RECORINGDIALOG_H

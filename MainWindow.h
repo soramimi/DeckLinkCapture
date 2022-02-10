@@ -91,9 +91,9 @@ private slots:
 	void onPlayAudio(QByteArray const &samples);
 	void on_action_recording_start_triggered();
 	void on_action_recording_stop_triggered();
+	void on_action_view_small_lq_triggered();
 	void on_action_view_dot_by_dot_triggered();
 	void on_action_view_fit_window_triggered();
-	void on_action_view_small_lq_triggered();
 	void on_checkBox_audio_stateChanged(int arg1);
 	void on_checkBox_display_mode_auto_detection_clicked(bool checked);
 	void on_listWidget_display_mode_currentRowChanged(int currentRow);

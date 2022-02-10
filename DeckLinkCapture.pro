@@ -20,30 +20,13 @@ gcc:QMAKE_CXXFLAGS += -Wno-switch
 
 # recording
 
-CONFIG += use_video_recording
-use_video_recording {
-	DEFINES += USE_VIDEO_RECORDING
-	win32 {
-		INCLUDEPATH += C:/ffmpeg-4.1.3-win64-dev/include
-		LIBS += -LC:/ffmpeg-4.1.3-win64-dev/lib
-	}
-    macx:INCLUDEPATH += /usr/local/Cellar/ffmpeg/4.1.4_1/include
-    macx:LIBS += -L/usr/local/Cellar/ffmpeg/4.1.4_1/lib
-    LIBS += -lavutil -lavcodec -lavformat -lswscale -lswresample
+win32 {
+	INCLUDEPATH += C:/ffmpeg-4.1.3-win64-dev/include
+	LIBS += -LC:/ffmpeg-4.1.3-win64-dev/lib
 }
-
-# OpenCV
-
-CONFIG += use_opencv
-use_opencv {
-	DEFINES += USE_OPENCV
-	linux:INCLUDEPATH += /usr/include/opencv4
-    linux:LIBS += -lopencv_core -lopencv_highgui -lopencv_imgproc
-    macx:INCLUDEPATH += /usr/local/Cellar/opencv/4.1.0_2/include/opencv4
-    macx:LIBS += -L/usr/local/Cellar/opencv/4.1.0_2/lib -lopencv_core -lopencv_highgui -lopencv_imgproc
-    CONFIG(release,debug|release):win32:LIBS += -LC:\opencv\build\x64\vc15\lib -lopencv_world410
-	CONFIG(debug,debug|release):win32:LIBS += -LC:\opencv\build\x64\vc15\lib -lopencv_world410d
-}
+macx:INCLUDEPATH += /usr/local/Cellar/ffmpeg/4.1.4_1/include
+macx:LIBS += -L/usr/local/Cellar/ffmpeg/4.1.4_1/lib
+LIBS += -lavutil -lavcodec -lavformat -lswscale -lswresample
 
 #
 
@@ -59,10 +42,12 @@ SOURCES += \
 	ImageWidget.cpp \
 	MainWindow.cpp \
 	MyDeckLinkAPI.cpp \
+	MySettings.cpp \
 	OverlayWindow.cpp \
 	ProfileCallback.cpp \
 	RecoringDialog.cpp \
 	VideoFrame.cpp \
+	joinpath.cpp \
 	main.cpp \
 	VideoEncoder.cpp \
 	StatusLabel.cpp
@@ -79,6 +64,7 @@ HEADERS += \
 	ImageWidget.h \
 	MainWindow.h \
 	MyDeckLinkAPI.h \
+	MySettings.h \
 	OverlayWindow.h \
 	ProfileCallback.h \
 	RecoringDialog.h \
@@ -86,6 +72,7 @@ HEADERS += \
 	common.h \
 	StatusLabel.h \
 	VideoEncoder.h \
+	joinpath.h \
 	main.h
 
 FORMS += \
@@ -93,11 +80,10 @@ FORMS += \
     OverlayWindow.ui \
     RecoringDialog.ui
 
+RESOURCES += \
+	resources.qrc
+
 win32:SOURCES += sdk/Win/DeckLinkAPI_i.c
 win32:HEADERS += sdk/Win/DeckLinkAPI_h.h
 linux:SOURCES += sdk/Linux/include/DeckLinkAPIDispatch.cpp
 macx:SOURCES += sdk/Mac/include/DeckLinkAPIDispatch.cpp
-
-RESOURCES += \
-	resources.qrc
-

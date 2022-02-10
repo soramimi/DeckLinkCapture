@@ -11,8 +11,8 @@ class ImageWidget : public QGLWidget {
 public:
 	enum class ViewMode {
 		SmallLQ,
-		FitToWindow,
 		DotByDot,
+		FitToWindow,
 	};
 private:
 	struct Private;
