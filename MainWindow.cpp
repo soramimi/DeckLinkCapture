@@ -7,6 +7,8 @@
 #include "StatusLabel.h"
 #include "VideoEncoder.h"
 #include "main.h"
+#include "ActionHandler.h"
+#include "MySettings.h"
 #include <QAudioOutput>
 #include <QCheckBox>
 #include <QDateTime>
@@ -61,6 +63,8 @@ struct MainWindow::Private {
 
 	bool valid_signal = false;
 
+	QList<QAudioDeviceInfo> audio_output_devices;
+	QAudioFormat audio_format;
 	std::shared_ptr<QAudioOutput> audio_output;
 	QIODevice *audio_output_device = nullptr;
 
@@ -83,6 +87,7 @@ struct MainWindow::Private {
 	bool closing = false;
 };
 
+
 MainWindow::MainWindow(QWidget *parent)
 	: QMainWindow(parent)
 	, ui(new Ui::MainWindow)
@@ -102,15 +107,33 @@ MainWindow::MainWindow(QWidget *parent)
 
 	setStatusBarText(QString());
 
-	QAudioFormat format;
-	format.setByteOrder(QAudioFormat::LittleEndian);
-	format.setChannelCount(2);
-	format.setCodec("audio/pcm");
-	format.setSampleRate(48000);
-	format.setSampleSize(16);
-	format.setSampleType(QAudioFormat::SignedInt);
-	m->audio_output = std::make_shared<QAudioOutput>(format);
-	m->audio_output_device = m->audio_output->start();
+	m->audio_output_devices = QAudioDeviceInfo::availableDevices(QAudio::AudioOutput);
+	for (QAudioDeviceInfo const &dev : m->audio_output_devices) {
+		QString name = dev.deviceName();
+		auto a = ui->menu_audio_output_devices->addAction(name);
+		new ActionHandler(this, a, name, [&](QString const &name){
+			changeAudioOutputDevice(name, true);
+		});
+	}
+	m->audio_format.setByteOrder(QAudioFormat::LittleEndian);
+	m->audio_format.setChannelCount(2);
+	m->audio_format.setCodec("audio/pcm");
+	m->audio_format.setSampleRate(48000);
+	m->audio_format.setSampleSize(16);
+	m->audio_format.setSampleType(QAudioFormat::SignedInt);
+
+	{
+		MySettings s;
+		s.beginGroup("Audio");
+		QString name = s.value("OutputDevice").toString();
+		s.endGroup();
+
+		if (!changeAudioOutputDevice(name, false)) {
+			m->audio_output = std::make_shared<QAudioOutput>(m->audio_format);
+			m->audio_output_device = m->audio_output->start();
+		}
+	}
+
 
 	checkBox_display_mode_auto_detection()->setCheckState(Qt::Checked);
 	checkBox_audio()->click();
@@ -202,6 +225,8 @@ void MainWindow::closeEvent(QCloseEvent *)
 	m->closing = true;
 
 //	m->overlay_window->done(QDialog::Accepted);
+
+	stopRecord();
 
 	if (m->selected_device) {
 		stopCapture();
@@ -794,6 +819,37 @@ void MainWindow::on_action_recording_start_triggered()
 void MainWindow::on_action_recording_stop_triggered()
 {
 	stopRecord();
+}
+
+bool MainWindow::changeAudioOutputDevice(QString const &name, bool save)
+{
+	int index = -1;
+	for (int i = 0; i < m->audio_output_devices.size(); i++) {
+		if (m->audio_output_devices[i].deviceName() == name) {
+			index = i;
+			break;
+		}
+	}
+
+	if (index >= 0 && index < m->audio_output_devices.size()) {
+		if (m->audio_output) {
+			m->audio_output->stop();
+			m->audio_output.reset();
+		}
+
+		m->audio_output = std::shared_ptr<QAudioOutput>(new QAudioOutput(m->audio_output_devices[index], m->audio_format));
+		m->audio_output_device = m->audio_output->start();
+
+		if (save) {
+			MySettings s;
+			s.beginGroup("Audio");
+			s.setValue("OutputDevice", name);
+			s.endGroup();
+		}
+
+		return true;
+	}
+	return false;
 }
 
 void MainWindow::test()

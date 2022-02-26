@@ -99,8 +99,20 @@
     <addaction name="action_recording_start"/>
     <addaction name="action_recording_stop"/>
    </widget>
+   <widget class="QMenu" name="menuAudio">
+    <property name="title">
+     <string>Audio</string>
+    </property>
+    <widget class="QMenu" name="menu_audio_output_devices">
+     <property name="title">
+      <string>Output devices</string>
+     </property>
+    </widget>
+    <addaction name="menu_audio_output_devices"/>
+   </widget>
    <addaction name="menu_View"/>
    <addaction name="menuRecording"/>
+   <addaction name="menuAudio"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="action_record">
@@ -143,6 +155,11 @@
   <action name="action_recording_stop">
    <property name="text">
     <string>Stop</string>
+   </property>
+  </action>
+  <action name="action_dummy">
+   <property name="text">
+    <string>dummy</string>
    </property>
   </action>
  </widget>

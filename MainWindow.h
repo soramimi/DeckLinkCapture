@@ -51,6 +51,7 @@ private:
 	void onInterval1s();
 	void notifyRecordingProgress(qint64 current, qint64 length);
 	void updateCursor();
+	bool changeAudioOutputDevice(const QString &name, bool save);
 protected:
 	void timerEvent(QTimerEvent *event);
 	void mouseDoubleClickEvent(QMouseEvent *event);

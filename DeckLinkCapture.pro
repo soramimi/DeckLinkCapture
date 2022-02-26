@@ -26,11 +26,22 @@ win32 {
 }
 macx:INCLUDEPATH += /usr/local/Cellar/ffmpeg/4.1.4_1/include
 macx:LIBS += -L/usr/local/Cellar/ffmpeg/4.1.4_1/lib
-LIBS += -lavutil -lavcodec -lavformat -lswscale -lswresample
+#LIBS += -lavutil -lavcodec -lavformat -lswscale -lswresample
+
+LIBS += \
+	$$PWD/../ffmpeg/libavfilter/libavfilter.a \
+	$$PWD/../ffmpeg/libavdevice/libavdevice.a \
+	$$PWD/../ffmpeg/libavformat/libavformat.a \
+	$$PWD/../ffmpeg/libavcodec/libavcodec.a \
+	$$PWD/../ffmpeg/libswscale/libswscale.a \
+	$$PWD/../ffmpeg/libavutil/libavutil.a \
+	$$PWD/../ffmpeg/libswresample/libswresample.a \
+	-lasound -lsndio -lxcb -lxcb-shm -lxcb-xfixes -lxcb-shape -lz -llzma -lSDL2 -lX11 -lXext -lXv -lvdpau
 
 #
 
 SOURCES += \
+	ActionHandler.cpp \
 	AncillaryDataTable.cpp \
 	DeckLinkCapture.cpp \
 	DeckLinkDeviceDiscovery.cpp \
@@ -54,6 +65,7 @@ SOURCES += \
 	StatusLabel.cpp
 
 HEADERS += \
+	ActionHandler.h \
 	AncillaryDataTable.h \
 	DeckLinkCapture.h \
 	DeckLinkDeviceDiscovery.h \
