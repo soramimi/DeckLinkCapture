@@ -1,5 +1,5 @@
-#ifndef RECORINGDIALOG_H
-#define RECORINGDIALOG_H
+#ifndef RECORDINGDIALOG_H
+#define RECORDINGDIALOG_H
 
 #include <QDialog>
 
@@ -7,13 +7,13 @@ namespace Ui {
 class RecoringDialog;
 }
 
-class RecoringDialog : public QDialog {
+class RecordingDialog : public QDialog {
 	Q_OBJECT
 private:
 	Ui::RecoringDialog *ui;
 public:
-	explicit RecoringDialog(QWidget *parent = nullptr);
-	~RecoringDialog();
+	explicit RecordingDialog(QWidget *parent = nullptr);
+	~RecordingDialog();
 	QTime maximumLength() const;
 	QString path() const;
 private slots:
@@ -22,4 +22,4 @@ public slots:
 	void done(int v);
 };
 
-#endif // RECORINGDIALOG_H
+#endif // RECORDINGDIALOG_H

@@ -56,7 +56,7 @@ SOURCES += \
 	MySettings.cpp \
 	OverlayWindow.cpp \
 	ProfileCallback.cpp \
-	RecoringDialog.cpp \
+	RecordingDialog.cpp \
 	TestForm.cpp \
 	VideoFrame.cpp \
 	joinpath.cpp \
@@ -80,7 +80,7 @@ HEADERS += \
 	MySettings.h \
 	OverlayWindow.h \
 	ProfileCallback.h \
-	RecoringDialog.h \
+	RecordingDialog.h \
 	TestForm.h \
 	VideoFrame.h \
 	common.h \
@@ -92,7 +92,7 @@ HEADERS += \
 FORMS += \
     MainWindow.ui \
     OverlayWindow.ui \
-    RecoringDialog.ui \
+    RecordingDialog.ui \
     TestForm.ui
 
 RESOURCES += \

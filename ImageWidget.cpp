@@ -113,7 +113,7 @@ void ImageWidget::paintEvent(QPaintEvent *)
 		pr.restore();
 	}
 
-	if (m->recording_pregress_current > 0) {
+	if (m->recording_pregress_current > 0 || m->recording_pregress_length > 0) {
 		pr.setFont(m->font);
 		pr.setPen(Qt::white);
 		auto fm = pr.fontMetrics();

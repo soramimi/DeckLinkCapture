@@ -1,9 +1,9 @@
-#include "RecoringDialog.h"
+#include "RecordingDialog.h"
 #include "ui_RecoringDialog.h"
 #include "MySettings.h"
 #include <QFileDialog>
 
-RecoringDialog::RecoringDialog(QWidget *parent)
+RecordingDialog::RecordingDialog(QWidget *parent)
 	: QDialog(parent)
 	, ui(new Ui::RecoringDialog)
 {
@@ -34,22 +34,22 @@ RecoringDialog::RecoringDialog(QWidget *parent)
 	}
 }
 
-RecoringDialog::~RecoringDialog()
+RecordingDialog::~RecordingDialog()
 {
 	delete ui;
 }
 
-QTime RecoringDialog::maximumLength() const
+QTime RecordingDialog::maximumLength() const
 {
 	return ui->timeEdit->time();
 }
 
-QString RecoringDialog::path() const
+QString RecordingDialog::path() const
 {
 	return ui->lineEdit_path->text();
 }
 
-void RecoringDialog::on_pushButton_browse_clicked()
+void RecordingDialog::on_pushButton_browse_clicked()
 {
 	QString path = ui->lineEdit_path->text();
 	path = QFileDialog::getSaveFileName(this, tr("Save as"), path);
@@ -58,7 +58,7 @@ void RecoringDialog::on_pushButton_browse_clicked()
 	}
 }
 
-void RecoringDialog::done(int v)
+void RecordingDialog::done(int v)
 {
 	if (v == QDialog::Accepted) {
 		QTime t = ui->timeEdit->time();

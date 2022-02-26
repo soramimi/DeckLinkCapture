@@ -3,7 +3,7 @@
 #include "ui_MainWindow.h"
 #include "FrameRateCounter.h"
 #include "OverlayWindow.h"
-#include "RecoringDialog.h"
+#include "RecordingDialog.h"
 #include "StatusLabel.h"
 #include "VideoEncoder.h"
 #include "main.h"
@@ -76,7 +76,8 @@ struct MainWindow::Private {
 
 	QString recording_file_path;
 	QDateTime recording_start_time;
-	QDateTime recording_stop_time;
+	qint64 recording_seconds = 0;
+//	QDateTime recording_stop_time;
 
 	OverlayWindow *overlay_window = nullptr;
 	int overlay_window_width = 0;
@@ -680,29 +681,9 @@ void MainWindow::toggleRecord()
 #else
 		m->video_encoder->thread_start(m->recording_file_path, vopt, aopt);
 #endif
+		notifyRecordingProgress(0, m->recording_seconds);
 	}
 	updateUI();
-}
-
-void MainWindow::startRecord()
-{
-	RecoringDialog dlg(this);
-	if (dlg.exec() == QDialog::Accepted) {
-		stopRecord();
-
-		m->recording_file_path = dlg.path();
-
-		QTime t = dlg.maximumLength();
-		if (seconds(t) > 0) {
-			auto now = QDateTime::currentDateTime();
-			auto secs = seconds(t);
-			m->recording_stop_time = now.addSecs(secs);
-		} else {
-			m->recording_stop_time = {};
-		}
-
-		toggleRecord();
-	}
 }
 
 void MainWindow::onInterval1s()
@@ -740,21 +721,14 @@ void MainWindow::timerEvent(QTimerEvent *event)
 
 	if (isRecording()) {
 		auto now = QDateTime::currentDateTime();
-
 		int64_t current = m->recording_start_time.secsTo(now);
-
-		int64_t length = 0;
-		if (m->recording_stop_time.isValid()) {
-			length = m->recording_start_time.secsTo(m->recording_stop_time);
-		}
-
-		notifyRecordingProgress(current, length);
-
-		if (length > 0) {
-			if (current >= length) {
+		if (m->recording_seconds > 0) {
+			if (current >= m->recording_seconds) {
 				stopRecord();
+				current = m->recording_seconds = 0;
 			}
 		}
+		notifyRecordingProgress(current, m->recording_seconds);
 	}
 }
 
@@ -796,34 +770,6 @@ bool MainWindow::event(QEvent *event)
 	return QMainWindow::event(event);
 }
 
-void MainWindow::on_action_view_small_lq_triggered()
-{
-	ui->image_widget->setViewMode(ImageWidget::ViewMode::SmallLQ);
-	updateUI();
-}
-
-void MainWindow::on_action_view_dot_by_dot_triggered()
-{
-	ui->image_widget->setViewMode(ImageWidget::ViewMode::DotByDot);
-	updateUI();
-}
-
-void MainWindow::on_action_view_fit_window_triggered()
-{
-	ui->image_widget->setViewMode(ImageWidget::ViewMode::FitToWindow);
-	updateUI();
-}
-
-void MainWindow::on_action_recording_start_triggered()
-{
-	startRecord();
-}
-
-void MainWindow::on_action_recording_stop_triggered()
-{
-	stopRecord();
-}
-
 bool MainWindow::changeAudioOutputDevice(QString const &name, bool save)
 {
 	int index = -1;
@@ -853,6 +799,48 @@ bool MainWindow::changeAudioOutputDevice(QString const &name, bool save)
 		return true;
 	}
 	return false;
+}
+
+void MainWindow::startRecord()
+{
+	RecordingDialog dlg(this);
+	if (dlg.exec() == QDialog::Accepted) {
+		stopRecord();
+
+		m->recording_file_path = dlg.path();
+
+		QTime t = dlg.maximumLength();
+		m->recording_seconds = seconds(t);
+		toggleRecord();
+	}
+}
+
+void MainWindow::on_action_view_small_lq_triggered()
+{
+	ui->image_widget->setViewMode(ImageWidget::ViewMode::SmallLQ);
+	updateUI();
+}
+
+void MainWindow::on_action_view_dot_by_dot_triggered()
+{
+	ui->image_widget->setViewMode(ImageWidget::ViewMode::DotByDot);
+	updateUI();
+}
+
+void MainWindow::on_action_view_fit_window_triggered()
+{
+	ui->image_widget->setViewMode(ImageWidget::ViewMode::FitToWindow);
+	updateUI();
+}
+
+void MainWindow::on_action_recording_start_triggered()
+{
+	startRecord();
+}
+
+void MainWindow::on_action_recording_stop_triggered()
+{
+	stopRecord();
 }
 
 void MainWindow::test()

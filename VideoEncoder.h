@@ -26,10 +26,10 @@ protected:
 	bool get_audio_frame(int16_t *samples, int frame_size, int nb_channels);
 	bool get_video_frame(MyPicture *pict, int frame_index, int width, int height);
 	bool open_audio(AVCodecContext *cc, AVFormatContext *oc, AVCodec const *codec, AVStream *st);
-	void write_audio_frame(AVCodecContext *cc, AVFormatContext *fc, AVStream *st, bool flush);
+	bool write_audio_frame(AVCodecContext *cc, AVFormatContext *fc, AVStream *st, bool flush);
 	void close_audio(AVFormatContext *fc, AVStream *st);
 	bool open_video(AVCodecContext *cc, AVFormatContext *fc, const AVCodec *codec, AVStream *st);
-	void write_video_frame(AVCodecContext *cc, AVFormatContext *fc, AVStream *st, bool flush);
+	bool write_video_frame(AVCodecContext *cc, AVFormatContext *fc, AVStream *st, bool flush);
 	void close_video(AVFormatContext *fc, AVStream *st);
 	bool is_recording() const;
 	int save();
