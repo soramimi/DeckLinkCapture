@@ -74,6 +74,7 @@ struct MainWindow::Private {
 
 	FrameRateCounter frame_rate_counter_;
 
+	QString recording_file_path;
 	QDateTime recording_start_time;
 	QDateTime recording_stop_time;
 
@@ -675,9 +676,9 @@ void MainWindow::toggleRecord()
 		VideoEncoder::AudioOption aopt;
 		m->video_encoder = std::make_shared<VideoEncoder>();
 #ifdef Q_OS_WIN
-		m->video_encoder->thread_start("Z:/_tmp/a.avi", vopt, aopt);
+		m->video_encoder->thread_start(m->recording_file_path, vopt, aopt);
 #else
-		m->video_encoder->thread_start("/tmp/a.avi", vopt, aopt);
+		m->video_encoder->thread_start(m->recording_file_path, vopt, aopt);
 #endif
 	}
 	updateUI();
@@ -688,6 +689,8 @@ void MainWindow::startRecord()
 	RecoringDialog dlg(this);
 	if (dlg.exec() == QDialog::Accepted) {
 		stopRecord();
+
+		m->recording_file_path = dlg.path();
 
 		QTime t = dlg.maximumLength();
 		if (seconds(t) > 0) {

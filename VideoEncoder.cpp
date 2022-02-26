@@ -630,7 +630,7 @@ int VideoEncoder::save()
 			ext = filename.substr(pos + 1);
 		}
 	}
-	AVOutputFormat oformat = *av_guess_format("avi", filename.c_str(), nullptr);
+	AVOutputFormat oformat = *av_guess_format(ext.c_str(), filename.c_str(), nullptr);
 	oformat.flags |= AVFMT_TS_NONSTRICT;
 	/* open the output file, if needed */
 	AVIOContext *io_context = nullptr;
