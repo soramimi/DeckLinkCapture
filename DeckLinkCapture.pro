@@ -28,6 +28,7 @@ macx:INCLUDEPATH += /usr/local/Cellar/ffmpeg/4.1.4_1/include
 macx:LIBS += -L/usr/local/Cellar/ffmpeg/4.1.4_1/lib
 !linux:LIBS += -lavutil -lavcodec -lavformat -lswscale -lswresample
 
+static_ffmpeg {
 linux:LIBS += \
 	$$PWD/../ffmpeg/libavfilter/libavfilter.a \
 	$$PWD/../ffmpeg/libavdevice/libavdevice.a \
@@ -37,6 +38,11 @@ linux:LIBS += \
 	$$PWD/../ffmpeg/libavutil/libavutil.a \
 	$$PWD/../ffmpeg/libswresample/libswresample.a \
 	-lasound -lsndio -lxcb -lxcb-shm -lxcb-xfixes -lxcb-shape -lz -llzma -lSDL2 -lX11 -lXext -lXv -lvdpau
+}
+
+!static_ffmpeg {
+	linux:LIBS += -lavutil -lavcodec -lavformat -lswscale -lswresample
+}
 
 #
 

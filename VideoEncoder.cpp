@@ -401,15 +401,33 @@ bool VideoEncoder::is_recording() const
 }
 
 namespace {
-AVStream *add_stream(AVFormatContext *fc, AVCodecContext **cc, AVCodec const **codec, AVCodecID codec_id, VideoEncoder::AudioOption const &aopt, VideoEncoder::VideoOption const &vopt)
+AVStream *add_stream(AVFormatContext *fc, AVCodecContext **cc, AVCodec const **codec, std::vector<std::string> const &codec_names, AVCodecID codec_id, VideoEncoder::AudioOption const &aopt, VideoEncoder::VideoOption const &vopt)
 {
 	AVCodecParameters *cp;
 	AVStream *st;
 
-	*codec = avcodec_find_encoder(codec_id);
-	if (!(*codec)) {
-		fprintf(stderr, "Could not find encoder for '%s'\n", avcodec_get_name(codec_id));
-		return nullptr;
+	*codec = nullptr;
+
+	bool codec_name_used = false;
+	for (std::string const &cname : codec_names) {
+		*codec = avcodec_find_encoder_by_name(cname.c_str());
+		if (*codec) {
+			codec_name_used = true;
+			break;
+		}
+	}
+	if (!*codec) {
+		*codec = avcodec_find_encoder(codec_id);
+		if (!*codec) {
+			fprintf(stderr, "Could not find encoder for '%s'\n", avcodec_get_name(codec_id));
+			return nullptr;
+		}
+	}
+
+	if (!codec_names.empty() && !codec_name_used) {
+		fprintf(stderr, "warning: The codec with the specified name was not found. '%s' will be used instead.\n"
+				, (*codec)->name
+				);
 	}
 
 	st = avformat_new_stream(fc, *codec);
@@ -472,8 +490,8 @@ void VideoEncoder::run()
 {
 	AVOutputFormat const *fmt;
 	AVFormatContext *fc;
-	AVCodec const *audio_codec;
-	AVCodec const *video_codec;
+	AVCodec const *audio_codec = nullptr;
+	AVCodec const *video_codec = nullptr;
 	double audio_time, video_time;
 
 	av_log_set_level(AV_LOG_WARNING);
@@ -506,10 +524,10 @@ void VideoEncoder::run()
 	m->video_st = nullptr;
 	m->audio_st = nullptr;
 	if (fmt->video_codec != AV_CODEC_ID_NONE) {
-		m->video_st = add_stream(fc, &m->video_codec_context, &video_codec, fmt->video_codec, m->aopt, m->vopt);
+		m->video_st = add_stream(fc, &m->video_codec_context, &video_codec, {"hevc_nvenc", "h264_nvenc"}, fmt->video_codec, m->aopt, m->vopt);
 	}
 	if (fmt->audio_codec != AV_CODEC_ID_NONE) {
-		m->audio_st = add_stream(fc, &m->audio_codec_context, &audio_codec, fmt->audio_codec, m->aopt, m->vopt);
+		m->audio_st = add_stream(fc, &m->audio_codec_context, &audio_codec, {}, fmt->audio_codec, m->aopt, m->vopt);
 	}
 
 	if (m->video_st && !open_video(m->video_codec_context, video_codec, m->video_st)) return;

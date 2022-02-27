@@ -26,7 +26,6 @@ class MainWindow : public QMainWindow, public DeckLinkCaptureDelegate {
 public:
 	enum {
 		Dummy_ = QEvent::User,
-
 	};
 private:
 	Ui::MainWindow *ui;
