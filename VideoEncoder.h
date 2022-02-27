@@ -1,52 +1,76 @@
 #ifndef VIDEOENCODER_H
 #define VIDEOENCODER_H
 
-#include <QThread>
-#include <stdint.h>
+#include "Image.h"
+#include <cstdint>
+#include <string>
+#include <memory>
+#include <vector>
 
 struct AVCodecContext;
 struct AVFormatContext;
 struct AVCodec;
 struct AVStream;
 
-class QImage;
-class QByteArray;
-
-class MyPicture {
+class VideoEncoder {
 public:
-	uint8_t *pointers[4] = {};
-	int linesize[4] = {};
-};
-
-class VideoEncoder : public QThread {
+	class MyPicture;
+	class AudioFrame {
+	public:
+		std::shared_ptr<std::vector<char>> samples;
+		AudioFrame()
+		{
+			samples = std::make_shared<std::vector<char>>();
+		}
+	};
+	class VideoFrame {
+	public:
+		Image image;
+		operator bool () const
+		{
+			return (bool)image;
+		}
+		int width() const
+		{
+			return image ? image.width() : 0;
+		}
+		int height() const
+		{
+			return image ? image.height() : 0;
+		}
+	};
 private:
 	struct Private;
 	Private *m;
-protected:
+private:
+	bool is_interruption_requested() const;
+
 	bool get_audio_frame(int16_t *samples, int frame_size, int nb_channels);
 	bool get_video_frame(MyPicture *pict, int frame_index, int width, int height);
-	bool open_audio(AVCodecContext *cc, AVFormatContext *oc, AVCodec const *codec, AVStream *st);
-	bool write_audio_frame(AVCodecContext *cc, AVFormatContext *fc, AVStream *st, bool flush);
-	void close_audio(AVFormatContext *fc, AVStream *st);
-	bool open_video(AVCodecContext *cc, AVFormatContext *fc, const AVCodec *codec, AVStream *st);
-	bool write_video_frame(AVCodecContext *cc, AVFormatContext *fc, AVStream *st, bool flush);
-	void close_video(AVFormatContext *fc, AVStream *st);
+	bool open_audio(AVCodecContext *cc, AVCodec const *codec, AVStream *st);
+	bool next_audio_frame(AVCodecContext *cc, AVFormatContext *fc, AVStream *st, bool flush);
+	void close_audio();
+	bool open_video(AVCodecContext *cc, const AVCodec *codec, AVStream *st);
+	bool next_video_frame(AVCodecContext *cc, AVFormatContext *fc, AVStream *st, bool flush);
+	void close_video();
 	bool is_recording() const;
-	int save();
 	void run();
 public:
-	struct VideoOption {
-		double fps = 30;
-	};
 	struct AudioOption {
+		int sample_rate = 48000;
+	};
+	struct VideoOption {
+		int width = 1920;
+		int height = 1080;
+		double fps = 30;
 	};
 	VideoEncoder();
 	virtual ~VideoEncoder();
-	void thread_start(QString const &filepath, VideoOption const &vopt, AudioOption const &aopt);
-	void thread_stop();
-	bool putVideoFrame(const Image &img);
-	bool putAudioFrame(const QByteArray &pcm);
+	void request_interruption();
+	void open(std::string const &filepath, VideoOption const &vopt, AudioOption const &aopt);
+	void close();
+	bool put_video_frame(VideoFrame const &img);
+	bool put_audio_frame(AudioFrame const &pcm);
 };
-
 
 #endif // VIDEOENCODER_H

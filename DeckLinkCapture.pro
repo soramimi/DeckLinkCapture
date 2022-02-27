@@ -3,7 +3,7 @@ CONFIG(release,debug|release):TARGET = DeckLinkCapture
 CONFIG(debug,debug|release):TARGET = DeckLinkCaptured
 TEMPLATE = app
 QT += core gui widgets opengl multimedia
-CONFIG += c++1z
+CONFIG += c++17
 
 DESTDIR = $$PWD/_bin
 
@@ -57,12 +57,12 @@ SOURCES += \
 	OverlayWindow.cpp \
 	ProfileCallback.cpp \
 	RecordingDialog.cpp \
+	StatusLabel.cpp \
 	TestForm.cpp \
+	VideoEncoder.cpp \
 	VideoFrame.cpp \
 	joinpath.cpp \
-	main.cpp \
-	VideoEncoder.cpp \
-	StatusLabel.cpp
+	main.cpp
 
 HEADERS += \
 	ActionHandler.h \
@@ -81,11 +81,12 @@ HEADERS += \
 	OverlayWindow.h \
 	ProfileCallback.h \
 	RecordingDialog.h \
+	StatusLabel.h \
 	TestForm.h \
+	VideoEncoder.h \
 	VideoFrame.h \
 	common.h \
-	StatusLabel.h \
-	VideoEncoder.h \
+	includeffmpeg.h \
 	joinpath.h \
 	main.h
 

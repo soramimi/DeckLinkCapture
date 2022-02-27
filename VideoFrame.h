@@ -11,6 +11,14 @@ public:
 	{
 		return (bool)image;
 	}
+	int width() const
+	{
+		return image ? image.width() : 0;
+	}
+	int height() const
+	{
+		return image ? image.height() : 0;
+	}
 };
 
 Q_DECLARE_METATYPE(VideoFrame)

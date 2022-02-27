@@ -77,7 +77,6 @@ struct MainWindow::Private {
 	QString recording_file_path;
 	QDateTime recording_start_time;
 	qint64 recording_seconds = 0;
-//	QDateTime recording_stop_time;
 
 	OverlayWindow *overlay_window = nullptr;
 	int overlay_window_width = 0;
@@ -624,7 +623,10 @@ void MainWindow::onPlayAudio(const QByteArray &samples)
 		m->audio_output_device->write(samples);
 	}
 	if (m->video_encoder) {
-		m->video_encoder->putAudioFrame(samples);
+		VideoEncoder::AudioFrame frame;
+		frame.samples->resize(samples.size());
+		memcpy(frame.samples->data(), samples.data(), samples.size());
+		m->video_encoder->put_audio_frame(frame);
 	}
 }
 
@@ -641,7 +643,9 @@ void MainWindow::newFrame(VideoFrame const &frame)
 	ui->image_widget->setImage(frame.image);
 
 	if (m->video_encoder) {
-		m->video_encoder->putVideoFrame(frame.image);
+		VideoEncoder::VideoFrame f;
+		f.image = frame.image;
+		m->video_encoder->put_video_frame(f);
 	}
 }
 
@@ -656,7 +660,7 @@ void MainWindow::stopRecord()
 		if (isRecording()) {
 			qDebug() << "stop recording";
 
-			m->video_encoder->thread_stop();
+			m->video_encoder->close();
 			m->video_encoder.reset();
 		}
 
@@ -673,13 +677,13 @@ void MainWindow::toggleRecord()
 	} else {
 		m->recording_start_time = QDateTime::currentDateTime();
 		VideoEncoder::VideoOption vopt;
-		vopt.fps = m->fps;
 		VideoEncoder::AudioOption aopt;
+		vopt.fps = m->fps;
 		m->video_encoder = std::make_shared<VideoEncoder>();
 #ifdef Q_OS_WIN
-		m->video_encoder->thread_start(m->recording_file_path, vopt, aopt);
+		m->video_encoder->open(m->recording_file_path.toStdString(), vopt, aopt);
 #else
-		m->video_encoder->thread_start(m->recording_file_path, vopt, aopt);
+		m->video_encoder->open(m->recording_file_path.toStdString(), vopt, aopt);
 #endif
 		notifyRecordingProgress(0, m->recording_seconds);
 	}
