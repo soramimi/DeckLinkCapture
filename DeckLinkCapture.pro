@@ -26,9 +26,9 @@ win32 {
 }
 macx:INCLUDEPATH += /usr/local/Cellar/ffmpeg/4.1.4_1/include
 macx:LIBS += -L/usr/local/Cellar/ffmpeg/4.1.4_1/lib
-#LIBS += -lavutil -lavcodec -lavformat -lswscale -lswresample
+!linux:LIBS += -lavutil -lavcodec -lavformat -lswscale -lswresample
 
-LIBS += \
+linux:LIBS += \
 	$$PWD/../ffmpeg/libavfilter/libavfilter.a \
 	$$PWD/../ffmpeg/libavdevice/libavdevice.a \
 	$$PWD/../ffmpeg/libavformat/libavformat.a \
