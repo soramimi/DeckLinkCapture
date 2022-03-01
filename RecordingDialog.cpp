@@ -1,5 +1,5 @@
 #include "RecordingDialog.h"
-#include "ui_RecoringDialog.h"
+#include "ui_RecordingDialog.h"
 #include "MySettings.h"
 #include <QFileDialog>
 
