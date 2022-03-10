@@ -3,7 +3,7 @@
 
 #include "DeckLinkInputDevice.h"
 #include "Image.h"
-#include "VideoFrame.h"
+#include "CaptureFrame.h"
 
 class Image;
 class DeckLinkInputDevice;
@@ -22,9 +22,7 @@ public:
 	{
 
 	}
-	virtual ~DeviceEvent()
-	{
-	}
+	~DeviceEvent() override = default;
 };
 
 class DeckLinkCaptureDelegate {
@@ -61,14 +59,14 @@ private:
 	BMDPixelFormat pixelFormat() const;
 	void setPixelFormat(BMDPixelFormat pixel_format);
 protected:
-	void customEvent(QEvent *event);
+	void customEvent(QEvent *event) override;
 
 public:
 	DeckLinkCapture(DeckLinkCaptureDelegate *delegate);
-	~DeckLinkCapture();
+	~DeckLinkCapture() override;
 	bool startCapture(DeckLinkInputDevice *selectedDevice_, BMDDisplayMode displayMode, BMDFieldDominance fieldDominance, bool applyDetectedInputMode, bool input_audio);
 signals:
-	void newFrame(VideoFrame const &frame);
+	void newFrame(CaptureFrame const &frame);
 };
 
 #endif // DECKLINKCAPTURE_H

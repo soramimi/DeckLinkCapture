@@ -1,12 +1,15 @@
-#ifndef VIDEOFRAME_H
-#define VIDEOFRAME_H
+#ifndef CAPTUREFRAME_H
+#define CAPTUREFRAME_H
 
 #include "Image.h"
+#include <QImage>
 #include <QMetaType>
 
-class VideoFrame {
+class CaptureFrame {
 public:
 	Image image;
+	QByteArray audio;
+	QImage image_for_view;
 	operator bool () const
 	{
 		return (bool)image;
@@ -21,6 +24,6 @@ public:
 	}
 };
 
-Q_DECLARE_METATYPE(VideoFrame)
+Q_DECLARE_METATYPE(CaptureFrame)
 
-#endif // VIDEOFRAME_H
+#endif // CAPTUREFRAME_H

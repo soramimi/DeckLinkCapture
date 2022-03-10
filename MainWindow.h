@@ -20,6 +20,8 @@ class QListWidget;
 class QListWidgetItem;
 class QCheckBox;
 
+class CaptureFrame;
+
 class MainWindow : public QMainWindow, public DeckLinkCaptureDelegate {
 	Q_OBJECT
 	friend class OverlayWindow;
@@ -52,15 +54,17 @@ private:
 	void updateCursor();
 	bool changeAudioOutputDevice(const QString &name, bool save);
 protected:
-	void timerEvent(QTimerEvent *event);
-	void mouseDoubleClickEvent(QMouseEvent *event);
-	void mouseMoveEvent(QMouseEvent *event);
-	bool event(QEvent *event);
+	void timerEvent(QTimerEvent *event) override;
+	void mouseDoubleClickEvent(QMouseEvent *event) override;
+	void mouseMoveEvent(QMouseEvent *event) override;
+	bool event(QEvent *event) override;
 public:
-	explicit MainWindow(QWidget *parent = 0);
-	virtual ~MainWindow();
+	explicit MainWindow(QWidget *parent = nullptr);
+	~MainWindow() override;
 
-	void closeEvent(QCloseEvent *event);
+	void show();
+
+	void closeEvent(QCloseEvent *event) override;
 
 	void setup();
 
@@ -85,12 +89,9 @@ public:
 	void changeInputConnection(BMDVideoConnection conn, bool errorcheck);
 	bool isAudioCaptureEnabled() const;
 	void stopRecord();
-	void show();
-
 	void startRecord();
 private slots:
-	void newFrame(VideoFrame const &frame);
-	void onPlayAudio(QByteArray const &samples);
+	void newFrame(const CaptureFrame &frame);
 	void on_action_recording_start_triggered();
 	void on_action_recording_stop_triggered();
 	void on_action_view_small_lq_triggered();
@@ -103,6 +104,7 @@ private slots:
 	void on_listWidget_input_connection_currentRowChanged(int currentRow);
 	void on_listWidget_input_device_currentRowChanged(int currentRow);
 	void test();
+	void ready(const CaptureFrame &frame);
 };
 
 #endif // MAINWINDOW_H

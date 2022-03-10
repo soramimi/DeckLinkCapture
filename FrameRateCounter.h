@@ -14,7 +14,7 @@ private:
 	QMutex mutex_;
 	QWaitCondition waiter_;
 protected:
-	void run();
+	void run() override;
 public:
 	FrameRateCounter();
 	void stop();

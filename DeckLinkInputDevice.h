@@ -71,8 +71,8 @@ public:
 	virtual HRESULT STDMETHODCALLTYPE VideoInputFormatChanged(BMDVideoInputFormatChangedEvents notificationEvents, IDeckLinkDisplayMode *newDisplayMode, BMDDetectedVideoInputFormatFlags detectedSignalFlags);
 	virtual HRESULT STDMETHODCALLTYPE VideoInputFrameArrived(IDeckLinkVideoInputFrame *videoFrame, IDeckLinkAudioInputPacket *audioPacket);
 	static double frameRate(IDeckLinkDisplayMode *mode);
-signals:
-	void audio(QByteArray const &samples);
+//signals:
+//	void audio(QByteArray const &samples);
 };
 
 class DeckLinkInputFormatChangedEvent : public QEvent {

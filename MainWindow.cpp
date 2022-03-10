@@ -9,6 +9,7 @@
 #include "main.h"
 #include "ActionHandler.h"
 #include "MySettings.h"
+#include "FrameProcessThread.h"
 #include <QAudioOutput>
 #include <QCheckBox>
 #include <QDateTime>
@@ -85,6 +86,8 @@ struct MainWindow::Private {
 
 	int hide_cursor_count = 0;
 
+	FrameProcessThread frame_process_thread;
+
 	bool closing = false;
 };
 
@@ -141,6 +144,9 @@ MainWindow::MainWindow(QWidget *parent)
 
 	connect(new QShortcut(QKeySequence("Ctrl+T"), this), &QShortcut::activated, this, &MainWindow::test);
 
+	connect(&m->frame_process_thread, &FrameProcessThread::ready, this, &MainWindow::ready);
+
+	m->frame_process_thread.start();
 	m->frame_rate_counter_.start();
 
 	setMouseTracking(true);
@@ -163,6 +169,7 @@ MainWindow::~MainWindow()
 	}
 
 	m->frame_rate_counter_.stop();
+	m->frame_process_thread.stop();
 
 	delete m;
 	delete ui;
@@ -225,6 +232,8 @@ void MainWindow::closeEvent(QCloseEvent *)
 {
 	m->closing = true;
 
+	m->frame_process_thread.stop();
+
 //	m->overlay_window->done(QDialog::Accepted);
 
 	stopRecord();
@@ -274,11 +283,16 @@ void MainWindow::updateUI()
 void MainWindow::internalStartCapture(bool start)
 {
 	stopRecord();
+
 	if (isCapturing()) {
 		// stop capture
 		m->selected_device->stopCapture();
 	}
 	ui->image_widget->clear();
+
+	m->frame_process_thread.stop();
+	m->frame_process_thread.start();
+
 	if (start) {
 		// start capture
 		auto *item = listWidget_display_mode()->currentItem();
@@ -404,7 +418,7 @@ void MainWindow::addDevice(IDeckLink *decklink)
 		return;
 	}
 
-	connect(newDevice.get(), &DeckLinkInputDevice::audio, this, &MainWindow::onPlayAudio);
+//	connect(newDevice.get(), &DeckLinkInputDevice::audio, this, &MainWindow::onPlayAudio);
 
 	auto *item = new QListWidgetItem(newDevice->getDeviceName());
 	item->setData(DeviceIndexRole, QVariant::fromValue((void *)newDevice.get()));
@@ -412,7 +426,7 @@ void MainWindow::addDevice(IDeckLink *decklink)
 
 	listWidget_input_device()->sortItems();
 
-	ui->image_widget->setImage({});
+	ui->image_widget->clear();
 	changeInputDevice(0);
 }
 
@@ -617,35 +631,28 @@ void MainWindow::on_checkBox_display_mode_auto_detection_clicked(bool checked)
 	}
 }
 
-void MainWindow::onPlayAudio(const QByteArray &samples)
-{
-	if (m->audio_output_device) {
-		m->audio_output_device->write(samples);
-	}
-	if (m->video_encoder) {
-		VideoEncoder::AudioFrame frame;
-		frame.samples->resize(samples.size());
-		memcpy(frame.samples->data(), samples.data(), samples.size());
-		m->video_encoder->put_audio_frame(frame);
-	}
-}
-
 void MainWindow::on_checkBox_audio_stateChanged(int arg1)
 {
 	(void)arg1;
 	restartCapture();
 }
 
-void MainWindow::newFrame(VideoFrame const &frame)
+void MainWindow::ready(CaptureFrame const &frame)
+{
+	if (m->audio_output_device) {
+		m->audio_output_device->write(frame.audio);
+	}
+	ui->image_widget->setImage(frame.image_for_view);
+}
+
+void MainWindow::newFrame(CaptureFrame const &frame)
 {
 	m->frame_rate_counter_.increment();
 
-	ui->image_widget->setImage(frame.image);
+	m->frame_process_thread.request(frame, ui->image_widget->scaledSize(frame.image));
 
 	if (m->video_encoder) {
-		VideoEncoder::VideoFrame f;
-		f.image = frame.image;
-		m->video_encoder->put_video_frame(f);
+		m->video_encoder->put_frame(frame);
 	}
 }
 

@@ -6,21 +6,25 @@
 #include <string>
 #include <memory>
 #include <vector>
+#include <QByteArray>
 
 struct AVCodecContext;
 struct AVFormatContext;
 struct AVCodec;
 struct AVStream;
 
+class CaptureFrame;
+
 class VideoEncoder {
 public:
 	class MyPicture;
 	class AudioFrame {
 	public:
-		std::shared_ptr<std::vector<char>> samples;
+//		std::shared_ptr<std::vector<char>> samples;
+		QByteArray samples;
 		AudioFrame()
 		{
-			samples = std::make_shared<std::vector<char>>();
+//			samples = std::make_shared<std::vector<char>>();
 		}
 	};
 	class VideoFrame {
@@ -55,6 +59,8 @@ private:
 	void close_video();
 	bool is_recording() const;
 	void run();
+	bool put_video_frame(const VideoFrame &img);
+	bool put_audio_frame(const AudioFrame &pcm);
 public:
 	struct AudioOption {
 		int sample_rate = 48000;
@@ -69,8 +75,7 @@ public:
 	void request_interruption();
 	void open(std::string const &filepath, VideoOption const &vopt, AudioOption const &aopt);
 	void close();
-	bool put_video_frame(VideoFrame const &img);
-	bool put_audio_frame(AudioFrame const &pcm);
+	bool put_frame(CaptureFrame const &frame);
 };
 
 #endif // VIDEOENCODER_H

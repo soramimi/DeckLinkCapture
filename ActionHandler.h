@@ -13,7 +13,7 @@ private:
 	QString name_;
 	std::function<void (QString const &name)> callback_fn;
 public:
-	explicit ActionHandler(QObject *parent, QAction *action, QString const &name, const std::function<void (const QString &)> fn);
+	explicit ActionHandler(QObject *parent, QAction *action, QString const &name, std::function<void (const QString &)> fn);
 public slots:
 	void triggered(bool checked);
 };

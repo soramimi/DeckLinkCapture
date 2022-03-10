@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <thread>
+#include "CaptureFrame.h"
 #include "includeffmpeg.h"
 
 namespace {
@@ -124,19 +125,19 @@ bool VideoEncoder::get_audio_frame(int16_t *samples, int frame_size, int nb_chan
 		std::lock_guard lock(m->mutex);
 		if (m->audio_frames.empty()) break;
 		AudioFrame &frame = m->audio_frames.front();
-		int n = frame.samples->size() / nb_channels / sizeof(int16_t);
+		int n = frame.samples.size() / nb_channels / sizeof(int16_t);
 		n = std::min(n, frame_size);
 		frame_size -= n;
 		n *= nb_channels * sizeof(int16_t);
-		memcpy(samples, frame.samples->data(), n);
+		memcpy(samples, frame.samples.data(), n);
 		samples += n / sizeof(int16_t);
-		if (frame.samples->size() < n + nb_channels * sizeof(int16_t)) {
+		if (frame.samples.size() < n + nb_channels * sizeof(int16_t)) {
 			m->audio_frames.pop_front();
 		} else {
-			int l = frame.samples->size() - n;
-			char *p = frame.samples->data();
+			int l = frame.samples.size() - n;
+			char *p = frame.samples.data();
 			memmove(p, p + n, l);
-			frame.samples->resize(l);
+			frame.samples.resize(l);
 		}
 	}
 	return true;
@@ -622,5 +623,17 @@ bool VideoEncoder::put_audio_frame(AudioFrame const &pcm)
 		return true;
 	}
 	return false;
+}
+
+bool VideoEncoder::put_frame(const CaptureFrame &frame)
+{
+	VideoEncoder::VideoFrame v;
+	v.image = frame.image;
+	put_video_frame(v);
+
+	VideoEncoder::AudioFrame a;
+	a.samples = frame.audio;
+	put_audio_frame(a);
+
 }
 

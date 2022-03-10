@@ -5,6 +5,7 @@
 #include <QGLWidget>
 
 class Image;
+class CaptureFrame;
 
 class ImageWidget : public QGLWidget {
 	Q_OBJECT
@@ -17,20 +18,17 @@ public:
 private:
 	struct Private;
 	Private *m;
-	QSize scaledSize(const Image &image);
 protected:
-	void paintEvent(QPaintEvent *);
+	void paintEvent(QPaintEvent *) override;
 public:
-	ImageWidget(QWidget *parent = 0);
-	~ImageWidget();
+	ImageWidget(QWidget *parent = nullptr);
+	~ImageWidget() override;
 	void clear();
 	void setViewMode(ViewMode vm);
 	ViewMode viewMode() const;
 	void updateRecordingProgress(qint64 current, qint64 length);
-public slots:
-	void setImage(const Image &image);
-private slots:
-	void ready(QImage image);
+	QSize scaledSize(const Image &image);
+	void setImage(const QImage &image);
 };
 
 #endif // IMAGEWIDGET_H

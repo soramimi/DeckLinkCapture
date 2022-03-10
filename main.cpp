@@ -1,5 +1,5 @@
 #include "MainWindow.h"
-#include "VideoFrame.h"
+#include "CaptureFrame.h"
 #include "main.h"
 #include <QApplication>
 #include <QDir>
@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
 	}
 
 
-	qRegisterMetaType<VideoFrame>();
+	qRegisterMetaType<CaptureFrame>();
 
 	global->transparent_cursor = QCursor(QPixmap(":/transparent32x32.png"));
 

@@ -377,6 +377,8 @@ HRESULT DeckLinkInputDevice::VideoInputFrameArrived(IDeckLinkVideoInputFrame *vi
 		QCoreApplication::postEvent(m->capture, e);
 	}
 
+	CaptureFrame t;
+
 	if (audioPacket) {
 		const int channels = 2;
 		const int frames = audioPacket->GetSampleFrameCount();
@@ -384,8 +386,7 @@ HRESULT DeckLinkInputDevice::VideoInputFrameArrived(IDeckLinkVideoInputFrame *vi
 		void *data = nullptr;
 		audioPacket->GetBytes(&data);
 		if (data && bytes > 0) {
-			QByteArray ba((char const *)data, bytes);
-			emit audio(ba);
+			t.audio = QByteArray((char const *)data, bytes);
 		}
 	}
 
@@ -395,11 +396,11 @@ HRESULT DeckLinkInputDevice::VideoInputFrameArrived(IDeckLinkVideoInputFrame *vi
 		int stride = videoFrame->GetRowBytes();
 		uint8_t const *bytes = nullptr;
 		if (w > 0 && h > 0 && videoFrame->GetBytes((void **)&bytes) == S_OK && bytes) {
-			VideoFrame t;
 			t.image = DeckLinkCapture::createImage(w, h, m->capture->pixelFormat(), bytes, stride * h);
-			emit m->capture->newFrame(t);
 		}
 	}
+
+	emit m->capture->newFrame(t);
 
 	return S_OK;
 }

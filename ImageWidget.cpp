@@ -7,8 +7,9 @@
 #include <QPainterPath>
 #include <QWaitCondition>
 #include "Image.h"
-#include "ImageConvertThread.h"
+#include "FrameProcessThread.h"
 #include "ImageUtil.h"
+#include "CaptureFrame.h"
 
 struct ImageWidget::Private {
 	QImage scaled_image;
@@ -16,7 +17,6 @@ struct ImageWidget::Private {
 	qint64 recording_pregress_current = 0;
 	qint64 recording_pregress_length = 0;
 	QFont font;
-	ImageConvertThread image_convert_thread;
 };
 
 ImageWidget::ImageWidget(QWidget *parent)
@@ -27,13 +27,10 @@ ImageWidget::ImageWidget(QWidget *parent)
 	m->font = QFont("Monospace", 24);
 	m->font.setStyleHint(QFont::TypeWriter);
 
-	connect(&m->image_convert_thread, &ImageConvertThread::ready, this, &ImageWidget::ready);
-	m->image_convert_thread.start();
 }
 
 ImageWidget::~ImageWidget()
 {
-	m->image_convert_thread.stop();
 	delete m;
 }
 
@@ -131,16 +128,13 @@ void ImageWidget::paintEvent(QPaintEvent *)
 	}
 }
 
-void ImageWidget::setImage(Image const &image)
-{
-	m->image_convert_thread.request(image, scaledSize(image));
-}
+//void ImageWidget::setImage(CaptureFrame const &image)
+//{
+//}
 
-void ImageWidget::ready(QImage image)
+void ImageWidget::setImage(QImage const &image)
 {
 	m->scaled_image = image;
 	update();
 }
-
-
 

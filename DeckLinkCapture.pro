@@ -49,12 +49,13 @@ linux:LIBS += \
 SOURCES += \
 	ActionHandler.cpp \
 	AncillaryDataTable.cpp \
+	CaptureFrame.cpp \
 	DeckLinkCapture.cpp \
 	DeckLinkDeviceDiscovery.cpp \
 	DeckLinkInputDevice.cpp \
+	FrameProcessThread.cpp \
 	FrameRateCounter.cpp \
 	Image.cpp \
-	ImageConvertThread.cpp \
 	ImageUtil.cpp \
 	ImageWidget.cpp \
 	MainWindow.cpp \
@@ -66,19 +67,19 @@ SOURCES += \
 	StatusLabel.cpp \
 	TestForm.cpp \
 	VideoEncoder.cpp \
-	VideoFrame.cpp \
 	joinpath.cpp \
 	main.cpp
 
 HEADERS += \
 	ActionHandler.h \
 	AncillaryDataTable.h \
+	CaptureFrame.h \
 	DeckLinkCapture.h \
 	DeckLinkDeviceDiscovery.h \
 	DeckLinkInputDevice.h \
+	FrameProcessThread.h \
 	FrameRateCounter.h \
 	Image.h \
-	ImageConvertThread.h \
 	ImageUtil.h \
 	ImageWidget.h \
 	MainWindow.h \
@@ -90,7 +91,6 @@ HEADERS += \
 	StatusLabel.h \
 	TestForm.h \
 	VideoEncoder.h \
-	VideoFrame.h \
 	common.h \
 	includeffmpeg.h \
 	joinpath.h \
