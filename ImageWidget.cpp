@@ -128,10 +128,6 @@ void ImageWidget::paintEvent(QPaintEvent *)
 	}
 }
 
-//void ImageWidget::setImage(CaptureFrame const &image)
-//{
-//}
-
 void ImageWidget::setImage(QImage const &image)
 {
 	m->scaled_image = image;

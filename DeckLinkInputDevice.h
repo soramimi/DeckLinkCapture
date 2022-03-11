@@ -29,6 +29,7 @@
 
 #include "AncillaryDataTable.h"
 #include "MyDeckLinkAPI.h"
+#include "Rational.h"
 #include <QEvent>
 #include <QString>
 #include <stdint.h>
@@ -70,7 +71,7 @@ public:
 	// IDeckLinkInputCallback interface
 	virtual HRESULT STDMETHODCALLTYPE VideoInputFormatChanged(BMDVideoInputFormatChangedEvents notificationEvents, IDeckLinkDisplayMode *newDisplayMode, BMDDetectedVideoInputFormatFlags detectedSignalFlags);
 	virtual HRESULT STDMETHODCALLTYPE VideoInputFrameArrived(IDeckLinkVideoInputFrame *videoFrame, IDeckLinkAudioInputPacket *audioPacket);
-	static double frameRate(IDeckLinkDisplayMode *mode);
+	static Rational frameRate(IDeckLinkDisplayMode *mode);
 //signals:
 //	void audio(QByteArray const &samples);
 };
@@ -78,14 +79,14 @@ public:
 class DeckLinkInputFormatChangedEvent : public QEvent {
 private:
 	BMDDisplayMode display_mode_;
-	double fps_;
+	Rational fps_;
 
 public:
-	DeckLinkInputFormatChangedEvent(BMDDisplayMode displayMode, double fps);
+	DeckLinkInputFormatChangedEvent(BMDDisplayMode displayMode, const Rational &fps);
 	virtual ~DeckLinkInputFormatChangedEvent() {}
 
 	BMDDisplayMode DisplayMode() const { return display_mode_; }
-	double fps() const { return fps_; }
+	Rational fps() const { return fps_; }
 };
 
 class DeckLinkInputFrameArrivedEvent : public QEvent {

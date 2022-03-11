@@ -55,17 +55,20 @@ SOURCES += \
 	DeckLinkInputDevice.cpp \
 	FrameProcessThread.cpp \
 	FrameRateCounter.cpp \
+	FullScreenWindow.cpp \
+	GlobalData.cpp \
 	Image.cpp \
 	ImageUtil.cpp \
 	ImageWidget.cpp \
 	MainWindow.cpp \
 	MyDeckLinkAPI.cpp \
 	MySettings.cpp \
-	OverlayWindow.cpp \
 	ProfileCallback.cpp \
+	Rational.cpp \
 	RecordingDialog.cpp \
 	StatusLabel.cpp \
 	TestForm.cpp \
+	UIWidget.cpp \
 	VideoEncoder.cpp \
 	joinpath.cpp \
 	main.cpp
@@ -79,17 +82,20 @@ HEADERS += \
 	DeckLinkInputDevice.h \
 	FrameProcessThread.h \
 	FrameRateCounter.h \
+	FullScreenWindow.h \
+	GlobalData.h \
 	Image.h \
 	ImageUtil.h \
 	ImageWidget.h \
 	MainWindow.h \
 	MyDeckLinkAPI.h \
 	MySettings.h \
-	OverlayWindow.h \
 	ProfileCallback.h \
+	Rational.h \
 	RecordingDialog.h \
 	StatusLabel.h \
 	TestForm.h \
+	UIWidget.h \
 	VideoEncoder.h \
 	common.h \
 	includeffmpeg.h \
@@ -97,10 +103,11 @@ HEADERS += \
 	main.h
 
 FORMS += \
+    FullScreenWindow.ui \
     MainWindow.ui \
-    OverlayWindow.ui \
     RecordingDialog.ui \
-    TestForm.ui
+    TestForm.ui \
+    UIWidget.ui
 
 RESOURCES += \
 	resources.qrc

@@ -58,7 +58,7 @@
         <number>0</number>
        </property>
        <item>
-        <widget class="OverlayWindow" name="widget_ui" native="true"/>
+        <widget class="UIWidget" name="widget_ui" native="true"/>
        </item>
       </layout>
      </widget>
@@ -81,7 +81,7 @@
      <x>0</x>
      <y>0</y>
      <width>1013</width>
-     <height>31</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_View">
@@ -136,7 +136,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Dot by dot</string>
+    <string>100%</string>
    </property>
   </action>
   <action name="action_view_fit_window">
@@ -171,9 +171,9 @@
    <container>1</container>
   </customwidget>
   <customwidget>
-   <class>OverlayWindow</class>
+   <class>UIWidget</class>
    <extends>QWidget</extends>
-   <header>OverlayWindow.h</header>
+   <header>UIWidget.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

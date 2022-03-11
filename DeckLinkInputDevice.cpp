@@ -303,12 +303,12 @@ IDeckLinkProfileManager *DeckLinkInputDevice::getProfileManager()
 	return m->decklink_profile_manager;
 }
 
-double DeckLinkInputDevice::frameRate(IDeckLinkDisplayMode *mode)
+Rational DeckLinkInputDevice::frameRate(IDeckLinkDisplayMode *mode)
 {
 	BMDTimeValue duration = 0;
 	BMDTimeScale scale = 0;
 	mode->GetFrameRate(&duration, &scale);
-	return (double)scale / duration;
+	return {scale, duration};
 }
 
 HRESULT DeckLinkInputDevice::VideoInputFormatChanged(BMDVideoInputFormatChangedEvents notificationEvents, IDeckLinkDisplayMode *newMode, BMDDetectedVideoInputFormatFlags detectedSignalFlags)
@@ -337,7 +337,7 @@ HRESULT DeckLinkInputDevice::VideoInputFormatChanged(BMDVideoInputFormatChangedE
 		return result;
 	}
 
-	double fps = frameRate(newMode);
+	Rational fps = frameRate(newMode);
 
 	// Start the capture
 	result = m->decklink_input->StartStreams();
@@ -541,7 +541,7 @@ void DeckLinkInputDevice::getHDRMetadataFromFrame(IDeckLinkVideoInputFrame* vide
 	}
 }
 
-DeckLinkInputFormatChangedEvent::DeckLinkInputFormatChangedEvent(BMDDisplayMode displayMode, double fps)
+DeckLinkInputFormatChangedEvent::DeckLinkInputFormatChangedEvent(BMDDisplayMode displayMode, Rational const &fps)
 	: QEvent(kVideoFormatChangedEvent)
 	, display_mode_(displayMode)
 	, fps_(fps)

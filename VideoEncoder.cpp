@@ -43,11 +43,15 @@ int write_frame(AVCodecContext const *cc, AVFormatContext *fmt_ctx, const AVRati
 
 class VideoEncoder::MyPicture {
 public:
+	int width = 0;
+	int height = 0;
 	uint8_t *pointers[4] = {};
 	int linesize[4] = {};
 
 	int alloc(int width, int height, int pixfmt)
 	{
+		this->width = width;
+		this->height = height;
 		return av_image_alloc(pointers, linesize, width, height, (AVPixelFormat)pixfmt, 1);
 	}
 	void free()
@@ -143,7 +147,7 @@ bool VideoEncoder::get_audio_frame(int16_t *samples, int frame_size, int nb_chan
 	return true;
 }
 
-bool VideoEncoder::open_audio(AVCodecContext *cc, AVCodec const *codec, AVStream *st)
+bool VideoEncoder::open_audio(AVCodecContext *cc, AVCodec const *codec, AVStream *st, const AudioOption &opt)
 {
 	AVCodecParameters *cp = st->codecpar;
 
@@ -281,7 +285,7 @@ void VideoEncoder::close_audio()
 	av_frame_free(&m->audio_frame);
 }
 
-bool VideoEncoder::get_video_frame(MyPicture *pict, int frame_index, int width, int height)
+bool VideoEncoder::get_video_frame(MyPicture *pict)
 {
 	VideoFrame img;
 	{
@@ -291,16 +295,16 @@ bool VideoEncoder::get_video_frame(MyPicture *pict, int frame_index, int width, 
 			m->video_frames.pop_front();
 		}
 	}
-	if (img.width() != width || img.height() != height) return false;
+	if (img.width() != pict->width || img.height() != pict->height) return false;
 
 	img.image = img.image.convertToFormat(Image::Format::YUYV8);
 	uint8_t *p = pict->pointers[0];
-	memcpy(p, img.image.bits(), img.image.bytesPerLine() * height);
+	memcpy(p, img.image.bits(), img.image.bytesPerLine() * img.height());
 
 	return true;
 }
 
-bool VideoEncoder::open_video(AVCodecContext *cc, AVCodec const *codec, AVStream *st)
+bool VideoEncoder::open_video(AVCodecContext *cc, AVCodec const *codec, AVStream *st, VideoOption const &opt)
 {
 	AVCodecParameters *c = st->codecpar;
 
@@ -325,7 +329,7 @@ bool VideoEncoder::open_video(AVCodecContext *cc, AVCodec const *codec, AVStream
 		return false;
 	}
 
-	m->ret = m->src_picture.alloc(c->width, c->height, m->source_pixel_format);
+	m->ret = m->src_picture.alloc(opt.src_w, opt.src_h, m->source_pixel_format);
 	if (m->ret < 0) {
 		return false;
 	}
@@ -346,16 +350,16 @@ bool VideoEncoder::next_video_frame(AVCodecContext *cc, AVFormatContext *fc, AVS
 	AVCodecParameters *c = st->codecpar;
 	if (!flush) {
 		if (!m->sws_ctx) {
-			m->sws_ctx = sws_getContext(c->width, c->height, m->source_pixel_format, c->width, c->height, (AVPixelFormat)c->format, SWS_BILINEAR, nullptr, nullptr, nullptr);
+			m->sws_ctx = sws_getContext(m->src_picture.width, m->src_picture.height, m->source_pixel_format, c->width, c->height, (AVPixelFormat)c->format, SWS_BILINEAR, nullptr, nullptr, nullptr);
 			if (!m->sws_ctx) {
 				fprintf(stderr, "Could not initialize the conversion context\n");
 				exit(1);
 			}
 		}
-		if (!get_video_frame(&m->src_picture, m->frame_count, c->width, c->height)) {
+		if (!get_video_frame(&m->src_picture)) {
 			return false;
 		}
-		sws_scale(m->sws_ctx, (const uint8_t * const *)m->src_picture.pointers, m->src_picture.linesize, 0, c->height, m->dst_picture.pointers, m->dst_picture.linesize);
+		sws_scale(m->sws_ctx, (const uint8_t * const *)m->src_picture.pointers, m->src_picture.linesize, 0, m->src_picture.height, m->dst_picture.pointers, m->dst_picture.linesize);
 	}
 	{
 		AVPacket pkt = {};
@@ -450,11 +454,11 @@ AVStream *add_stream(AVFormatContext *fc, AVCodecContext **cc, AVCodec const **c
 		(*cc)->channel_layout = av_get_default_channel_layout((*cc)->channels);
 		break;
 	case AVMEDIA_TYPE_VIDEO:
-		(*cc)->width = vopt.width;
-		(*cc)->height = vopt.height;
+		(*cc)->width = vopt.dst_w;
+		(*cc)->height = vopt.dst_h;
 		(*cc)->pix_fmt = AV_PIX_FMT_YUV420P;
-		(*cc)->time_base.num = 100;
-		(*cc)->time_base.den = vopt.fps * (*cc)->time_base.num;
+		(*cc)->time_base.num = vopt.fps.den;
+		(*cc)->time_base.den = vopt.fps.num;
 		(*cc)->bit_rate = cp->width * cp->height * 8;
 
 		(*cc)->gop_size = 12;
@@ -531,8 +535,8 @@ void VideoEncoder::run()
 		m->audio_st = add_stream(fc, &m->audio_codec_context, &audio_codec, {}, fmt->audio_codec, m->aopt, m->vopt);
 	}
 
-	if (m->video_st && !open_video(m->video_codec_context, video_codec, m->video_st)) return;
-	if (m->audio_st && !open_audio(m->audio_codec_context, audio_codec, m->audio_st)) return;
+	if (m->video_st && !open_video(m->video_codec_context, video_codec, m->video_st, m->vopt)) return;
+	if (m->audio_st && !open_audio(m->audio_codec_context, audio_codec, m->audio_st, m->aopt)) return;
 
 	m->ret = avformat_write_header(fc, nullptr);
 	if (m->ret < 0) {

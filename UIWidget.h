@@ -1,5 +1,5 @@
-#ifndef OVERLAYWINDOW_H
-#define OVERLAYWINDOW_H
+#ifndef UIWIDGET_H
+#define UIWIDGET_H
 
 #include <QDialog>
 
@@ -12,7 +12,7 @@ namespace Ui {
 class OverlayWindow;
 }
 
-class OverlayWindow : public QWidget {
+class UIWidget : public QWidget {
 	Q_OBJECT
 private:
 	Ui::OverlayWindow *ui;
@@ -21,8 +21,8 @@ private:
 protected:
 	void closeEvent(QCloseEvent *event);
 public:
-	explicit OverlayWindow(QWidget *parent = nullptr);
-	~OverlayWindow();
+	explicit UIWidget(QWidget *parent = nullptr);
+	~UIWidget();
 	void bindMainWindow(MainWindow *mw)
 	{
 		mainwindow_ = mw;
@@ -44,4 +44,4 @@ private slots:
 	void on_checkBox_display_mode_auto_detection_clicked();
 };
 
-#endif // OVERLAYWINDOW_H
+#endif // UIWIDGET_H

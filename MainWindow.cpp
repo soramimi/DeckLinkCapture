@@ -1,17 +1,21 @@
 
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
+#include "ActionHandler.h"
+#include "FrameProcessThread.h"
 #include "FrameRateCounter.h"
-#include "OverlayWindow.h"
+#include "FullScreenWindow.h"
+#include "GlobalData.h"
+#include "MySettings.h"
+#include "Rational.h"
 #include "RecordingDialog.h"
 #include "StatusLabel.h"
+#include "UIWidget.h"
 #include "VideoEncoder.h"
 #include "main.h"
-#include "ActionHandler.h"
-#include "MySettings.h"
-#include "FrameProcessThread.h"
 #include <QAudioOutput>
 #include <QCheckBox>
+#include <QCloseEvent>
 #include <QDateTime>
 #include <QDebug>
 #include <QListWidget>
@@ -26,6 +30,8 @@ qint64 seconds(QTime const &t)
 
 enum {
 	DisplayModeRole = Qt::UserRole,
+	VideoWidthRole,
+	VideoHeightRole,
 	FieldDominanceRole,
 	FrameRateRole,
 	DeviceIndexRole,
@@ -60,7 +66,10 @@ struct MainWindow::Private {
 	ProfileCallback *profile_callback = nullptr;
 	BMDDisplayMode display_mode = bmdModeHD1080i5994;
 	BMDFieldDominance field_dominance = bmdUnknownFieldDominance;
-	double fps = 0;
+
+	int video_width = 1920;
+	int video_height = 1080;
+	Rational fps;
 
 	bool valid_signal = false;
 
@@ -79,14 +88,13 @@ struct MainWindow::Private {
 	QDateTime recording_start_time;
 	qint64 recording_seconds = 0;
 
-	OverlayWindow *overlay_window = nullptr;
-	int overlay_window_width = 0;
-
 	int timer_count = 0;
 
 	int hide_cursor_count = 0;
 
 	FrameProcessThread frame_process_thread;
+
+	FullScreenWindow *full_screen_window = nullptr;
 
 	bool closing = false;
 };
@@ -100,8 +108,6 @@ MainWindow::MainWindow(QWidget *parent)
 	ui->setupUi(this);
 
 	ui->widget_ui->bindMainWindow(this);
-
-	m->overlay_window = ui->widget_ui;
 
 	m->status_label = new StatusLabel(this);
 	ui->statusbar->addWidget(m->status_label);
@@ -142,6 +148,10 @@ MainWindow::MainWindow(QWidget *parent)
 	checkBox_display_mode_auto_detection()->setCheckState(Qt::Checked);
 	checkBox_audio()->click();
 
+	connect(new QShortcut(QKeySequence("F11"), this), &QShortcut::activated, [&](){
+		setFullScreen(!isFullScreen());
+	});
+
 	connect(new QShortcut(QKeySequence("Ctrl+T"), this), &QShortcut::activated, this, &MainWindow::test);
 
 	connect(&m->frame_process_thread, &FrameProcessThread::ready, this, &MainWindow::ready);
@@ -156,6 +166,8 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
+	setFullScreen(false);
+
 	m->input_devices.clear();
 
 	if (m->profile_callback) {
@@ -175,38 +187,55 @@ MainWindow::~MainWindow()
 	delete ui;
 }
 
-void MainWindow::show()
+bool MainWindow::isFullScreen() const
 {
-	QMainWindow::show();
-
-//	m->overlay_window_width = m->overlay_window->width();
-//	m->overlay_window->setWindowOpacity(0.5);
-//	m->overlay_window->show();
+	return (bool)m->full_screen_window;
 }
+
+void MainWindow::setFullScreen(bool f)
+{
+	if (f) {
+		if (!m->full_screen_window) {
+			m->full_screen_window = new FullScreenWindow(this);
+		}
+		m->full_screen_window->setWindowState(Qt::WindowFullScreen);
+		m->full_screen_window->show();
+		ui->image_widget->setImage({});
+	} else {
+		FullScreenWindow *w = nullptr;
+		std::swap(w, m->full_screen_window);
+		if (w) {
+			w->close();
+			delete w;
+		}
+	}
+}
+
+
 
 QListWidget *MainWindow::listWidget_input_device()
 {
-	return m->overlay_window->listWidget_input_device();
+	return ui->widget_ui->listWidget_input_device();
 }
 
 QListWidget *MainWindow::listWidget_input_connection()
 {
-	return m->overlay_window->listWidget_input_connection();
+	return ui->widget_ui->listWidget_input_connection();
 }
 
 QListWidget *MainWindow::listWidget_display_mode()
 {
-	return m->overlay_window->listWidget_display_mode();
+	return ui->widget_ui->listWidget_display_mode();
 }
 
 QCheckBox *MainWindow::checkBox_audio()
 {
-	return m->overlay_window->checkBox_audio();
+	return ui->widget_ui->checkBox_audio();
 }
 
 QCheckBox *MainWindow::checkBox_display_mode_auto_detection()
 {
-	return m->overlay_window->checkBox_display_mode_auto_detection();
+	return ui->widget_ui->checkBox_display_mode_auto_detection();
 }
 
 void MainWindow::setStatusBarText(QString const &text)
@@ -230,11 +259,9 @@ void MainWindow::setup()
 
 void MainWindow::closeEvent(QCloseEvent *)
 {
+	setFullScreen(false);
+
 	m->closing = true;
-
-	m->frame_process_thread.stop();
-
-//	m->overlay_window->done(QDialog::Accepted);
 
 	stopRecord();
 
@@ -246,6 +273,8 @@ void MainWindow::closeEvent(QCloseEvent *)
 			m->selected_device->getProfileManager()->SetCallback(nullptr);
 		}
 	}
+
+	m->frame_process_thread.stop();
 
 	// Disable DeckLink device discovery
 	m->decklink_discovery->disable();
@@ -291,15 +320,16 @@ void MainWindow::internalStartCapture(bool start)
 	ui->image_widget->clear();
 
 	m->frame_process_thread.stop();
-	m->frame_process_thread.start();
 
 	if (start) {
+		m->frame_process_thread.start();
+
 		// start capture
 		auto *item = listWidget_display_mode()->currentItem();
 		if (item) {
 			m->display_mode = (BMDDisplayMode)item->data(DisplayModeRole).toInt();
 			m->field_dominance = (BMDFieldDominance)item->data(FieldDominanceRole).toUInt();
-			m->fps = item->data(FrameRateRole).toDouble();
+			m->fps = item->data(FrameRateRole).value<Rational>();
 		}
 		bool auto_detect = isVideoFormatAutoDetectionEnabled();
 		m->video_capture->startCapture(m->selected_device, m->display_mode, m->field_dominance, auto_detect, isAudioCaptureEnabled());
@@ -372,7 +402,7 @@ void MainWindow::refreshDisplayModeMenu()
 		BMDDisplayMode mode = displayMode->GetDisplayMode();
 		BMDFieldDominance fdom = displayMode->GetFieldDominance();
 
-		double fps = DeckLinkInputDevice::frameRate(displayMode);
+		Rational fps = DeckLinkInputDevice::frameRate(displayMode);
 
 #ifdef _WIN32
 		HRESULT rc = deckLinkInput->DoesSupportVideoMode(m->selected_input_connection, mode, bmdFormatUnspecified, bmdSupportedVideoModeDefault, &supported);
@@ -391,6 +421,8 @@ void MainWindow::refreshDisplayModeMenu()
 				int row = listWidget_display_mode()->count();
 				auto *item = new QListWidgetItem(name);
 				item->setData(DisplayModeRole, QVariant::fromValue((uint64_t)mode));
+				item->setData(VideoWidthRole, QVariant::fromValue(displayMode->GetWidth()));
+				item->setData(VideoHeightRole, QVariant::fromValue(displayMode->GetHeight()));
 				item->setData(FieldDominanceRole, QVariant::fromValue((uint32_t)fdom));
 				item->setData(FrameRateRole, QVariant::fromValue(fps));
 				listWidget_display_mode()->addItem(item);
@@ -555,11 +587,17 @@ void MainWindow::changeInputConnection(BMDVideoConnection conn, bool errorcheck)
 	refreshDisplayModeMenu();
 }
 
-void MainWindow::changeDisplayMode(BMDDisplayMode dispmode, double fps)
+void MainWindow::changeDisplayMode(BMDDisplayMode dispmode, Rational const &fps)
 {
 	for (int i = 0; i < listWidget_display_mode()->count(); i++) {
 		auto *item = listWidget_display_mode()->item(i);
 		if (item) {
+			m->video_width = item->data(VideoWidthRole).toInt();
+			m->video_height = item->data(VideoHeightRole).toInt();
+			if (m->video_width < 1 || m->video_height < 1) {
+				m->video_width = 1920;
+				m->video_height = 1080;
+			}
 			if ((BMDDisplayMode)item->data(DisplayModeRole).toInt() == dispmode) {
 				BlockSignals(listWidget_display_mode(), [&](){
 					listWidget_display_mode()->setCurrentRow(i);
@@ -614,7 +652,7 @@ void MainWindow::on_listWidget_display_mode_currentRowChanged(int currentRow)
 	QListWidgetItem *item = listWidget_display_mode()->currentItem();
 	if (!item) return;
 	auto mode = item->data(DisplayModeRole).toUInt();
-	auto fps = item->data(FrameRateRole).toDouble();
+	auto fps = item->data(FrameRateRole).value<Rational>();
 	changeDisplayMode((BMDDisplayMode)mode, fps);
 }
 
@@ -642,14 +680,25 @@ void MainWindow::ready(CaptureFrame const &frame)
 	if (m->audio_output_device) {
 		m->audio_output_device->write(frame.audio);
 	}
-	ui->image_widget->setImage(frame.image_for_view);
+	if (m->full_screen_window) {
+		m->full_screen_window->setImage(frame.image_for_view);
+	} else {
+		ui->image_widget->setImage(frame.image_for_view);
+	}
 }
 
 void MainWindow::newFrame(CaptureFrame const &frame)
 {
 	m->frame_rate_counter_.increment();
 
-	m->frame_process_thread.request(frame, ui->image_widget->scaledSize(frame.image));
+	QSize size;
+	if (m->full_screen_window) {
+		size = m->full_screen_window->scaledSize(frame.image);
+	} else {
+		size = ui->image_widget->scaledSize(frame.image);
+	}
+
+	m->frame_process_thread.request(frame, size);
 
 	if (m->video_encoder) {
 		m->video_encoder->put_frame(frame);
@@ -685,6 +734,8 @@ void MainWindow::toggleRecord()
 		m->recording_start_time = QDateTime::currentDateTime();
 		VideoEncoder::VideoOption vopt;
 		VideoEncoder::AudioOption aopt;
+		vopt.src_w = m->video_width;
+		vopt.src_h = m->video_height;
 		vopt.fps = m->fps;
 		m->video_encoder = std::make_shared<VideoEncoder>();
 #ifdef Q_OS_WIN
@@ -726,7 +777,7 @@ void MainWindow::timerEvent(QTimerEvent *event)
 	if (m->hide_cursor_count > 0) {
 		m->hide_cursor_count--;
 		if (m->hide_cursor_count == 0) {
-			setCursor(global->transparent_cursor);
+			setCursor(global->invisible_cursor);
 		}
 	}
 

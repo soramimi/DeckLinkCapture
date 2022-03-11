@@ -1,14 +1,13 @@
 #include "MainWindow.h"
 #include "CaptureFrame.h"
+#include "GlobalData.h"
+#include "joinpath.h"
 #include "main.h"
 #include <QApplication>
 #include <QDir>
 #include <QFileInfo>
 #include <QMetaType>
 #include <QStandardPaths>
-#include "joinpath.h"
-
-GlobalData *global;
 
 static bool isHighDpiScalingEnabled()
 {
@@ -16,7 +15,7 @@ static bool isHighDpiScalingEnabled()
 //	s.beginGroup("UI");
 //	QVariant v = s.value("EnableHighDpiScaling");
 //	return v.isNull() || v.toBool();
-	return false;
+	return true;
 }
 
 int main(int argc, char *argv[])
@@ -38,21 +37,24 @@ int main(int argc, char *argv[])
 
 	QApplication a(argc, argv);
 
-	if (isHighDpiScalingEnabled()){
+	if (isHighDpiScalingEnabled()) {
 #if (QT_VERSION < QT_VERSION_CHECK(5, 6, 0))
 		qDebug() << "High DPI scaling is not supported";
 #else
 		QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 #endif
-		a.setAttribute(Qt::AA_UseHighDpiPixmaps);
 	} else {
 		QCoreApplication::setAttribute(Qt::AA_DisableHighDpiScaling);
 	}
 
-
+	qRegisterMetaType<Rational>();
 	qRegisterMetaType<CaptureFrame>();
 
-	global->transparent_cursor = QCursor(QPixmap(":/transparent32x32.png"));
+	{
+		QPixmap pm(1, 1);
+		pm.fill(Qt::transparent);
+		global->invisible_cursor = QCursor(pm);
+	}
 
 	MainWindow w;
 	w.show();

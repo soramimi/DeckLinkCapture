@@ -1,4 +1,5 @@
 #include "MySettings.h"
+#include "GlobalData.h"
 #include "main.h"
 
 MySettings::MySettings(QObject *)

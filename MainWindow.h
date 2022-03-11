@@ -24,7 +24,8 @@ class CaptureFrame;
 
 class MainWindow : public QMainWindow, public DeckLinkCaptureDelegate {
 	Q_OBJECT
-	friend class OverlayWindow;
+	friend class UIWidget;
+	friend class FullScreenWindow;
 public:
 	enum {
 		Dummy_ = QEvent::User,
@@ -53,6 +54,8 @@ private:
 	void notifyRecordingProgress(qint64 current, qint64 length);
 	void updateCursor();
 	bool changeAudioOutputDevice(const QString &name, bool save);
+	bool isFullScreen() const;
+	void setFullScreen(bool f);
 protected:
 	void timerEvent(QTimerEvent *event) override;
 	void mouseDoubleClickEvent(QMouseEvent *event) override;
@@ -61,8 +64,6 @@ protected:
 public:
 	explicit MainWindow(QWidget *parent = nullptr);
 	~MainWindow() override;
-
-	void show();
 
 	void closeEvent(QCloseEvent *event) override;
 
@@ -81,7 +82,7 @@ public:
 	void videoFrameArrived(AncillaryDataStruct const *ancillary_data, HDRMetadataStruct const *hdr_metadata, bool signal_valid) override;
 	void updateProfile(IDeckLinkProfile* newProfile) override;
 	void criticalError(const QString &title, const QString &message) override;
-	void changeDisplayMode(BMDDisplayMode dispmode, double fps) override;
+	void changeDisplayMode(BMDDisplayMode dispmode, const Rational &fps) override;
 
 	bool isCapturing() const;
 

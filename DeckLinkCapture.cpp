@@ -58,7 +58,7 @@ void DeckLinkCapture::updateProfile(IDeckLinkProfile *newProfile)
 	m->mainwindow->updateProfile(newProfile);
 }
 
-void DeckLinkCapture::changeDisplayMode(BMDDisplayMode dispmode, double fps)
+void DeckLinkCapture::changeDisplayMode(BMDDisplayMode dispmode, Rational const &fps)
 {
 	Q_ASSERT(m->mainwindow);
 	m->mainwindow->changeDisplayMode(dispmode, fps);
