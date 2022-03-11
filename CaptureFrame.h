@@ -7,6 +7,12 @@
 
 class CaptureFrame {
 public:
+	enum State {
+		Idle,
+		Busy,
+		Ready,
+	};
+	State state = Idle;
 	Image image;
 	QByteArray audio;
 	QImage image_for_view;

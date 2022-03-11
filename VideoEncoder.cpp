@@ -613,8 +613,8 @@ bool VideoEncoder::put_video_frame(const VideoFrame &img)
 
 bool VideoEncoder::put_audio_frame(AudioFrame const &pcm)
 {
-	std::lock_guard lock(m->mutex);
 	if (is_recording()) {
+		std::lock_guard lock(m->mutex);
 		m->audio_frames.push_back(pcm);
 		fprintf(stderr, "audio queue:%d\n", m->audio_frames.size());
 		while (m->audio_frames.size() > 100) {
@@ -625,7 +625,7 @@ bool VideoEncoder::put_audio_frame(AudioFrame const &pcm)
 	return false;
 }
 
-bool VideoEncoder::put_frame(const CaptureFrame &frame)
+void VideoEncoder::put_frame(const CaptureFrame &frame)
 {
 	VideoEncoder::VideoFrame v;
 	v.image = frame.image;
@@ -634,6 +634,5 @@ bool VideoEncoder::put_frame(const CaptureFrame &frame)
 	VideoEncoder::AudioFrame a;
 	a.samples = frame.audio;
 	put_audio_frame(a);
-
 }
 

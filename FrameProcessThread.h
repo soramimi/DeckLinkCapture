@@ -10,15 +10,16 @@
 
 class CaptureFrame;
 
-class FrameProcessThread : public QThread {
+class FrameProcessThread : public QObject {
 	Q_OBJECT
 private:
 	struct Private;
 	Private *m;
-	void run() override;
+	void run();
 public:
 	FrameProcessThread();
-	~FrameProcessThread() override;
+	~FrameProcessThread();
+	void start();
 	void stop();
 	void request(const CaptureFrame &image, QSize const &size);
 signals:

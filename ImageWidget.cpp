@@ -77,7 +77,7 @@ QSize ImageWidget::scaledSize(Image const &image)
 	};
 
 	if (m->view_mode == ViewMode::SmallLQ) {
-		return {image.width() / 2, image.height() / 2};
+		return {960, 540};
 	} else if (m->view_mode == ViewMode::FitToWindow) {
 		return FitSize({image.width(), image.height()}, width(), height());
 	} else if (m->view_mode == ViewMode::DotByDot) {

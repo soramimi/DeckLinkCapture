@@ -75,7 +75,7 @@ public:
 	void request_interruption();
 	void open(std::string const &filepath, VideoOption const &vopt, AudioOption const &aopt);
 	void close();
-	bool put_frame(CaptureFrame const &frame);
+	void put_frame(CaptureFrame const &frame);
 };
 
 #endif // VIDEOENCODER_H
