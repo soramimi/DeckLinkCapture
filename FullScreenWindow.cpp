@@ -14,8 +14,8 @@ FullScreenWindow::FullScreenWindow(QWidget *parent) :
 
 	ui->centralwidget->setViewMode(ImageWidget::ViewMode::FitToWindow);
 
-	connect(new QShortcut(QKeySequence("F11"), this), &QShortcut::activated, [&](){
-		qobject_cast<MainWindow *>(this->parent())->setFullScreen(false);
+	connect(new QShortcut(QKeySequence(Qt::Key_F11), this), &QShortcut::activated, [&](){
+		qobject_cast<MainWindow *>(this->parent())->setFullScreenMode(false);
 	});
 
 	setCursor(global->invisible_cursor);
@@ -39,5 +39,6 @@ QSize FullScreenWindow::scaledSize(const Image &image)
 void FullScreenWindow::closeEvent(QCloseEvent *event)
 {
 	event->ignore();
-	qobject_cast<MainWindow *>(this->parent())->setFullScreen(false);
+	qobject_cast<MainWindow *>(this->parent())->setFullScreenMode(false);
 }
+

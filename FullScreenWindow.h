@@ -13,13 +13,15 @@ class FullScreenWindow : public QMainWindow {
 	Q_OBJECT
 private:
 	Ui::FullScreenWindow *ui;
-protected:
-	void closeEvent(QCloseEvent *event);
 public:
 	explicit FullScreenWindow(QWidget *parent = nullptr);
 	~FullScreenWindow();
 	void setImage(QImage const &image);
 	QSize scaledSize(Image const &image);
+
+	// QWidget interface
+protected:
+	void closeEvent(QCloseEvent *event);
 };
 
 #endif // FULLSCREENWINDOW_H

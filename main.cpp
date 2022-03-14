@@ -35,8 +35,6 @@ int main(int argc, char *argv[])
 		QDir().mkpath(global->app_config_dir);
 	}
 
-	QApplication a(argc, argv);
-
 	if (isHighDpiScalingEnabled()) {
 #if (QT_VERSION < QT_VERSION_CHECK(5, 6, 0))
 		qDebug() << "High DPI scaling is not supported";
@@ -46,6 +44,8 @@ int main(int argc, char *argv[])
 	} else {
 		QCoreApplication::setAttribute(Qt::AA_DisableHighDpiScaling);
 	}
+
+	QApplication a(argc, argv);
 
 	qRegisterMetaType<Rational>();
 	qRegisterMetaType<CaptureFrame>();

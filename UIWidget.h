@@ -9,13 +9,13 @@ class QListWidgetItem;
 class QCheckBox;
 
 namespace Ui {
-class OverlayWindow;
+class UIWidget;
 }
 
 class UIWidget : public QWidget {
 	Q_OBJECT
 private:
-	Ui::OverlayWindow *ui;
+	Ui::UIWidget *ui;
 	MainWindow *mainwindow_ = nullptr;
 	MainWindow *mainwindow();
 protected:

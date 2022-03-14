@@ -54,8 +54,8 @@ private:
 	void notifyRecordingProgress(qint64 current, qint64 length);
 	void updateCursor();
 	bool changeAudioOutputDevice(const QString &name, bool save);
-	bool isFullScreen() const;
-	void setFullScreen(bool f);
+	bool isFullScreenMode() const;
+	void setFullScreenMode(bool f);
 protected:
 	void timerEvent(QTimerEvent *event) override;
 	void mouseDoubleClickEvent(QMouseEvent *event) override;

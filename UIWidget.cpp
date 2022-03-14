@@ -1,10 +1,10 @@
 #include "MainWindow.h"
 #include "UIWidget.h"
-#include "ui_OverlayWindow.h"
+#include "ui_UIWidget.h"
 
 UIWidget::UIWidget(QWidget *parent)
 	: QWidget(parent)
-	, ui(new Ui::OverlayWindow)
+	, ui(new Ui::UIWidget)
 {
 	ui->setupUi(this);
 //	setWindowFlags(Qt::Popup | Qt::Sheet | Qt::FramelessWindowHint);
