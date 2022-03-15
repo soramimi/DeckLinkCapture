@@ -128,21 +128,22 @@ bool VideoEncoder::get_audio_frame(int16_t *samples, int frame_size, int nb_chan
 	while (frame_size > 0) {
 		std::lock_guard lock(m->mutex);
 		if (m->audio_frames.empty()) break;
-		AudioFrame &frame = m->audio_frames.front();
-		int n = frame.samples.size() / nb_channels / sizeof(int16_t);
+		AudioFrame *frame = &m->audio_frames.front();
+		int n = frame->samples.size() / nb_channels / sizeof(int16_t);
 		n = std::min(n, frame_size);
 		frame_size -= n;
 		n *= nb_channels * sizeof(int16_t);
-		memcpy(samples, frame.samples.data(), n);
+		memcpy(samples, frame->samples.data(), n);
 		samples += n / sizeof(int16_t);
-		if (frame.samples.size() < n + nb_channels * sizeof(int16_t)) {
+		if (frame->samples.size() < n + nb_channels * sizeof(int16_t)) {
 			m->audio_frames.pop_front();
 		} else {
-			int l = frame.samples.size() - n;
-			char *p = frame.samples.data();
-			memmove(p, p + n, l);
-			frame.samples.resize(l);
+			frame->samples.remove(0, n);
 		}
+	}
+	int n = frame_size * nb_channels;
+	for (int i = 0; i < n; i++) {
+		samples[i] = 0;
 	}
 	return true;
 }
