@@ -25,7 +25,6 @@ class CaptureFrame;
 class MainWindow : public QMainWindow, public DeckLinkCaptureDelegate {
 	Q_OBJECT
 	friend class UIWidget;
-	friend class FullScreenWindow;
 public:
 	enum {
 		Dummy_ = QEvent::User,
@@ -54,8 +53,8 @@ private:
 	void notifyRecordingProgress(qint64 current, qint64 length);
 	void updateCursor();
 	bool changeAudioOutputDevice(const QString &name, bool save);
-	bool isFullScreenMode() const;
-	void setFullScreenMode(bool f);
+	void setFullScreen(bool f);
+	ImageWidget *currentImageWidget();
 protected:
 	void timerEvent(QTimerEvent *event) override;
 	void mouseDoubleClickEvent(QMouseEvent *event) override;

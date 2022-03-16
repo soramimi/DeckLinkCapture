@@ -4,7 +4,6 @@
 #include "ActionHandler.h"
 #include "FrameProcessThread.h"
 #include "FrameRateCounter.h"
-#include "FullScreenWindow.h"
 #include "GlobalData.h"
 #include "MySettings.h"
 #include "Rational.h"
@@ -94,9 +93,6 @@ struct MainWindow::Private {
 
 	FrameProcessThread frame_process_thread;
 
-	FullScreenWindow *full_screen_window = nullptr;
-	bool is_full_screen_mode = false;
-
 	bool closing = false;
 };
 
@@ -109,8 +105,6 @@ MainWindow::MainWindow(QWidget *parent)
 	ui->setupUi(this);
 
 	ui->widget_ui->bindMainWindow(this);
-
-	m->full_screen_window = new FullScreenWindow(this);
 
 	m->status_label = new StatusLabel(this);
 	ui->statusbar->addWidget(m->status_label);
@@ -151,8 +145,15 @@ MainWindow::MainWindow(QWidget *parent)
 	checkBox_display_mode_auto_detection()->setCheckState(Qt::Checked);
 	checkBox_audio()->click();
 
+	setFullScreen(false);
+
 	connect(new QShortcut(QKeySequence(Qt::Key_F11), this), &QShortcut::activated, [&](){
-		setFullScreenMode(!isFullScreenMode());
+		setFullScreen(!isFullScreen());
+	});
+	connect(new QShortcut(QKeySequence(Qt::Key_Escape), this), &QShortcut::activated, [&](){
+		if (isFullScreen()) {
+			setFullScreen(false);
+		}
 	});
 
 	connect(new QShortcut(QKeySequence("Ctrl+T"), this), &QShortcut::activated, this, &MainWindow::test);
@@ -169,8 +170,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
-	setFullScreenMode(false);
-	delete m->full_screen_window;
+	setFullScreen(false);
 
 	m->input_devices.clear();
 
@@ -191,27 +191,21 @@ MainWindow::~MainWindow()
 	delete ui;
 }
 
-bool MainWindow::isFullScreenMode() const
-{
-	return m->is_full_screen_mode;
-}
-
-void MainWindow::setFullScreenMode(bool f)
+void MainWindow::setFullScreen(bool f)
 {
 	if (f) {
-		m->full_screen_window->setWindowState(Qt::WindowFullScreen);
-		m->full_screen_window->show();
-		ui->image_widget->setImage({});
+		ui->stackedWidget->setCurrentWidget(ui->page_fullscreen);
+		ui->image_widget_2->setViewMode(ImageWidget::ViewMode::FitToWindow);
+		showFullScreen();
+
 	} else {
-		if (m->full_screen_window) {
-			m->full_screen_window->setImage({});
-			m->full_screen_window->hide();
-		}
+		ui->stackedWidget->setCurrentWidget(ui->page_normal);
+		showNormal();
 	}
-	m->is_full_screen_mode = f;
+	ui->menubar->setVisible(!f);
+	ui->statusbar->setVisible(!f);
+	updateCursor();
 }
-
-
 
 QListWidget *MainWindow::listWidget_input_device()
 {
@@ -259,7 +253,7 @@ void MainWindow::setup()
 
 void MainWindow::closeEvent(QCloseEvent *)
 {
-	setFullScreenMode(false);
+	setFullScreen(false);
 
 	m->closing = true;
 
@@ -675,29 +669,24 @@ void MainWindow::on_checkBox_audio_stateChanged(int arg1)
 	restartCapture();
 }
 
+ImageWidget *MainWindow::currentImageWidget()
+{
+	return isFullScreen() ? ui->image_widget_2 : ui->image_widget;
+}
+
 void MainWindow::ready(CaptureFrame const &frame)
 {
 	if (m->audio_output_device) {
 		m->audio_output_device->write(frame.audio);
 	}
-	if (isFullScreenMode()) {
-		m->full_screen_window->setImage(frame.image_for_view);
-	} else {
-		ui->image_widget->setImage(frame.image_for_view);
-	}
+	currentImageWidget()->setImage(frame.image_for_view);
 }
 
 void MainWindow::newFrame(CaptureFrame const &frame)
 {
 	m->frame_rate_counter_.increment();
 
-	QSize size;
-	if (isFullScreenMode()) {
-		size = m->full_screen_window->scaledSize(frame.image);
-	} else {
-		size = ui->image_widget->scaledSize(frame.image);
-	}
-
+	QSize size = currentImageWidget()->scaledSize(frame.image);
 	m->frame_process_thread.request(frame, size);
 
 	if (m->video_encoder) {

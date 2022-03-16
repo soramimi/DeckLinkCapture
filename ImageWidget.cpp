@@ -26,7 +26,6 @@ ImageWidget::ImageWidget(QWidget *parent)
 	startTimer(1000);
 	m->font = QFont("Monospace", 24);
 	m->font.setStyleHint(QFont::TypeWriter);
-
 }
 
 ImageWidget::~ImageWidget()

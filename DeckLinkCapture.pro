@@ -55,7 +55,6 @@ SOURCES += \
 	DeckLinkInputDevice.cpp \
 	FrameProcessThread.cpp \
 	FrameRateCounter.cpp \
-	FullScreenWindow.cpp \
 	GlobalData.cpp \
 	Image.cpp \
 	ImageUtil.cpp \
@@ -82,7 +81,6 @@ HEADERS += \
 	DeckLinkInputDevice.h \
 	FrameProcessThread.h \
 	FrameRateCounter.h \
-	FullScreenWindow.h \
 	GlobalData.h \
 	Image.h \
 	ImageUtil.h \
@@ -103,7 +101,6 @@ HEADERS += \
 	main.h
 
 FORMS += \
-    FullScreenWindow.ui \
     MainWindow.ui \
     RecordingDialog.ui \
     TestForm.ui \
