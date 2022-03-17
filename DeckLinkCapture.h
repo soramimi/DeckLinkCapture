@@ -57,7 +57,7 @@ private:
 	void haltStreams();
 	void criticalError(QString const &title, QString const &message);
 
-	BMDPixelFormat pixelFormat() const;
+//	BMDPixelFormat pixelFormat() const;
 	void setPixelFormat(BMDPixelFormat pixel_format);
 protected:
 	void customEvent(QEvent *event) override;

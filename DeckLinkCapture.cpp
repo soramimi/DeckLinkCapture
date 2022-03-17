@@ -30,10 +30,10 @@ DeckLinkCaptureDelegate *DeckLinkCapture::delegate()
 	return m->mainwindow;
 }
 
-BMDPixelFormat DeckLinkCapture::pixelFormat() const
-{
-	return m->pixel_format;
-}
+//BMDPixelFormat DeckLinkCapture::pixelFormat() const
+//{
+//	return m->pixel_format;
+//}
 
 void DeckLinkCapture::setPixelFormat(BMDPixelFormat pixel_format)
 {

@@ -364,9 +364,6 @@ HRESULT DeckLinkInputDevice::VideoInputFrameArrived(IDeckLinkVideoInputFrame *vi
 
 	if (m->capture) {
 		t.signal_valid = signal_valid;
-//		DeckLinkInputFrameArrivedEvent *e = new DeckLinkInputFrameArrivedEvent(signal_valid);
-
-		// Get the various timecodes and userbits attached to this frame
 
 		getAncillaryDataFromFrame(videoFrame, bmdTimecodeVITC,					&t.ancillary_data.vitcF1Timecode,		&t.ancillary_data.vitcF1UserBits);
 		getAncillaryDataFromFrame(videoFrame, bmdTimecodeVITCField2,			&t.ancillary_data.vitcF2Timecode,		&t.ancillary_data.vitcF2UserBits);
@@ -377,35 +374,32 @@ HRESULT DeckLinkInputDevice::VideoInputFrameArrived(IDeckLinkVideoInputFrame *vi
 
 		getHDRMetadataFromFrame(videoFrame, &t.hdr_metadata);
 
-//		e->ancillary_data_ = t.ancillary_data_;
-//		e->hdr_metadata_ = t.hdr_metadata_;
-
-//		QCoreApplication::postEvent(m->capture, e);
-	}
-
-
-	if (audioPacket) {
-		const int channels = 2;
-		const int frames = audioPacket->GetSampleFrameCount();
-		const int bytes = frames * sizeof(int16_t) * channels;
-		void *data = nullptr;
-		audioPacket->GetBytes(&data);
-		if (data && bytes > 0) {
-			t.audio = QByteArray((char const *)data, bytes);
+		if (audioPacket) {
+			const int channels = 2;
+			const int frames = audioPacket->GetSampleFrameCount();
+			const int bytes = frames * sizeof(int16_t) * channels;
+			void *data = nullptr;
+			audioPacket->GetBytes(&data);
+			if (data && bytes > 0) {
+				t.audio = QByteArray((char const *)data, bytes);
+			}
 		}
-	}
 
-	if (videoFrame) {
-		int w = videoFrame->GetWidth();
-		int h = videoFrame->GetHeight();
-		int stride = videoFrame->GetRowBytes();
-		uint8_t const *bytes = nullptr;
-		if (w > 0 && h > 0 && videoFrame->GetBytes((void **)&bytes) == S_OK && bytes) {
-			t.image = DeckLinkCapture::createImage(w, h, m->capture->pixelFormat(), bytes, stride * h);
+		if (videoFrame) {
+			int w = videoFrame->GetWidth();
+			int h = videoFrame->GetHeight();
+			int stride = videoFrame->GetRowBytes();
+			BMDPixelFormat pixfmt = videoFrame->GetPixelFormat();
+			uint8_t const *bytes = nullptr;
+			if (w > 0 && h > 0 && videoFrame->GetBytes((void **)&bytes) == S_OK && bytes) {
+				t.image = DeckLinkCapture::createImage(w, h, pixfmt, bytes, stride * h);
+			}
 		}
+
+		emit m->capture->newFrame(t);
 	}
 
-	emit m->capture->newFrame(t);
+
 
 	return S_OK;
 }
