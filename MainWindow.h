@@ -78,7 +78,6 @@ public:
 	void addDevice(IDeckLink *decklink) override;
 	void removeDevice(IDeckLink *decklink) override;
 	void haltStreams() override;
-	void videoFrameArrived(AncillaryDataStruct const *ancillary_data, HDRMetadataStruct const *hdr_metadata, bool signal_valid) override;
 	void updateProfile(IDeckLinkProfile* newProfile) override;
 	void criticalError(const QString &title, const QString &message) override;
 	void changeDisplayMode(BMDDisplayMode dispmode, const Rational &fps) override;

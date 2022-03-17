@@ -106,6 +106,8 @@ MainWindow::MainWindow(QWidget *parent)
 
 	ui->widget_ui->bindMainWindow(this);
 
+	ui->image_widget_2->setViewMode(ImageWidget::ViewMode::FitToWindow);
+
 	m->status_label = new StatusLabel(this);
 	ui->statusbar->addWidget(m->status_label);
 
@@ -195,7 +197,6 @@ void MainWindow::setFullScreen(bool f)
 {
 	if (f) {
 		ui->stackedWidget->setCurrentWidget(ui->page_fullscreen);
-		ui->image_widget_2->setViewMode(ImageWidget::ViewMode::FitToWindow);
 		showFullScreen();
 
 	} else {
@@ -605,13 +606,13 @@ void MainWindow::changeDisplayMode(BMDDisplayMode dispmode, Rational const &fps)
 	}
 }
 
-void MainWindow::videoFrameArrived(const AncillaryDataStruct *ancillary_data, const HDRMetadataStruct *hdr_metadata, bool signal_valid)
-{
-	(void)ancillary_data;
-	(void)hdr_metadata;
+//void MainWindow::videoFrameArrived(const AncillaryDataStruct *ancillary_data, const HDRMetadataStruct *hdr_metadata, bool signal_valid)
+//{
+//	(void)ancillary_data;
+//	(void)hdr_metadata;
 
-	setSignalStatus(signal_valid);
-}
+//	setSignalStatus(signal_valid);
+//}
 
 void MainWindow::haltStreams()
 {
@@ -684,13 +685,17 @@ void MainWindow::ready(CaptureFrame const &frame)
 
 void MainWindow::newFrame(CaptureFrame const &frame)
 {
-	m->frame_rate_counter_.increment();
+	setSignalStatus(frame.signal_valid);
 
-	QSize size = currentImageWidget()->scaledSize(frame.image);
-	m->frame_process_thread.request(frame, size);
+	if (frame) {
+		m->frame_rate_counter_.increment();
 
-	if (m->video_encoder) {
-		m->video_encoder->put_frame(frame);
+		QSize size = currentImageWidget()->scaledSize(frame.image);
+		m->frame_process_thread.request(frame, size);
+
+		if (m->video_encoder) {
+			m->video_encoder->put_frame(frame);
+		}
 	}
 }
 

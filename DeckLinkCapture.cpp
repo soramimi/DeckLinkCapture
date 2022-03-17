@@ -64,11 +64,11 @@ void DeckLinkCapture::changeDisplayMode(BMDDisplayMode dispmode, Rational const 
 	m->mainwindow->changeDisplayMode(dispmode, fps);
 }
 
-void DeckLinkCapture::videoFrameArrived(AncillaryDataStruct const *ancillary_data, HDRMetadataStruct const *hdr_metadata, bool signal_valid)
-{
-	Q_ASSERT(m->mainwindow);
-	m->mainwindow->videoFrameArrived(ancillary_data, hdr_metadata, signal_valid);
-}
+//void DeckLinkCapture::videoFrameArrived(AncillaryDataStruct const *ancillary_data, HDRMetadataStruct const *hdr_metadata, bool signal_valid)
+//{
+//	Q_ASSERT(m->mainwindow);
+//	m->mainwindow->videoFrameArrived(ancillary_data, hdr_metadata, signal_valid);
+//}
 
 void DeckLinkCapture::haltStreams()
 {
@@ -93,9 +93,9 @@ void DeckLinkCapture::customEvent(QEvent *event)
 	} else if (event->type() == kVideoFormatChangedEvent) {
 		DeckLinkInputFormatChangedEvent *formatEvent = dynamic_cast<DeckLinkInputFormatChangedEvent*>(event);
 		changeDisplayMode(formatEvent->DisplayMode(), formatEvent->fps());
-	} else if (event->type() == kVideoFrameArrivedEvent) {
-		DeckLinkInputFrameArrivedEvent *frameArrivedEvent = dynamic_cast<DeckLinkInputFrameArrivedEvent*>(event);
-		videoFrameArrived(frameArrivedEvent->AncillaryData(), frameArrivedEvent->HDRMetadata(), frameArrivedEvent->SignalValid());
+//	} else if (event->type() == kVideoFrameArrivedEvent) {
+//		DeckLinkInputFrameArrivedEvent *frameArrivedEvent = dynamic_cast<DeckLinkInputFrameArrivedEvent*>(event);
+//		videoFrameArrived(frameArrivedEvent->AncillaryData(), frameArrivedEvent->HDRMetadata(), frameArrivedEvent->SignalValid());
 	} else if (event->type() == kProfileActivatedEvent) {
 		DeckLinkProfileCallbackEvent *profileChangedEvent = dynamic_cast<DeckLinkProfileCallbackEvent*>(event);
 		updateProfile(profileChangedEvent->Profile());

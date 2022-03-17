@@ -89,19 +89,19 @@ public:
 	Rational fps() const { return fps_; }
 };
 
-class DeckLinkInputFrameArrivedEvent : public QEvent {
-	friend class DeckLinkInputDevice;
-private:
-	AncillaryDataStruct ancillary_data_ = {};
-	HDRMetadataStruct hdr_metadata_ = {};
-	bool signal_valid_;
+//class DeckLinkInputFrameArrivedEvent : public QEvent {
+//	friend class DeckLinkInputDevice;
+//private:
+//	AncillaryDataStruct ancillary_data_ = {};
+//	HDRMetadataStruct hdr_metadata_ = {};
+//	bool signal_valid_;
 
-public:
-	DeckLinkInputFrameArrivedEvent(bool signalValid);
-	virtual ~DeckLinkInputFrameArrivedEvent() {}
+//public:
+//	DeckLinkInputFrameArrivedEvent(bool signalValid);
+//	virtual ~DeckLinkInputFrameArrivedEvent() {}
 
-	AncillaryDataStruct const *AncillaryData(void) const { return &ancillary_data_; }
-	HDRMetadataStruct const *HDRMetadata(void) const { return &hdr_metadata_; }
-	bool SignalValid(void) const { return signal_valid_; }
-};
+//	AncillaryDataStruct const *AncillaryData(void) const { return &ancillary_data_; }
+//	HDRMetadataStruct const *HDRMetadata(void) const { return &hdr_metadata_; }
+//	bool SignalValid(void) const { return signal_valid_; }
+//};
 

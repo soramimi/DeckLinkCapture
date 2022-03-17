@@ -358,26 +358,31 @@ HRESULT DeckLinkInputDevice::VideoInputFrameArrived(IDeckLinkVideoInputFrame *vi
 {
 	if (!videoFrame) return S_OK;
 
-	bool validFrame = (videoFrame->GetFlags() & bmdFrameHasNoInputSource) == 0;
+	bool signal_valid = (videoFrame->GetFlags() & bmdFrameHasNoInputSource) == 0;
+
+	CaptureFrame t;
 
 	if (m->capture) {
-		DeckLinkInputFrameArrivedEvent *e = new DeckLinkInputFrameArrivedEvent(validFrame);
+		t.signal_valid = signal_valid;
+//		DeckLinkInputFrameArrivedEvent *e = new DeckLinkInputFrameArrivedEvent(signal_valid);
 
 		// Get the various timecodes and userbits attached to this frame
 
-		getAncillaryDataFromFrame(videoFrame, bmdTimecodeVITC,					&e->ancillary_data_.vitcF1Timecode,		&e->ancillary_data_.vitcF1UserBits);
-		getAncillaryDataFromFrame(videoFrame, bmdTimecodeVITCField2,			&e->ancillary_data_.vitcF2Timecode,		&e->ancillary_data_.vitcF2UserBits);
-		getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188VITC1,			&e->ancillary_data_.rp188vitc1Timecode,	&e->ancillary_data_.rp188vitc1UserBits);
-		getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188VITC2,			&e->ancillary_data_.rp188vitc2Timecode,	&e->ancillary_data_.rp188vitc2UserBits);
-		getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188LTC,				&e->ancillary_data_.rp188ltcTimecode,	&e->ancillary_data_.rp188ltcUserBits);
-		getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188HighFrameRate,	&e->ancillary_data_.rp188hfrtcTimecode,	&e->ancillary_data_.rp188hfrtcUserBits);
+		getAncillaryDataFromFrame(videoFrame, bmdTimecodeVITC,					&t.ancillary_data.vitcF1Timecode,		&t.ancillary_data.vitcF1UserBits);
+		getAncillaryDataFromFrame(videoFrame, bmdTimecodeVITCField2,			&t.ancillary_data.vitcF2Timecode,		&t.ancillary_data.vitcF2UserBits);
+		getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188VITC1,			&t.ancillary_data.rp188vitc1Timecode,	&t.ancillary_data.rp188vitc1UserBits);
+		getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188VITC2,			&t.ancillary_data.rp188vitc2Timecode,	&t.ancillary_data.rp188vitc2UserBits);
+		getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188LTC,				&t.ancillary_data.rp188ltcTimecode,	&t.ancillary_data.rp188ltcUserBits);
+		getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188HighFrameRate,	&t.ancillary_data.rp188hfrtcTimecode,	&t.ancillary_data.rp188hfrtcUserBits);
 
-		getHDRMetadataFromFrame(videoFrame, &e->hdr_metadata_);
+		getHDRMetadataFromFrame(videoFrame, &t.hdr_metadata);
 
-		QCoreApplication::postEvent(m->capture, e);
+//		e->ancillary_data_ = t.ancillary_data_;
+//		e->hdr_metadata_ = t.hdr_metadata_;
+
+//		QCoreApplication::postEvent(m->capture, e);
 	}
 
-	CaptureFrame t;
 
 	if (audioPacket) {
 		const int channels = 2;
@@ -548,10 +553,10 @@ DeckLinkInputFormatChangedEvent::DeckLinkInputFormatChangedEvent(BMDDisplayMode 
 {
 }
 
-DeckLinkInputFrameArrivedEvent::DeckLinkInputFrameArrivedEvent(bool signalValid)
-	: QEvent(kVideoFrameArrivedEvent)
-	, signal_valid_(signalValid)
-{
-}
+//DeckLinkInputFrameArrivedEvent::DeckLinkInputFrameArrivedEvent(bool signalValid)
+//	: QEvent(kVideoFrameArrivedEvent)
+//	, signal_valid_(signalValid)
+//{
+//}
 
 

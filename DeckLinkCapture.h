@@ -32,7 +32,7 @@ public:
 	virtual void removeDevice(IDeckLink *decklink) = 0;
 	virtual void updateProfile(IDeckLinkProfile *newProfile) = 0;
 	virtual void changeDisplayMode(BMDDisplayMode dispmode, Rational const &fps) = 0;
-	virtual void videoFrameArrived(AncillaryDataStruct const *ancillary_data, HDRMetadataStruct const *hdr_metadata, bool signal_valid) = 0;
+//	virtual void videoFrameArrived(AncillaryDataStruct const *ancillary_data, HDRMetadataStruct const *hdr_metadata, bool signal_valid) = 0;
 	virtual void haltStreams() = 0;
 	virtual void criticalError(QString const &title, QString const &message) = 0;
 };
@@ -53,7 +53,7 @@ private:
 	void removeDevice(IDeckLink* decklink);
 	void updateProfile(IDeckLinkProfile *newProfile);
 	void changeDisplayMode(BMDDisplayMode dispmode, Rational const &fps);
-	void videoFrameArrived(AncillaryDataStruct const *ancillary_data, HDRMetadataStruct const *hdr_metadata, bool signal_valid);
+//	void videoFrameArrived(AncillaryDataStruct const *ancillary_data, HDRMetadataStruct const *hdr_metadata, bool signal_valid);
 	void haltStreams();
 	void criticalError(QString const &title, QString const &message);
 

@@ -4,6 +4,7 @@
 #include "Image.h"
 #include <QImage>
 #include <QMetaType>
+#include "AncillaryDataTable.h"
 
 class CaptureFrame {
 public:
@@ -16,9 +17,12 @@ public:
 	Image image;
 	QByteArray audio;
 	QImage image_for_view;
+	AncillaryDataStruct ancillary_data = {};
+	HDRMetadataStruct hdr_metadata = {};
+	bool signal_valid = false;
 	operator bool () const
 	{
-		return (bool)image;
+		return signal_valid && image;
 	}
 	int width() const
 	{
