@@ -20,7 +20,7 @@ struct ImageWidget::Private {
 };
 
 ImageWidget::ImageWidget(QWidget *parent)
-	: QGLWidget(parent)
+	: QWidget(parent)
 	, m(new Private)
 {
 	startTimer(1000);

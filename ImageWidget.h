@@ -2,12 +2,12 @@
 #ifndef IMAGEWIDGET_H
 #define IMAGEWIDGET_H
 
-#include <QGLWidget>
+#include <QWidget>
 
 class Image;
 class CaptureFrame;
 
-class ImageWidget : public QGLWidget {
+class ImageWidget : public QWidget {
 	Q_OBJECT
 public:
 	enum class ViewMode {
