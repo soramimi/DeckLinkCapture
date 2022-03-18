@@ -5,6 +5,7 @@
 #include <QImage>
 #include <QMetaType>
 #include "AncillaryDataTable.h"
+#include <memory>
 
 class CaptureFrame {
 public:
