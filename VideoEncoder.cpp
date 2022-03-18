@@ -633,11 +633,11 @@ bool VideoEncoder::put_audio_frame(AudioFrame const &pcm)
 void VideoEncoder::put_frame(const CaptureFrame &frame)
 {
 	VideoEncoder::VideoFrame v;
-	v.image = frame.image;
+	v.image = frame.d->image;
 	put_video_frame(v);
 
 	VideoEncoder::AudioFrame a;
-	a.samples = frame.audio;
+	a.samples = frame.d->audio;
 	put_audio_frame(a);
 }
 

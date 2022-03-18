@@ -21,6 +21,7 @@
 #include <QMessageBox>
 #include <QShortcut>
 #include <QTimer>
+#include <deque>
 
 qint64 seconds(QTime const &t)
 {
@@ -92,6 +93,8 @@ struct MainWindow::Private {
 	int hide_cursor_count = 0;
 
 	FrameProcessThread frame_process_thread;
+
+	std::deque<CaptureFrame> prepared_frames;
 
 	bool closing = false;
 };
@@ -307,6 +310,8 @@ void MainWindow::updateUI()
 void MainWindow::internalStartCapture(bool start)
 {
 	stopRecord();
+
+	m->prepared_frames.clear();
 
 	if (isCapturing()) {
 		// stop capture
@@ -677,24 +682,38 @@ ImageWidget *MainWindow::currentImageWidget()
 
 void MainWindow::ready(CaptureFrame const &frame)
 {
-	if (m->audio_output_device) {
-		m->audio_output_device->write(frame.audio);
+	if (frame) {
+		while (m->prepared_frames.size() > 2) {
+			m->prepared_frames.pop_front();
+		}
+		m->prepared_frames.push_back(frame);
 	}
-	currentImageWidget()->setImage(frame.image_for_view);
 }
 
 void MainWindow::newFrame(CaptureFrame const &frame)
 {
-	setSignalStatus(frame.signal_valid);
+	setSignalStatus(frame.d->signal_valid);
 
 	if (frame) {
 		m->frame_rate_counter_.increment();
 
-		QSize size = currentImageWidget()->scaledSize(frame.image);
+		QSize size = currentImageWidget()->scaledSize(frame.d->image);
 		m->frame_process_thread.request(frame, size);
 
 		if (m->video_encoder) {
 			m->video_encoder->put_frame(frame);
+		}
+	}
+
+	if (!m->prepared_frames.empty()) {
+		CaptureFrame f = m->prepared_frames.front();
+		m->prepared_frames.pop_front();
+
+		if (f) {
+			if (m->audio_output_device) {
+				m->audio_output_device->write(f.d->audio);
+			}
+			currentImageWidget()->setImage(f.d->image_for_view);
 		}
 	}
 }

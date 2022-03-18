@@ -363,16 +363,16 @@ HRESULT DeckLinkInputDevice::VideoInputFrameArrived(IDeckLinkVideoInputFrame *vi
 	CaptureFrame t;
 
 	if (m->capture) {
-		t.signal_valid = signal_valid;
+		t.d->signal_valid = signal_valid;
 
-		getAncillaryDataFromFrame(videoFrame, bmdTimecodeVITC,					&t.ancillary_data.vitcF1Timecode,		&t.ancillary_data.vitcF1UserBits);
-		getAncillaryDataFromFrame(videoFrame, bmdTimecodeVITCField2,			&t.ancillary_data.vitcF2Timecode,		&t.ancillary_data.vitcF2UserBits);
-		getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188VITC1,			&t.ancillary_data.rp188vitc1Timecode,	&t.ancillary_data.rp188vitc1UserBits);
-		getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188VITC2,			&t.ancillary_data.rp188vitc2Timecode,	&t.ancillary_data.rp188vitc2UserBits);
-		getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188LTC,				&t.ancillary_data.rp188ltcTimecode,	&t.ancillary_data.rp188ltcUserBits);
-		getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188HighFrameRate,	&t.ancillary_data.rp188hfrtcTimecode,	&t.ancillary_data.rp188hfrtcUserBits);
+		getAncillaryDataFromFrame(videoFrame, bmdTimecodeVITC,					&t.d->ancillary_data.vitcF1Timecode,		&t.d->ancillary_data.vitcF1UserBits);
+		getAncillaryDataFromFrame(videoFrame, bmdTimecodeVITCField2,			&t.d->ancillary_data.vitcF2Timecode,		&t.d->ancillary_data.vitcF2UserBits);
+		getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188VITC1,			&t.d->ancillary_data.rp188vitc1Timecode,	&t.d->ancillary_data.rp188vitc1UserBits);
+		getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188VITC2,			&t.d->ancillary_data.rp188vitc2Timecode,	&t.d->ancillary_data.rp188vitc2UserBits);
+		getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188LTC,				&t.d->ancillary_data.rp188ltcTimecode,	&t.d->ancillary_data.rp188ltcUserBits);
+		getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188HighFrameRate,	&t.d->ancillary_data.rp188hfrtcTimecode,	&t.d->ancillary_data.rp188hfrtcUserBits);
 
-		getHDRMetadataFromFrame(videoFrame, &t.hdr_metadata);
+		getHDRMetadataFromFrame(videoFrame, &t.d->hdr_metadata);
 
 		if (audioPacket) {
 			const int channels = 2;
@@ -381,7 +381,7 @@ HRESULT DeckLinkInputDevice::VideoInputFrameArrived(IDeckLinkVideoInputFrame *vi
 			void *data = nullptr;
 			audioPacket->GetBytes(&data);
 			if (data && bytes > 0) {
-				t.audio = QByteArray((char const *)data, bytes);
+				t.d->audio = QByteArray((char const *)data, bytes);
 			}
 		}
 
@@ -392,7 +392,7 @@ HRESULT DeckLinkInputDevice::VideoInputFrameArrived(IDeckLinkVideoInputFrame *vi
 			BMDPixelFormat pixfmt = videoFrame->GetPixelFormat();
 			uint8_t const *bytes = nullptr;
 			if (w > 0 && h > 0 && videoFrame->GetBytes((void **)&bytes) == S_OK && bytes) {
-				t.image = DeckLinkCapture::createImage(w, h, pixfmt, bytes, stride * h);
+				t.d->image = DeckLinkCapture::createImage(w, h, pixfmt, bytes, stride * h);
 			}
 		}
 

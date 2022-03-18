@@ -34,9 +34,9 @@ void FrameProcessThread::run()
 			std::unique_lock lock(m->mutex);
 			if (m->interrupted) break;
 			for (size_t i = 0; i < m->requested_frames.size(); i++) {
-				if (m->requested_frames[i]->state == CaptureFrame::Idle) {
+				if (m->requested_frames[i]->d->state == CaptureFrame::Idle) {
 					frame = m->requested_frames[i];
-					frame->state = CaptureFrame::Busy;
+					frame->d->state = CaptureFrame::Busy;
 					break;
 				}
 			}
@@ -45,15 +45,15 @@ void FrameProcessThread::run()
 			}
 		}
 		if (frame) {
-			frame->image_for_view = ImageUtil::qimage(frame->image).scaled(m->scaled_size, Qt::IgnoreAspectRatio, Qt::FastTransformation);
-			frame->state = CaptureFrame::Ready;
+			frame->d->image_for_view = ImageUtil::qimage(frame->d->image).scaled(m->scaled_size, Qt::IgnoreAspectRatio, Qt::FastTransformation);
+			frame->d->state = CaptureFrame::Ready;
 		}
 
 		std::deque<std::shared_ptr<CaptureFrame>> results;
 		{
 			std::unique_lock lock(m->mutex);
 			while (!m->requested_frames.empty()) {
-				if (m->requested_frames.front()->state != CaptureFrame::Ready) break;
+				if (m->requested_frames.front()->d->state != CaptureFrame::Ready) break;
 				frame = m->requested_frames.front();
 				m->requested_frames.pop_front();
 				results.push_back(frame);

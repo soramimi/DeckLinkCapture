@@ -13,24 +13,31 @@ public:
 		Busy,
 		Ready,
 	};
-	State state = Idle;
-	Image image;
-	QByteArray audio;
-	QImage image_for_view;
-	AncillaryDataStruct ancillary_data = {};
-	HDRMetadataStruct hdr_metadata = {};
-	bool signal_valid = false;
+	struct Data {
+		State state = Idle;
+		Image image;
+		QByteArray audio;
+		QImage image_for_view;
+		AncillaryDataStruct ancillary_data = {};
+		HDRMetadataStruct hdr_metadata = {};
+		bool signal_valid = false;
+	};
+	std::shared_ptr<Data> d;
+	CaptureFrame()
+		: d(std::make_shared<Data>())
+	{
+	}
 	operator bool () const
 	{
-		return signal_valid && image;
+		return d->signal_valid && d->image;
 	}
 	int width() const
 	{
-		return image ? image.width() : 0;
+		return d->image.width();
 	}
 	int height() const
 	{
-		return image ? image.height() : 0;
+		return d->image.height();
 	}
 };
 
