@@ -18,7 +18,7 @@ QImage ImageUtil::qimage(const Image &image)
 		case Image::Format::YUYV8:
 		case Image::Format::RGB8:
 			newimage = QImage(w, h, QImage::Format_RGB888);
-			srcimage = image.convertToFormat(Image::Format::RGB8);
+			srcimage = image.convertToFormat(Image::Format::YUYV8).convertToFormat(Image::Format::RGB8);
 			break;
 		case Image::Format::UINT8:
 			newimage = QImage(w, h, QImage::Format_Grayscale8);

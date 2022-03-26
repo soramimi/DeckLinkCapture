@@ -1,9 +1,9 @@
 #ifndef IMAGE_H
 #define IMAGE_H
 
-#include <stdlib.h>
-#include <string.h>
-#include <stdint.h>
+#include <cstdlib>
+#include <cstring>
+#include <cstdint>
 #include <utility>
 #include <atomic>
 
@@ -92,9 +92,7 @@ private:
 		}
 	}
 public:
-	Image()
-	{
-	}
+	Image() = default;
 	Image(int w, int h, Format format)
 	{
 		create(w, h, format);

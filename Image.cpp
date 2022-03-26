@@ -1,11 +1,18 @@
 #include "Image.h"
-#include <stdint.h>
+#include <cstdint>
 #include <algorithm>
 
 static inline uint8_t clamp_uint8(int v)
 {
 	return v < 0 ? 0 : (v > 255 ? 255 : v);
 }
+
+static inline uint8_t gray(int r, int g, int b)
+{
+	return (r * 306 + g * 601 + b * 117) / 1024;
+}
+
+
 
 Image Image::convertToFormat(Image::Format dformat) const
 {
@@ -37,22 +44,39 @@ Image Image::convertToFormat(Image::Format dformat) const
 			for (int y = 0; y < h; y++) {
 				uint8_t const *s = scanLine(y);
 				uint8_t *d = newimage.scanLine(y);
-				uint8_t U, V;
+				uint8_t Y, U, V;
 				U = V = 0;
-				for (int x = 0; x < w; x++) {
-					uint8_t Y = s[1];
-					if ((x & 1) == 0) {
-						U = s[0];
-						V = s[2];
-					}
+				int w2 = w / 2;
+				for (int x = 0; x < w2; x++) {
+					int R, G, B;
+					U = s[0];
+					V = s[2];
+					Y = s[1];
+					R = ((Y - 16) * 1192 +                    (V - 128) * 1634) / 1024;
+					G = ((Y - 16) * 1192 - (U - 128) * 400  - (V - 128) * 832 ) / 1024;
+					B = ((Y - 16) * 1192 + (U - 128) * 2065                   ) / 1024;
+					d[0] = clamp_uint8(R);
+					d[1] = clamp_uint8(G);
+					d[2] = clamp_uint8(B);
+					Y = s[3];
+					R = ((Y - 16) * 1192 +                    (V - 128) * 1634) / 1024;
+					G = ((Y - 16) * 1192 - (U - 128) * 400  - (V - 128) * 832 ) / 1024;
+					B = ((Y - 16) * 1192 + (U - 128) * 2065                   ) / 1024;
+					d[3] = clamp_uint8(R);
+					d[4] = clamp_uint8(G);
+					d[5] = clamp_uint8(B);
+					s += 4;
+					d += 6;
+				}
+				if (w & 1) {
+					int U = s[0];
+					int Y = s[1];
 					int R = ((Y - 16) * 1192 +                    (V - 128) * 1634) / 1024;
 					int G = ((Y - 16) * 1192 - (U - 128) * 400  - (V - 128) * 832 ) / 1024;
 					int B = ((Y - 16) * 1192 + (U - 128) * 2065                   ) / 1024;
 					d[0] = clamp_uint8(R);
 					d[1] = clamp_uint8(G);
 					d[2] = clamp_uint8(B);
-					s += 2;
-					d += 3;
 				}
 			}
 			return newimage;
@@ -62,22 +86,39 @@ Image Image::convertToFormat(Image::Format dformat) const
 			for (int y = 0; y < h; y++) {
 				uint8_t const *s = scanLine(y);
 				uint8_t *d = newimage.scanLine(y);
-				uint8_t U, V;
+				uint8_t Y, U, V;
 				U = V = 0;
-				for (int x = 0; x < w; x++) {
-					uint8_t Y = s[0];
-					if ((x & 1) == 0) {
-						U = s[1];
-						V = s[3];
-					}
+				int w2 = w / 2;
+				for (int x = 0; x < w2; x++) {
+					int R, G, B;
+					U = s[1];
+					V = s[3];
+					Y = s[0];
+					R = ((Y - 16) * 1192 +                    (V - 128) * 1634) / 1024;
+					G = ((Y - 16) * 1192 - (U - 128) * 400  - (V - 128) * 832 ) / 1024;
+					B = ((Y - 16) * 1192 + (U - 128) * 2065                   ) / 1024;
+					d[0] = clamp_uint8(R);
+					d[1] = clamp_uint8(G);
+					d[2] = clamp_uint8(B);
+					Y = s[2];
+					R = ((Y - 16) * 1192 +                    (V - 128) * 1634) / 1024;
+					G = ((Y - 16) * 1192 - (U - 128) * 400  - (V - 128) * 832 ) / 1024;
+					B = ((Y - 16) * 1192 + (U - 128) * 2065                   ) / 1024;
+					d[3] = clamp_uint8(R);
+					d[4] = clamp_uint8(G);
+					d[5] = clamp_uint8(B);
+					s += 4;
+					d += 6;
+				}
+				if (w & 1) {
+					int U = s[1];
+					int Y = s[0];
 					int R = ((Y - 16) * 1192 +                    (V - 128) * 1634) / 1024;
 					int G = ((Y - 16) * 1192 - (U - 128) * 400  - (V - 128) * 832 ) / 1024;
 					int B = ((Y - 16) * 1192 + (U - 128) * 2065                   ) / 1024;
 					d[0] = clamp_uint8(R);
 					d[1] = clamp_uint8(G);
 					d[2] = clamp_uint8(B);
-					s += 2;
-					d += 3;
 				}
 			}
 			return newimage;
@@ -106,7 +147,7 @@ Image Image::convertToFormat(Image::Format dformat) const
 					int R = s[0];
 					int G = s[1];
 					int B = s[2];
-					*d++ = (263 * R + 516 * G + 100 * B) / 1024 + 16;
+					*d++ = gray(R, G, B);
 					s += 3;
 				}
 			}
@@ -117,9 +158,32 @@ Image Image::convertToFormat(Image::Format dformat) const
 			for (int y = 0; y < h; y++) {
 				uint8_t const *s = scanLine(y);
 				uint8_t *d = newimage.scanLine(y);
-				for (int x = 0; x < w; x++) {
-					*d++ = s[1];
-					s += 2;
+				uint8_t Y, U, V;
+				U = V = 0;
+				int w2 = w / 2;
+				for (int x = 0; x < w2; x++) {
+					int R, G, B;
+					U = s[0];
+					V = s[2];
+					Y = s[1];
+					R = clamp_uint8(((Y - 16) * 1192 +                    (V - 128) * 1634) / 1024);
+					G = clamp_uint8(((Y - 16) * 1192 - (U - 128) * 400  - (V - 128) * 832 ) / 1024);
+					B = clamp_uint8(((Y - 16) * 1192 + (U - 128) * 2065                   ) / 1024);
+					*d++ = gray(R, G, B);
+					Y = s[3];
+					R = clamp_uint8(((Y - 16) * 1192 +                    (V - 128) * 1634) / 1024);
+					G = clamp_uint8(((Y - 16) * 1192 - (U - 128) * 400  - (V - 128) * 832 ) / 1024);
+					B = clamp_uint8(((Y - 16) * 1192 + (U - 128) * 2065                   ) / 1024);
+					*d++ = gray(R, G, B);
+					s += 4;
+				}
+				if (w & 1) {
+					U = s[0];
+					Y = s[1];
+					int R = clamp_uint8(((Y - 16) * 1192 +                    (V - 128) * 1634) / 1024);
+					int G = clamp_uint8(((Y - 16) * 1192 - (U - 128) * 400  - (V - 128) * 832 ) / 1024);
+					int B = clamp_uint8(((Y - 16) * 1192 + (U - 128) * 2065                   ) / 1024);
+					*d = gray(R, G, B);
 				}
 			}
 			return newimage;
@@ -129,9 +193,32 @@ Image Image::convertToFormat(Image::Format dformat) const
 			for (int y = 0; y < h; y++) {
 				uint8_t const *s = scanLine(y);
 				uint8_t *d = newimage.scanLine(y);
-				for (int x = 0; x < w; x++) {
-					*d++ = s[0];
-					s += 2;
+				uint8_t Y, U, V;
+				U = V = 0;
+				int w2 = w / 2;
+				for (int x = 0; x < w2; x++) {
+					int R, G, B;
+					U = s[1];
+					V = s[3];
+					Y = s[0];
+					R = clamp_uint8(((Y - 16) * 1192 +                    (V - 128) * 1634) / 1024);
+					G = clamp_uint8(((Y - 16) * 1192 - (U - 128) * 400  - (V - 128) * 832 ) / 1024);
+					B = clamp_uint8(((Y - 16) * 1192 + (U - 128) * 2065                   ) / 1024);
+					*d++ = gray(R, G, B);
+					Y = s[2];
+					R = clamp_uint8(((Y - 16) * 1192 +                    (V - 128) * 1634) / 1024);
+					G = clamp_uint8(((Y - 16) * 1192 - (U - 128) * 400  - (V - 128) * 832 ) / 1024);
+					B = clamp_uint8(((Y - 16) * 1192 + (U - 128) * 2065                   ) / 1024);
+					*d++ = gray(R, G, B);
+					s += 4;
+				}
+				if (w & 1) {
+					U = s[1];
+					Y = s[0];
+					int R = clamp_uint8(((Y - 16) * 1192 +                    (V - 128) * 1634) / 1024);
+					int G = clamp_uint8(((Y - 16) * 1192 - (U - 128) * 400  - (V - 128) * 832 ) / 1024);
+					int B = clamp_uint8(((Y - 16) * 1192 + (U - 128) * 2065                   ) / 1024);
+					*d = gray(R, G, B);
 				}
 			}
 			return newimage;
@@ -174,7 +261,7 @@ Image Image::convertToFormat(Image::Format dformat) const
 				uint8_t const *s = scanLine(y);
 				uint8_t *d = newimage.scanLine(y);
 				for (int x = 0; x < w; x++) {
-					d[1] = *s++;
+					d[1] = (*s++) * 225 / 256 + 16;
 					d[0] = 128;
 					d += 2;
 				}
@@ -219,7 +306,7 @@ Image Image::convertToFormat(Image::Format dformat) const
 				uint8_t const *s = scanLine(y);
 				uint8_t *d = newimage.scanLine(y);
 				for (int x = 0; x < w; x++) {
-					d[0] = *s++;
+					d[0] = (*s++) * 225 / 256 + 16;
 					d[1] = 128;
 					d += 2;
 				}
