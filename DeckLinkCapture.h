@@ -56,6 +56,7 @@ private:
 //	void videoFrameArrived(AncillaryDataStruct const *ancillary_data, HDRMetadataStruct const *hdr_metadata, bool signal_valid);
 	void haltStreams();
 	void criticalError(QString const &title, QString const &message);
+	void clearCriticalError();
 
 //	BMDPixelFormat pixelFormat() const;
 	void setPixelFormat(BMDPixelFormat pixel_format);

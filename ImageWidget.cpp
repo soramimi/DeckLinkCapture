@@ -16,7 +16,10 @@ struct ImageWidget::Private {
 	ViewMode view_mode = ViewMode::SmallLQ;
 	qint64 recording_pregress_current = 0;
 	qint64 recording_pregress_length = 0;
-	QFont font;
+	QFont large_font;
+	QFont error_font;
+	QString critical_error_title;
+	QString critical_error_message;
 };
 
 ImageWidget::ImageWidget(QWidget *parent)
@@ -24,8 +27,9 @@ ImageWidget::ImageWidget(QWidget *parent)
 	, m(new Private)
 {
 	startTimer(1000);
-	m->font = QFont("Monospace", 24);
-	m->font.setStyleHint(QFont::TypeWriter);
+	m->large_font = QFont("Monospace", 24);
+	m->large_font.setStyleHint(QFont::TypeWriter);
+	m->error_font = QFont("Sans", 12);
 }
 
 ImageWidget::~ImageWidget()
@@ -109,11 +113,25 @@ void ImageWidget::paintEvent(QPaintEvent *)
 		pr.restore();
 	}
 
+	int y = 0;
+	auto DrawText = [](QPainter *p, int y, QString const &s){
+		auto fm = p->fontMetrics();
+		auto sz = fm.size(Qt::TextSingleLine, s);
+		p->fillRect(0, y, sz.width(), sz.height(), QColor(64, 64, 64, 192));
+		p->drawText(0, y + fm.ascent(), s);
+		return sz.height();
+	};
+
+	if (!m->critical_error_message.isEmpty()) {
+		pr.setFont(m->error_font);
+		pr.setPen(QColor(255, 128, 0));
+		y += DrawText(&pr, y, m->critical_error_title);
+		y += DrawText(&pr, y, m->critical_error_message);
+	}
+
 	if (m->recording_pregress_current > 0 || m->recording_pregress_length > 0) {
-		pr.setFont(m->font);
+		pr.setFont(m->large_font);
 		pr.setPen(Qt::white);
-		auto fm = pr.fontMetrics();
-		int y = fm.ascent();
 		auto TimeString = [](qint64 secs){
 			auto h = secs;
 			int s = h % 60;
@@ -123,13 +141,20 @@ void ImageWidget::paintEvent(QPaintEvent *)
 			return QString::asprintf("%02d:%02d:%02d", h, m, s);
 		};
 		QString s = QString("REC ") + TimeString(m->recording_pregress_current) + " / " + TimeString(m->recording_pregress_length);
-		pr.drawText(0, y, s);
+		y += DrawText(&pr, y, s);
 	}
 }
 
 void ImageWidget::setImage(QImage const &image)
 {
 	m->scaled_image = image;
+	update();
+}
+
+void ImageWidget::setCriticalError(const QString &title, const QString &message)
+{
+	m->critical_error_title = title;
+	m->critical_error_message = message;
 	update();
 }
 

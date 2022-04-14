@@ -628,7 +628,9 @@ void MainWindow::haltStreams()
 
 void MainWindow::criticalError(const QString &title, const QString &message)
 {
-	QMessageBox::critical(this, title, message);
+	ui->image_widget->setCriticalError(title, message);
+	ui->image_widget_2->setCriticalError(title, message);
+//	QMessageBox::critical(this, title, message);
 }
 
 void MainWindow::on_listWidget_input_device_currentRowChanged(int currentRow)
@@ -764,13 +766,19 @@ void MainWindow::toggleRecord()
 void MainWindow::onInterval1s()
 {
 	if (!isValidSignal()) {
-		switch (m->selected_input_connection) {
-		case bmdVideoConnectionSDI:
-			changeInputConnection(bmdVideoConnectionHDMI, false);
-			break;
-		case bmdVideoConnectionHDMI:
-			changeInputConnection(bmdVideoConnectionSDI, false);
-			break;
+		int n = ui->widget_ui->listWidget_input_connection()->count();
+		int i = ui->widget_ui->listWidget_input_connection()->currentRow();
+		if (i < 0) {
+			i = 0;
+		} else if (n > 1) {
+			i = (i + 1) % n;
+		} else {
+			return;
+		}
+		auto item = ui->widget_ui->listWidget_input_connection()->item(i);
+		if (item) {
+			BMDVideoConnection conn = (BMDVideoConnection)item->data(InputConnectionRole).toLongLong();
+			changeInputConnection(conn, false);
 		}
 	}
 }

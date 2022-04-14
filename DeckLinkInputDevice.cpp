@@ -226,6 +226,8 @@ BMDVideoConnection DeckLinkInputDevice::getVideoConnections() const
 
 bool DeckLinkInputDevice::startCapture(BMDDisplayMode displayMode, IDeckLinkScreenPreviewCallback *screenPreviewCallback, bool applyDetectedInputMode, bool input_audio)
 {
+	m->capture->clearCriticalError();
+
 	HRESULT result;
 	BMDVideoInputFlags video_input_flags = bmdVideoInputFlagDefault;
 

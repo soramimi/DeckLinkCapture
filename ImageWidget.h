@@ -29,6 +29,7 @@ public:
 	void updateRecordingProgress(qint64 current, qint64 length);
 	QSize scaledSize(const Image &image);
 	void setImage(const QImage &image);
+	void setCriticalError(const QString &title, const QString &message);
 };
 
 #endif // IMAGEWIDGET_H

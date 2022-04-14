@@ -82,6 +82,11 @@ void DeckLinkCapture::criticalError(const QString &title, const QString &message
 	m->mainwindow->criticalError(title, message);
 }
 
+void DeckLinkCapture::clearCriticalError()
+{
+	criticalError({}, {});
+}
+
 void DeckLinkCapture::customEvent(QEvent *event)
 {
 	if (event->type() == kAddDeviceEvent) {
