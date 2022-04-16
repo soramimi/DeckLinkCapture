@@ -1,10 +1,11 @@
 #ifndef CAPTUREFRAME_H
 #define CAPTUREFRAME_H
 
+#include "AncillaryDataTable.h"
+#include "DeckLinkAPI.h"
 #include "Image.h"
 #include <QImage>
 #include <QMetaType>
-#include "AncillaryDataTable.h"
 #include <memory>
 
 class CaptureFrame {
@@ -20,6 +21,7 @@ public:
 		QByteArray audio;
 		QImage image_for_view;
 		AncillaryDataStruct ancillary_data = {};
+		BMDPixelFormat pixfmt = bmdFormatUnspecified;
 		HDRMetadataStruct hdr_metadata = {};
 		bool signal_valid = false;
 	};

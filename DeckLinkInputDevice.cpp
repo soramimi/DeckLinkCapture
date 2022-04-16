@@ -388,20 +388,18 @@ HRESULT DeckLinkInputDevice::VideoInputFrameArrived(IDeckLinkVideoInputFrame *vi
 		}
 
 		if (videoFrame) {
+			t.d->pixfmt = videoFrame->GetPixelFormat();
 			int w = videoFrame->GetWidth();
 			int h = videoFrame->GetHeight();
 			int stride = videoFrame->GetRowBytes();
-			BMDPixelFormat pixfmt = videoFrame->GetPixelFormat();
 			uint8_t const *bytes = nullptr;
 			if (w > 0 && h > 0 && videoFrame->GetBytes((void **)&bytes) == S_OK && bytes) {
-				t.d->image = DeckLinkCapture::createImage(w, h, pixfmt, bytes, stride * h);
+				t.d->image = DeckLinkCapture::createImage(w, h, t.d->pixfmt, bytes, stride * h);
 			}
 		}
 
 		emit m->capture->newFrame(t);
 	}
-
-
 
 	return S_OK;
 }

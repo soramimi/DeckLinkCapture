@@ -66,6 +66,8 @@ struct MainWindow::Private {
 	ProfileCallback *profile_callback = nullptr;
 	BMDDisplayMode display_mode = bmdModeHD1080i5994;
 	BMDFieldDominance field_dominance = bmdUnknownFieldDominance;
+	QString selected_device_name;
+	QString selected_input_connection_text;
 
 	int video_width = 1920;
 	int video_height = 1080;
@@ -95,6 +97,9 @@ struct MainWindow::Private {
 	FrameProcessThread frame_process_thread;
 
 	std::deque<CaptureFrame> prepared_frames;
+
+	BMDPixelFormat pixfmt = bmdFormatUnspecified;
+	QString pixfmt_text;
 
 	bool closing = false;
 };
@@ -278,10 +283,17 @@ void MainWindow::closeEvent(QCloseEvent *)
 	m->decklink_discovery->disable();
 }
 
+void MainWindow::updateStatusLabel()
+{
+	QString s;
+	s = m->selected_device_name + " / " + m->selected_input_connection_text;
+	s = s + " / " + (m->valid_signal ? m->pixfmt_text : tr("No valid input signal"));
+	setStatusBarText(s);
+}
+
 void MainWindow::setSignalStatus(bool valid)
 {
 	m->valid_signal = valid;
-	setStatusBarText(valid ? QString() : tr("No valid input signal"));
 }
 
 bool MainWindow::isValidSignal() const
@@ -551,6 +563,8 @@ void MainWindow::changeInputDevice(int selectedDeviceIndex)
 
 			deckLinkAttributes->Release();
 		}
+
+		m->selected_device_name = m->selected_device->getDeviceName();
 	}
 
 	changeInputConnection(m->selected_input_connection, false);
@@ -575,10 +589,27 @@ void MainWindow::changeInputConnection(BMDVideoConnection conn, bool errorcheck)
 
 	m->selected_input_connection = conn;
 
+	{
+		QString s;
+		switch (m->selected_input_connection) {
+		case bmdVideoConnectionSDI:         s = "SDI"; break;
+		case bmdVideoConnectionHDMI:        s = "HDMI"; break;
+		case bmdVideoConnectionOpticalSDI:  s = "OpticalSDI"; break;
+		case bmdVideoConnectionComponent:   s = "Component"; break;
+		case bmdVideoConnectionComposite:   s = "Composite"; break;
+		case bmdVideoConnectionSVideo:      s = "SVideo"; break;
+		default:
+			s = "Unspecified";
+			break;
+		}
+		m->selected_input_connection_text = s;
+	}
+
 	if (m->selected_device) {
 		HRESULT result = m->selected_device->getDeckLinkConfiguration()->SetInt(bmdDeckLinkConfigVideoInputConnection, (int64_t)m->selected_input_connection);
 		if (errorcheck && result != S_OK) {
-			QMessageBox::critical(this, "Input connection error", "Unable to set video input connector");
+			criticalError("Input connection error", "Unable to set video input connector");
+//			QMessageBox::critical(this, "Input connection error", "Unable to set video input connector");
 		}
 
 		result = m->selected_device->getDeckLinkConfiguration()->SetInt(bmdDeckLinkConfigAudioInputConnection, bmdAudioConnectionEmbedded);
@@ -610,14 +641,6 @@ void MainWindow::changeDisplayMode(BMDDisplayMode dispmode, Rational const &fps)
 		}
 	}
 }
-
-//void MainWindow::videoFrameArrived(const AncillaryDataStruct *ancillary_data, const HDRMetadataStruct *hdr_metadata, bool signal_valid)
-//{
-//	(void)ancillary_data;
-//	(void)hdr_metadata;
-
-//	setSignalStatus(signal_valid);
-//}
 
 void MainWindow::haltStreams()
 {
@@ -694,7 +717,7 @@ void MainWindow::ready(CaptureFrame const &frame)
 
 void MainWindow::newFrame(CaptureFrame const &frame)
 {
-	setSignalStatus(frame.d->signal_valid);
+	m->valid_signal = frame.d->signal_valid;
 
 	if (frame) {
 		m->frame_rate_counter_.increment();
@@ -704,6 +727,29 @@ void MainWindow::newFrame(CaptureFrame const &frame)
 
 		if (m->video_encoder) {
 			m->video_encoder->put_frame(frame);
+		}
+
+		if (m->pixfmt != frame.d->pixfmt) {
+			m->pixfmt = frame.d->pixfmt;
+			BMDPixelFormat pixfmt = frame.d->pixfmt;
+			QString s;
+			switch (pixfmt) {
+			case bmdFormat8BitYUV:     s = "8BitYUV"; break;
+			case bmdFormat10BitYUV:    s = "10BitYUV"; break;
+			case bmdFormat8BitARGB:    s = "8BitARGB"; break;
+			case bmdFormat8BitBGRA:    s = "8BitBGRA"; break;
+			case bmdFormat10BitRGB:    s = "10BitRGB"; break;
+			case bmdFormat12BitRGB:    s = "12BitRGB"; break;
+			case bmdFormat12BitRGBLE:  s = "12BitRGBLE"; break;
+			case bmdFormat10BitRGBXLE: s = "10BitRGBXLE"; break;
+			case bmdFormat10BitRGBX:   s = "10BitRGBX"; break;
+			case bmdFormatH265:        s = "H265"; break;
+			case bmdFormatDNxHR:       s = "DNxHR"; break;
+			default:
+				s = QString::asprintf("%c%c%c%c", char(pixfmt >> 24), char(pixfmt >> 16), char(pixfmt >> 8), char(pixfmt));
+				break;
+			}
+			m->pixfmt_text = s;
 		}
 	}
 
@@ -718,6 +764,8 @@ void MainWindow::newFrame(CaptureFrame const &frame)
 			currentImageWidget()->setImage(f.d->image_for_view);
 		}
 	}
+
+	updateStatusLabel();
 }
 
 bool MainWindow::isRecording() const

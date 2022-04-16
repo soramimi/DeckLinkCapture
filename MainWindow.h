@@ -55,6 +55,7 @@ private:
 	bool changeAudioOutputDevice(const QString &name, bool save);
 	void setFullScreen(bool f);
 	ImageWidget *currentImageWidget();
+	void updateStatusLabel();
 protected:
 	void timerEvent(QTimerEvent *event) override;
 	void mouseDoubleClickEvent(QMouseEvent *event) override;
