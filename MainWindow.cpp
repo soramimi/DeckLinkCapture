@@ -797,10 +797,12 @@ void MainWindow::toggleRecord()
 		m->recording_start_time = QDateTime::currentDateTime();
 		VideoEncoder::VideoOption vopt;
 		VideoEncoder::AudioOption aopt;
+		vopt.active = true;
+		aopt.active = true;
 		vopt.src_w = m->video_width;
 		vopt.src_h = m->video_height;
 		vopt.fps = m->fps;
-		m->video_encoder = std::make_shared<VideoEncoder>();
+		m->video_encoder = std::make_shared<VideoEncoder>(VideoEncoder::HEVC_NVENC);
 #ifdef Q_OS_WIN
 		m->video_encoder->open(m->recording_file_path.toStdString(), vopt, aopt);
 #else
@@ -843,7 +845,9 @@ void MainWindow::timerEvent(QTimerEvent *event)
 		onInterval1s();
 	}
 
-	if (m->hide_cursor_count > 0) {
+	if (QApplication::activeModalWidget()) {
+		setCursor(Qt::ArrowCursor);
+	} else if (m->hide_cursor_count > 0) {
 		m->hide_cursor_count--;
 		if (m->hide_cursor_count == 0) {
 			setCursor(global->invisible_cursor);

@@ -8,6 +8,7 @@
 #include <memory>
 #include <vector>
 #include <QByteArray>
+#include <functional>
 
 struct AVCodecContext;
 struct AVFormatContext;
@@ -22,6 +23,10 @@ public:
 	class AudioFrame {
 	public:
 		QByteArray samples;
+		operator bool () const
+		{
+			return !samples.isEmpty();
+		}
 	};
 	class VideoFrame {
 	public:
@@ -43,10 +48,22 @@ private:
 	struct Private;
 	Private *m;
 public:
+	enum Format {
+		MPEG4,
+		H264_NVENC,
+		HEVC_NVENC,
+		LIBSVTAV1,
+	};
 	struct AudioOption {
+		bool active = false;
+		bool drop_if_overflow = true;
+		std::function<void (int16_t *samples, int frame_size, int nb_channels)> get_audio_frame;
 		int sample_rate = 48000;
 	};
 	struct VideoOption {
+		bool active = false;
+		bool drop_if_overflow = true;
+		std::function<void (VideoFrame *out)> get_video_frame;
 		int src_w = 1920;
 		int src_h = 1080;
 		int dst_w = 1920;
@@ -64,17 +81,18 @@ private:
 	bool open_video(AVCodecContext *cc, const AVCodec *codec, AVStream *st, const VideoOption &opt);
 	bool next_video_frame(AVCodecContext *cc, AVFormatContext *fc, AVStream *st, bool flush);
 	void close_video();
-	bool is_recording() const;
 	void run();
 	bool put_video_frame(const VideoFrame &img);
 	bool put_audio_frame(const AudioFrame &pcm);
 public:
-	VideoEncoder();
+	VideoEncoder(Format format);
 	virtual ~VideoEncoder();
 	void request_interruption();
 	void open(std::string const &filepath, VideoOption const &vopt, AudioOption const &aopt);
 	void close();
 	void put_frame(CaptureFrame const &frame);
+	void default_get_video_frame(VideoFrame *out);
+	void default_get_audio_frame(int16_t *samples, int frame_size, int nb_channels);
 };
 
 #endif // VIDEOENCODER_H

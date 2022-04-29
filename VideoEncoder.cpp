@@ -10,6 +10,8 @@
 #include <thread>
 #include "CaptureFrame.h"
 #include "includeffmpeg.h"
+#include <condition_variable>
+#include <libavformat/internal.h>
 
 namespace {
 
@@ -61,10 +63,17 @@ public:
 };
 
 struct VideoEncoder::Private {
+	std::mutex mutex;
+	std::condition_variable cond;
+
+	Format format = MPEG4;
+
 	std::string filepath;
 	VideoEncoder::VideoOption vopt;
 	VideoEncoder::AudioOption aopt;
 
+	bool is_audio_recording = false;
+	bool is_video_recording = false;
 	bool audio_is_eof = false;
 	bool video_is_eof = false;
 
@@ -94,18 +103,18 @@ struct VideoEncoder::Private {
 	AVStream *audio_st = nullptr;
 	AVStream *video_st = nullptr;
 
-	std::mutex mutex;
-	std::deque<VideoFrame> video_frames;
-	std::deque<AudioFrame> audio_frames;
+	std::deque<VideoFrame> input_video_frames;
+	std::deque<AudioFrame> input_audio_frames;
 
 	std::thread thread;
 	int ret = 0;
 	bool interrupted = false;
 };
 
-VideoEncoder::VideoEncoder()
+VideoEncoder::VideoEncoder(Format format)
 	: m(new Private)
 {
+	m->format = format;
 }
 
 VideoEncoder::~VideoEncoder()
@@ -123,12 +132,12 @@ bool VideoEncoder::is_interruption_requested() const
 	return m->interrupted;
 }
 
-bool VideoEncoder::get_audio_frame(int16_t *samples, int frame_size, int nb_channels)
+void VideoEncoder::default_get_audio_frame(int16_t *samples, int frame_size, int nb_channels)
 {
 	while (frame_size > 0) {
 		std::lock_guard lock(m->mutex);
-		if (m->audio_frames.empty()) break;
-		AudioFrame *frame = &m->audio_frames.front();
+		if (m->input_audio_frames.empty()) break;
+		AudioFrame *frame = &m->input_audio_frames.front();
 		int n = frame->samples.size() / nb_channels / sizeof(int16_t);
 		n = std::min(n, frame_size);
 		frame_size -= n;
@@ -136,7 +145,7 @@ bool VideoEncoder::get_audio_frame(int16_t *samples, int frame_size, int nb_chan
 		memcpy(samples, frame->samples.data(), n);
 		samples += n / sizeof(int16_t);
 		if (frame->samples.size() < n + nb_channels * sizeof(int16_t)) {
-			m->audio_frames.pop_front();
+			m->input_audio_frames.pop_front();
 		} else {
 			frame->samples.remove(0, n);
 		}
@@ -144,6 +153,16 @@ bool VideoEncoder::get_audio_frame(int16_t *samples, int frame_size, int nb_chan
 	int n = frame_size * nb_channels;
 	for (int i = 0; i < n; i++) {
 		samples[i] = 0;
+	}
+}
+
+bool VideoEncoder::get_audio_frame(int16_t *samples, int frame_size, int nb_channels)
+{
+	AudioFrame frame;
+	if (m->aopt.get_audio_frame) {
+		m->aopt.get_audio_frame(samples, frame_size, nb_channels);
+	} else {
+		default_get_audio_frame(samples, frame_size, nb_channels);
 	}
 	return true;
 }
@@ -165,6 +184,8 @@ bool VideoEncoder::open_audio(AVCodecContext *cc, AVCodec const *codec, AVStream
 	if (m->ret < 0) {
 		return false;
 	}
+	m->ret = avcodec_parameters_from_context(cp, cc);
+
 	cp->frame_size = cc->frame_size;
 	m->src_nb_samples = cc->frame_size;
 	m->ret = av_samples_alloc_array_and_samples(&m->src_samples_data, &m->src_samples_linesize, cp->channels, m->src_nb_samples, AV_SAMPLE_FMT_S16, 0);
@@ -277,30 +298,41 @@ void VideoEncoder::close_audio()
 		avcodec_close(m->audio_codec_context);
 		avcodec_free_context(&m->audio_codec_context);
 	}
-	if (m->dst_samples_data != m->src_samples_data) {
-		av_free(m->dst_samples_data[0]);
-		av_free(m->dst_samples_data);
+	if (m->dst_samples_data) {
+		if (m->dst_samples_data != m->src_samples_data) {
+			av_free(m->dst_samples_data[0]);
+			av_free(m->dst_samples_data);
+		}
 	}
-	av_free(m->src_samples_data[0]);
-	av_free(m->src_samples_data);
+	if (m->src_samples_data) {
+		av_free(m->src_samples_data[0]);
+		av_free(m->src_samples_data);
+	}
 	av_frame_free(&m->audio_frame);
+}
+
+void VideoEncoder::default_get_video_frame(VideoFrame *out)
+{
+	std::lock_guard lock(m->mutex);
+	if (!m->input_video_frames.empty()) {
+		std::swap(*out, m->input_video_frames.front());
+		m->input_video_frames.pop_front();
+	}
 }
 
 bool VideoEncoder::get_video_frame(MyPicture *pict)
 {
-	VideoFrame img;
-	{
-		std::lock_guard lock(m->mutex);
-		if (!m->video_frames.empty()) {
-			std::swap(img, m->video_frames.front());
-			m->video_frames.pop_front();
-		}
+	VideoFrame frame;
+	if (m->vopt.get_video_frame) {
+		m->vopt.get_video_frame(&frame);
+	} else {
+		default_get_video_frame(&frame);
 	}
-	if (img.width() != pict->width || img.height() != pict->height) return false;
+	if (frame.width() != pict->width || frame.height() != pict->height) return false;
 
-	img.image = img.image.convertToFormat(Image::Format::YUYV8);
+	frame.image = frame.image.convertToFormat(Image::Format::YUYV8);
 	uint8_t *p = pict->pointers[0];
-	memcpy(p, img.image.bits(), img.image.bytesPerLine() * img.height());
+	memcpy(p, frame.image.bits(), frame.image.bytesPerLine() * frame.height());
 
 	return true;
 }
@@ -315,6 +347,8 @@ bool VideoEncoder::open_video(AVCodecContext *cc, AVCodec const *codec, AVStream
 	if (m->ret < 0) {
 		return false;
 	}
+
+	m->ret = avcodec_parameters_from_context(st->codecpar, cc);
 
 	m->video_frame = av_frame_alloc();
 	if (!m->video_frame) {
@@ -383,6 +417,7 @@ bool VideoEncoder::next_video_frame(AVCodecContext *cc, AVFormatContext *fc, AVS
 		}
 	}
 	if (m->ret < 0) {
+		print_averror(m->ret);
 		exit(1);
 	}
 	m->video_pts = m->video_frame->pts;
@@ -401,58 +436,30 @@ void VideoEncoder::close_video()
 	av_frame_free(&m->video_frame);
 }
 
-bool VideoEncoder::is_recording() const
-{
-	return (m->video_st && !m->video_is_eof) || (m->audio_st && !m->audio_is_eof);
-}
-
 namespace {
-AVStream *add_stream(AVFormatContext *fc, AVCodecContext **cc, AVCodec const **codec, std::vector<std::string> const &codec_names, AVCodecID codec_id, VideoEncoder::AudioOption const &aopt, VideoEncoder::VideoOption const &vopt)
+AVStream *add_stream(AVFormatContext *fc, AVCodecContext **cc, AVCodec const *codec, VideoEncoder::AudioOption const &aopt, VideoEncoder::VideoOption const &vopt)
 {
 	AVCodecParameters *cp;
 	AVStream *st;
 
-	*codec = nullptr;
-
-	bool codec_name_used = false;
-	for (std::string const &cname : codec_names) {
-		*codec = avcodec_find_encoder_by_name(cname.c_str());
-		if (*codec) {
-			codec_name_used = true;
-			break;
-		}
-	}
-	if (!*codec) {
-		*codec = avcodec_find_encoder(codec_id);
-		if (!*codec) {
-			fprintf(stderr, "Could not find encoder for '%s'\n", avcodec_get_name(codec_id));
-			return nullptr;
-		}
-	}
-
-	if (!codec_names.empty() && !codec_name_used) {
-		fprintf(stderr, "warning: The codec with the specified name was not found. '%s' will be used instead.\n"
-				, (*codec)->name
-				);
-	}
-
-	st = avformat_new_stream(fc, *codec);
+	st = avformat_new_stream(fc, codec);
 	if (!st) {
 		fprintf(stderr, "Could not allocate stream\n");
 		return nullptr;
 	}
 
-	*cc = avcodec_alloc_context3(*codec);
+	*cc = avcodec_alloc_context3(codec);
 
 	st->id = fc->nb_streams - 1;
 	cp = st->codecpar;
-	switch ((*codec)->type) {
+	switch (codec->type) {
 	case AVMEDIA_TYPE_AUDIO:
 		(*cc)->channels = 2;
 		(*cc)->sample_rate = aopt.sample_rate;
 		(*cc)->bit_rate = 160000;
-		(*cc)->sample_fmt = (*codec)->sample_fmts ? (*codec)->sample_fmts[0] : AV_SAMPLE_FMT_FLTP;
+		(*cc)->sample_fmt = codec->sample_fmts ? codec->sample_fmts[0] : AV_SAMPLE_FMT_FLTP;
 		(*cc)->channel_layout = av_get_default_channel_layout((*cc)->channels);
+avcodec_parameters_from_context(cp, *cc);
 		break;
 	case AVMEDIA_TYPE_VIDEO:
 		(*cc)->width = vopt.dst_w;
@@ -464,11 +471,13 @@ AVStream *add_stream(AVFormatContext *fc, AVCodecContext **cc, AVCodec const **c
 
 		(*cc)->gop_size = 12;
 		(*cc)->field_order = AV_FIELD_PROGRESSIVE;
+#if 0
 		(*cc)->color_range = AVCOL_RANGE_MPEG;
 		(*cc)->color_primaries = AVCOL_PRI_BT709;
 		(*cc)->color_trc = AVCOL_TRC_BT709;
 		(*cc)->colorspace = AVCOL_SPC_BT709;
 		(*cc)->chroma_sample_location = AVCHROMA_LOC_LEFT;
+#endif
 		(*cc)->sample_aspect_ratio = {1, 1};
 
 		if ((*cc)->codec_id == AV_CODEC_ID_MPEG2VIDEO) {
@@ -486,8 +495,8 @@ AVStream *add_stream(AVFormatContext *fc, AVCodecContext **cc, AVCodec const **c
 		}
 		break;
 	}
-	avcodec_parameters_from_context(cp, *cc);
 	st->time_base = (*cc)->time_base;
+//	avcodec_parameters_from_context(cp, *cc);
 	return st;
 }
 }
@@ -500,18 +509,59 @@ void VideoEncoder::run()
 	AVCodec const *video_codec = nullptr;
 	double audio_time, video_time;
 
-	av_log_set_level(AV_LOG_WARNING);
+	av_log_set_level(AV_LOG_INFO);
 
-	std::string ext;
-	{
-		auto pos = m->filepath.find_last_of('.');
-		if (pos != std::string::npos) {
-			ext = m->filepath.substr(pos + 1);
+	std::string vcname;
+	std::string acname;
+
+	AVOutputFormat oformat;
+	switch (m->format) {
+	case MPEG4:
+		oformat = *av_guess_format("mp4", nullptr, nullptr);
+		oformat.video_codec = AV_CODEC_ID_MPEG4;
+		oformat.audio_codec = AV_CODEC_ID_AC3;
+		break;
+	case H264_NVENC:
+		oformat = *av_guess_format("mp4", nullptr, nullptr);
+		oformat.video_codec = AV_CODEC_ID_H264;
+		oformat.audio_codec = AV_CODEC_ID_AC3;
+		vcname = "h264_nvenc";
+		break;
+	case HEVC_NVENC:
+		oformat = *av_guess_format("mp4", nullptr, nullptr);
+		oformat.video_codec = AV_CODEC_ID_HEVC;
+		oformat.audio_codec = AV_CODEC_ID_AC3;
+		vcname = "hevc_nvenc";
+		break;
+	case LIBSVTAV1:
+		oformat = *av_guess_format(nullptr, nullptr, "video/x-matroska");
+		oformat.video_codec = AV_CODEC_ID_AV1;
+		oformat.audio_codec = AV_CODEC_ID_AC3;
+		vcname = "libsvtav1";
+		break;
+	}
+
+	oformat.flags |= AVFMT_TS_NONSTRICT;
+
+	if (m->vopt.active) {
+		if (!vcname.empty()) {
+			video_codec = avcodec_find_encoder_by_name(vcname.c_str());
+		}
+		if (!video_codec) {
+			video_codec = avcodec_find_encoder(oformat.video_codec);
 		}
 	}
-	AVOutputFormat oformat = *av_guess_format(ext.c_str(), m->filepath.c_str(), nullptr);
+
+	if (m->aopt.active) {
+		if (!acname.empty()) {
+			audio_codec = avcodec_find_encoder_by_name(acname.c_str());
+		}
+		if (!audio_codec) {
+			audio_codec = avcodec_find_encoder(oformat.audio_codec);
+		}
+	}
+
 	oformat.flags |= AVFMT_TS_NONSTRICT;
-//	oformat.video_codec = AV_CODEC_ID_MPEG4;
 
 	AVIOContext *io_context = nullptr;
 	if (!(oformat.flags & AVFMT_NOFILE)) {
@@ -523,18 +573,15 @@ void VideoEncoder::run()
 	if (!fc) {
 		return;
 	}
+	fc->flags |= AVFMT_GLOBALHEADER;
 	fc->pb = io_context;
 
 	fmt = fc->oformat;
 
 	m->video_st = nullptr;
 	m->audio_st = nullptr;
-	if (fmt->video_codec != AV_CODEC_ID_NONE) {
-		m->video_st = add_stream(fc, &m->video_codec_context, &video_codec, {"hevc_nvenc", "h264_nvenc"}, fmt->video_codec, m->aopt, m->vopt);
-	}
-	if (fmt->audio_codec != AV_CODEC_ID_NONE) {
-		m->audio_st = add_stream(fc, &m->audio_codec_context, &audio_codec, {}, fmt->audio_codec, m->aopt, m->vopt);
-	}
+	if (video_codec) m->video_st = add_stream(fc, &m->video_codec_context, video_codec, m->aopt, m->vopt);
+	if (audio_codec) m->audio_st = add_stream(fc, &m->audio_codec_context, audio_codec, m->aopt, m->vopt);
 
 	if (m->video_st && !open_video(m->video_codec_context, video_codec, m->video_st, m->vopt)) return;
 	if (m->audio_st && !open_audio(m->audio_codec_context, audio_codec, m->audio_st, m->aopt)) return;
@@ -546,12 +593,8 @@ void VideoEncoder::run()
 	}
 
 	bool flush = false;
-	while (is_recording()) {
-		if (is_interruption_requested()) {
-			flush = true;
-			break;
-		}
-
+	while ((m->is_video_recording && !m->video_is_eof) || (m->is_audio_recording && !m->audio_is_eof)) {
+//		audio_time = (m->audio_st && !m->audio_is_eof) ? m->audio_pts * av_q2d(m->audio_codec_context->time_base) : INFINITY;
 		audio_time = (m->audio_st && !m->audio_is_eof) ? m->audio_pts * av_q2d(m->audio_st->time_base) : INFINITY;
 		video_time = (m->video_st && !m->video_is_eof) ? m->video_pts * av_q2d(m->video_codec_context->time_base) : INFINITY;
 
@@ -562,7 +605,8 @@ void VideoEncoder::run()
 			f = next_video_frame(m->video_codec_context, fc, m->video_st, flush);
 		}
 		if (!f) {
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			std::unique_lock lock(m->mutex);
+			m->cond.wait(lock);
 		}
 	}
 
@@ -584,6 +628,8 @@ void VideoEncoder::open(std::string const &filepath, const VideoOption &vopt, co
 	m->filepath = filepath;
 	m->vopt = vopt;
 	m->aopt = aopt;
+	m->is_video_recording = m->vopt.active;
+	m->is_audio_recording = m->aopt.active;
 
 	std::thread th([&](){
 		run();
@@ -594,7 +640,9 @@ void VideoEncoder::open(std::string const &filepath, const VideoOption &vopt, co
 
 void VideoEncoder::close()
 {
-	request_interruption();
+	m->is_video_recording = false;
+	m->is_audio_recording = false;
+	m->cond.notify_all();
 	if (m->thread.joinable()) {
 		m->thread.join();
 	}
@@ -604,12 +652,15 @@ bool VideoEncoder::put_video_frame(const VideoFrame &img)
 {
 	if (img) {
 		std::lock_guard lock(m->mutex);
-		if (is_recording()) {
-			m->video_frames.push_back(img);
-			fprintf(stderr, "video queue:%d\n", m->video_frames.size());
-			while (m->video_frames.size() > 100) {
-				m->video_frames.pop_front();
+		if (m->is_video_recording) {
+			m->input_video_frames.push_back(img);
+			fprintf(stderr, "video queue:%d\n", m->input_video_frames.size());
+			if (m->vopt.drop_if_overflow) {
+				while (m->input_video_frames.size() > 100) {
+					m->input_video_frames.pop_front();
+				}
 			}
+			m->cond.notify_all();
 			return true;
 		}
 	}
@@ -618,14 +669,19 @@ bool VideoEncoder::put_video_frame(const VideoFrame &img)
 
 bool VideoEncoder::put_audio_frame(AudioFrame const &pcm)
 {
-	if (is_recording()) {
+	if (pcm) {
 		std::lock_guard lock(m->mutex);
-		m->audio_frames.push_back(pcm);
-		fprintf(stderr, "audio queue:%d\n", m->audio_frames.size());
-		while (m->audio_frames.size() > 100) {
-			m->audio_frames.pop_front();
+		if (m->is_audio_recording) {
+			m->input_audio_frames.push_back(pcm);
+			fprintf(stderr, "audio queue:%d\n", m->input_audio_frames.size());
+			if (m->aopt.drop_if_overflow) {
+				while (m->input_audio_frames.size() > 100) {
+					m->input_audio_frames.pop_front();
+				}
+			}
+			m->cond.notify_all();
+			return true;
 		}
-		return true;
 	}
 	return false;
 }

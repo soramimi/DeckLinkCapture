@@ -1,6 +1,5 @@
 
-CONFIG(release,debug|release):TARGET = DeckLinkCapture
-CONFIG(debug,debug|release):TARGET = DeckLinkCaptured
+TARGET = DeckLinkCapture
 TEMPLATE = app
 QT += core gui widgets opengl multimedia
 CONFIG += c++17
@@ -28,18 +27,26 @@ macx:INCLUDEPATH += /usr/local/Cellar/ffmpeg/4.1.4_1/include
 macx:LIBS += -L/usr/local/Cellar/ffmpeg/4.1.4_1/lib
 !linux:LIBS += -lavutil -lavcodec -lavformat -lswscale -lswresample
 
+CONFIG += static_ffmpeg
 static_ffmpeg {
-linux:LIBS += \
-	$$PWD/../ffmpeg/libavfilter/libavfilter.a \
-	$$PWD/../ffmpeg/libavdevice/libavdevice.a \
-	$$PWD/../ffmpeg/libavformat/libavformat.a \
-	$$PWD/../ffmpeg/libavcodec/libavcodec.a \
-	$$PWD/../ffmpeg/libswscale/libswscale.a \
-	$$PWD/../ffmpeg/libavutil/libavutil.a \
-	$$PWD/../ffmpeg/libswresample/libswresample.a \
-	-lasound -lsndio -lxcb -lxcb-shm -lxcb-xfixes -lxcb-shape -lz -llzma -lSDL2 -lX11 -lXext -lXv -lvdpau
-}
 
+INCLUDEPATH += $$PWD/../FFmpeg
+INCLUDEPATH += $$PWD/../FFmpeg/fftools
+
+LIBS += \
+	$$PWD/../FFmpeg/libavdevice/libavdevice.a \
+	$$PWD/../FFmpeg/libavcodec/libavcodec.a \
+	$$PWD/../FFmpeg/libavformat/libavformat.a \
+	$$PWD/../FFmpeg/libavutil/libavutil.a \
+	$$PWD/../FFmpeg/libswresample/libswresample.a \
+	$$PWD/../FFmpeg/libavfilter/libavfilter.a \
+	$$PWD/../FFmpeg/libswscale/libswscale.a
+
+LIBS += -lpthread
+LIBS += -L/usr/local/lib -lSvtAv1Enc -lSvtAv1Dec -lpthread -lm
+LIBS += -lX11 -lXext -lbz2 -lz -llzma -lopus -lva -lva-drm -lva-x11 -lvdpau
+LIBS += -ldl
+}
 !static_ffmpeg {
 	linux:LIBS += -lavutil -lavcodec -lavformat -lswscale -lswresample
 }
@@ -47,6 +54,11 @@ linux:LIBS += \
 #
 
 SOURCES += \
+../FFmpeg/libavcodec/adts_parser.c \
+../FFmpeg/libavcodec/avfft.c \
+../FFmpeg/libavformat/mux.c \
+../FFmpeg/libavutil/file.c \
+../FFmpeg/libavutil/pixelutils.c \
 	ActionHandler.cpp \
 	AncillaryDataTable.cpp \
 	CaptureFrame.cpp \
@@ -73,6 +85,11 @@ SOURCES += \
 	main.cpp
 
 HEADERS += \
+../FFmpeg/libavcodec/adts_parser.h \
+../FFmpeg/libavcodec/avfft.h \
+../FFmpeg/libavcodec/codec2utils.h \
+../FFmpeg/libavutil/file.h \
+../FFmpeg/libavutil/pixelutils.h \
 	ActionHandler.h \
 	AncillaryDataTable.h \
 	CaptureFrame.h \

@@ -8,6 +8,14 @@
 #include <QFileInfo>
 #include <QMetaType>
 #include <QStandardPaths>
+#include <QTextStream>
+
+void myMessageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
+{
+	QTextStream o(stderr);
+	o << msg << endl;
+
+}
 
 static bool isHighDpiScalingEnabled()
 {
@@ -23,6 +31,7 @@ int main(int argc, char *argv[])
 #ifdef Q_OS_WIN
 	CoInitialize(nullptr);
 #endif
+	qInstallMessageHandler(myMessageHandler);
 
 	global = new GlobalData;
 
