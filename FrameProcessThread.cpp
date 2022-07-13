@@ -5,6 +5,7 @@
 #include <condition_variable>
 #include <thread>
 #include <deque>
+#include "Deinterlace.h"
 
 struct FrameProcessThread::Private {
 	std::mutex mutex;
@@ -13,6 +14,7 @@ struct FrameProcessThread::Private {
 	std::vector<std::thread> thread;
 	std::deque<std::shared_ptr<CaptureFrame>> requested_frames;
 	QSize scaled_size;
+	Deinterlace di;
 };
 
 FrameProcessThread::FrameProcessThread()
@@ -45,6 +47,7 @@ void FrameProcessThread::run()
 			}
 		}
 		if (frame) {
+			frame->d->image = m->di.deinterlace(frame->d->image);
 			frame->d->image_for_view = ImageUtil::qimage(frame->d->image).scaled(m->scaled_size, Qt::IgnoreAspectRatio, Qt::FastTransformation);
 			frame->d->state = CaptureFrame::Ready;
 		}

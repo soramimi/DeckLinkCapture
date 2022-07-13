@@ -65,6 +65,7 @@ SOURCES += \
 	DeckLinkCapture.cpp \
 	DeckLinkDeviceDiscovery.cpp \
 	DeckLinkInputDevice.cpp \
+	Deinterlace.cpp \
 	FrameProcessThread.cpp \
 	FrameRateCounter.cpp \
 	GlobalData.cpp \
@@ -96,6 +97,7 @@ HEADERS += \
 	DeckLinkCapture.h \
 	DeckLinkDeviceDiscovery.h \
 	DeckLinkInputDevice.h \
+	Deinterlace.h \
 	FrameProcessThread.h \
 	FrameRateCounter.h \
 	GlobalData.h \

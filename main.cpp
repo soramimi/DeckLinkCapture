@@ -26,11 +26,42 @@ static bool isHighDpiScalingEnabled()
 	return true;
 }
 
+class DebugMessageHandler {
+public:
+	DebugMessageHandler() = delete;
+
+	static void install();
+
+	static void abort(const QMessageLogContext &context, const QString &message);
+};
+
+void DebugMessageHandler::abort(QMessageLogContext const &/*context*/, const QString &/*message*/)
+{
+	::abort();
+}
+
+void debugMessageHandler(QtMsgType type, const QMessageLogContext &context, const QString &message)
+{
+	(QTextStream(stderr) << qFormatLogMessage(type, context, message) << '\n').flush();
+
+	if (type == QtFatalMsg) {
+		DebugMessageHandler::abort(context, message);
+	}
+}
+
+void DebugMessageHandler::install()
+{
+	qInstallMessageHandler(debugMessageHandler);
+}
+
 int main(int argc, char *argv[])
 {
 #ifdef Q_OS_WIN
 	CoInitialize(nullptr);
 #endif
+
+	DebugMessageHandler::install();
+
 	qInstallMessageHandler(myMessageHandler);
 
 	global = new GlobalData;
