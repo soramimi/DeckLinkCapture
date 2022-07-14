@@ -37,6 +37,11 @@ QCheckBox *UIWidget::checkBox_audio()
 	return ui->checkBox_audio;
 }
 
+QCheckBox *UIWidget::checkBox_deinterlace()
+{
+	return ui->checkBox_deinterlace;
+}
+
 QCheckBox *UIWidget::checkBox_display_mode_auto_detection()
 {
 	return ui->checkBox_display_mode_auto_detection;
@@ -44,7 +49,6 @@ QCheckBox *UIWidget::checkBox_display_mode_auto_detection()
 
 MainWindow *UIWidget::mainwindow()
 {
-//	return qobject_cast<MainWindow *>(parent());
 	return mainwindow_;
 }
 
@@ -53,11 +57,11 @@ void UIWidget::closeEvent(QCloseEvent *event)
 	mainwindow()->close();
 }
 
+#if 0
 void UIWidget::on_listWidget_input_device_currentRowChanged(int currentRow)
 {
 	mainwindow()->on_listWidget_input_device_currentRowChanged(currentRow);
 }
-
 
 void UIWidget::on_listWidget_input_connection_currentRowChanged(int currentRow)
 {
@@ -78,3 +82,9 @@ void UIWidget::on_checkBox_display_mode_auto_detection_clicked()
 {
 	mainwindow()->checkBox_display_mode_auto_detection();
 }
+
+void UIWidget::on_checkBox_deinterlace_stateChanged(int arg1)
+{
+	mainwindow()->on_checkBox_deinterlace_stateChanged(arg1);
+}
+#endif

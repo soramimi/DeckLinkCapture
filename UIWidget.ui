@@ -91,6 +91,13 @@
      </property>
     </widget>
    </item>
+   <item>
+    <widget class="QCheckBox" name="checkBox_deinterlace">
+     <property name="text">
+      <string>Deinterlace</string>
+     </property>
+    </widget>
+   </item>
   </layout>
  </widget>
  <resources/>

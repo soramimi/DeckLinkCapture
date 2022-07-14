@@ -15,6 +15,7 @@ struct FrameProcessThread::Private {
 	std::deque<std::shared_ptr<CaptureFrame>> requested_frames;
 	QSize scaled_size;
 	Deinterlace di;
+	bool deinterlace_enabled = true;
 };
 
 FrameProcessThread::FrameProcessThread()
@@ -47,7 +48,9 @@ void FrameProcessThread::run()
 			}
 		}
 		if (frame) {
-			frame->d->image = m->di.deinterlace(frame->d->image);
+			if (m->deinterlace_enabled) {
+				frame->d->image = m->di.deinterlace(frame->d->image);
+			}
 			frame->d->image_for_view = ImageUtil::qimage(frame->d->image).scaled(m->scaled_size, Qt::IgnoreAspectRatio, Qt::FastTransformation);
 			frame->d->state = CaptureFrame::Ready;
 		}
@@ -109,4 +112,9 @@ void FrameProcessThread::request(CaptureFrame const &image, const QSize &size)
 		m->scaled_size = size;
 		m->cond.notify_all();
 	}
+}
+
+void FrameProcessThread::enableDeinterlace(bool enable)
+{
+	m->deinterlace_enabled = enable;
 }

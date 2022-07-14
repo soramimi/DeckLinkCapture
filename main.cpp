@@ -10,22 +10,6 @@
 #include <QStandardPaths>
 #include <QTextStream>
 
-void myMessageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
-{
-	QTextStream o(stderr);
-	o << msg << endl;
-
-}
-
-static bool isHighDpiScalingEnabled()
-{
-//	MySettings s;
-//	s.beginGroup("UI");
-//	QVariant v = s.value("EnableHighDpiScaling");
-//	return v.isNull() || v.toBool();
-	return true;
-}
-
 class DebugMessageHandler {
 public:
 	DebugMessageHandler() = delete;
@@ -62,8 +46,6 @@ int main(int argc, char *argv[])
 
 	DebugMessageHandler::install();
 
-	qInstallMessageHandler(myMessageHandler);
-
 	global = new GlobalData;
 
 	global->organization_name = ORGANIZATION_NAME;
@@ -73,16 +55,6 @@ int main(int argc, char *argv[])
 	global->config_file_path = joinpath(global->app_config_dir, global->application_name + ".ini");
 	if (!QFileInfo(global->app_config_dir).isDir()) {
 		QDir().mkpath(global->app_config_dir);
-	}
-
-	if (isHighDpiScalingEnabled()) {
-#if (QT_VERSION < QT_VERSION_CHECK(5, 6, 0))
-		qDebug() << "High DPI scaling is not supported";
-#else
-		QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-#endif
-	} else {
-		QCoreApplication::setAttribute(Qt::AA_DisableHighDpiScaling);
 	}
 
 	QApplication a(argc, argv);

@@ -1,5 +1,4 @@
 #include "Deinterlace.h"
-#include <QDebug>
 #include <QElapsedTimer>
 #include <alloca.h>
 #include <cstdint>

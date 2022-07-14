@@ -12,15 +12,13 @@
 #include <QWidget>
 #include <memory>
 
+class CaptureFrame;
 class DeckLinkDeviceDiscovery;
 class DeckLinkInputDevice;
 class ProfileCallback;
-
+class QCheckBox;
 class QListWidget;
 class QListWidgetItem;
-class QCheckBox;
-
-class CaptureFrame;
 
 class MainWindow : public QMainWindow, public DeckLinkCaptureDelegate {
 	Q_OBJECT
@@ -39,6 +37,7 @@ private:
 	QListWidget *listWidget_input_connection();
 	QListWidget *listWidget_display_mode();
 	QCheckBox *checkBox_audio();
+	QCheckBox *checkBox_deinterlace();
 	QCheckBox *checkBox_display_mode_auto_detection();
 
 	void setStatusBarText(const QString &text);
@@ -94,17 +93,18 @@ private slots:
 	void newFrame(const CaptureFrame &frame);
 	void on_action_recording_start_triggered();
 	void on_action_recording_stop_triggered();
-	void on_action_view_small_lq_triggered();
 	void on_action_view_dot_by_dot_triggered();
 	void on_action_view_fit_window_triggered();
+	void on_action_view_small_lq_triggered();
 	void on_checkBox_audio_stateChanged(int arg1);
+	void on_checkBox_deinterlace_stateChanged(int arg1);
 	void on_checkBox_display_mode_auto_detection_clicked(bool checked);
 	void on_listWidget_display_mode_currentRowChanged(int currentRow);
 	void on_listWidget_display_mode_itemDoubleClicked(QListWidgetItem *item);
 	void on_listWidget_input_connection_currentRowChanged(int currentRow);
 	void on_listWidget_input_device_currentRowChanged(int currentRow);
-	void test();
 	void ready(const CaptureFrame &frame);
+	void test();
 };
 
 #endif // MAINWINDOW_H

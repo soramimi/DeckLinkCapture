@@ -152,8 +152,9 @@ MainWindow::MainWindow(QWidget *parent)
 	}
 
 
-	checkBox_display_mode_auto_detection()->setCheckState(Qt::Checked);
-	checkBox_audio()->click();
+	checkBox_audio()->setChecked(true);
+	checkBox_deinterlace()->setChecked(true);
+	checkBox_display_mode_auto_detection()->setChecked(true);
 
 	setFullScreen(false);
 
@@ -234,6 +235,11 @@ QListWidget *MainWindow::listWidget_display_mode()
 QCheckBox *MainWindow::checkBox_audio()
 {
 	return ui->widget_ui->checkBox_audio();
+}
+
+QCheckBox *MainWindow::checkBox_deinterlace()
+{
+	return ui->widget_ui->checkBox_deinterlace();
 }
 
 QCheckBox *MainWindow::checkBox_display_mode_auto_detection()
@@ -698,6 +704,11 @@ void MainWindow::on_checkBox_audio_stateChanged(int arg1)
 {
 	(void)arg1;
 	restartCapture();
+}
+
+void MainWindow::on_checkBox_deinterlace_stateChanged(int arg1)
+{
+	m->frame_process_thread.enableDeinterlace(arg1 == Qt::Checked);
 }
 
 ImageWidget *MainWindow::currentImageWidget()
