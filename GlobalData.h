@@ -3,9 +3,12 @@
 
 #include <QCursor>
 #include <QString>
+#include <memory>
 
 #define ORGANIZATION_NAME "soramimi.jp"
 #define APPLICATION_NAME "DeckLinkCapture"
+
+class Cuda;
 
 struct GlobalData {
 	QString organization_name;
@@ -14,6 +17,8 @@ struct GlobalData {
 	QString app_config_dir;
 	QString config_file_path;
 	QCursor invisible_cursor;
+
+	std::shared_ptr<Cuda> cuda_plugin;
 };
 
 extern GlobalData *global;

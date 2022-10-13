@@ -1,2 +1,4 @@
 *.user
-_bin/
+_*/
+CudaPlugin/_build1/
+CudaPlugin/_build2/

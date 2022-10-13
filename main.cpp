@@ -7,8 +7,10 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QMetaType>
+#include <QPluginLoader>
 #include <QStandardPaths>
 #include <QTextStream>
+#include "CudaPlugin/src/CudaPlugin.h"
 
 class DebugMessageHandler {
 public:
@@ -40,6 +42,8 @@ void DebugMessageHandler::install()
 
 int main(int argc, char *argv[])
 {
+	putenv("QT_ASSUME_STDERR_HAS_CONSOLE=1");
+
 #ifdef Q_OS_WIN
 	CoInitialize(nullptr);
 #endif
@@ -58,6 +62,17 @@ int main(int argc, char *argv[])
 	}
 
 	QApplication a(argc, argv);
+
+	QPluginLoader loader("cudaplugin");
+	CudaInterface *plugin = dynamic_cast<CudaInterface *>(loader.instance());
+	if (plugin) {
+		global->cuda_plugin = std::shared_ptr<Cuda>(plugin->create());
+		if (!global->cuda_plugin->init()) {
+			qDebug() << "failed to init the plugin";
+		}
+	} else {
+		qDebug() << "failed to load the plugin";
+	}
 
 	qRegisterMetaType<Rational>();
 	qRegisterMetaType<CaptureFrame>();

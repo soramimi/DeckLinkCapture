@@ -1,6 +1,10 @@
 #include "Image.h"
+#include "GlobalData.h"
 #include <cstdint>
 #include <algorithm>
+#include <QElapsedTimer>
+#include <QDebug>
+#include "CudaPlugin/src/Cuda.h"
 
 static inline uint8_t clamp_uint8(int v)
 {
@@ -23,6 +27,8 @@ Image Image::convertToFormat(Image::Format dformat) const
 	const int w = width();
 	const int h = height();
 
+	bool cuda = (bool)global->cuda_plugin;
+
 	if ((sformat == Format::UYVY8 && dformat == Format::YUYV8) || (sformat == Format::YUYV8 && dformat == Format::UYVY8)) {
 		Image newimage(w, h, dformat);
 		for (int y = 0; y < h; y++) {
@@ -41,84 +47,92 @@ Image Image::convertToFormat(Image::Format dformat) const
 	if (dformat == Format::RGB8) {
 		if (sformat == Format::UYVY8) {
 			Image newimage(w, h, dformat);
-			for (int y = 0; y < h; y++) {
-				uint8_t const *s = scanLine(y);
-				uint8_t *d = newimage.scanLine(y);
-				uint8_t Y, U, V;
-				U = V = 0;
-				int w2 = w / 2;
-				for (int x = 0; x < w2; x++) {
-					int R, G, B;
-					U = s[0];
-					V = s[2];
-					Y = s[1];
-					R = ((Y - 16) * 1192 +                    (V - 128) * 1634) / 1024;
-					G = ((Y - 16) * 1192 - (U - 128) * 400  - (V - 128) * 832 ) / 1024;
-					B = ((Y - 16) * 1192 + (U - 128) * 2065                   ) / 1024;
-					d[0] = clamp_uint8(R);
-					d[1] = clamp_uint8(G);
-					d[2] = clamp_uint8(B);
-					Y = s[3];
-					R = ((Y - 16) * 1192 +                    (V - 128) * 1634) / 1024;
-					G = ((Y - 16) * 1192 - (U - 128) * 400  - (V - 128) * 832 ) / 1024;
-					B = ((Y - 16) * 1192 + (U - 128) * 2065                   ) / 1024;
-					d[3] = clamp_uint8(R);
-					d[4] = clamp_uint8(G);
-					d[5] = clamp_uint8(B);
-					s += 4;
-					d += 6;
-				}
-				if (w & 1) {
-					int U = s[0];
-					int Y = s[1];
-					int R = ((Y - 16) * 1192 +                    (V - 128) * 1634) / 1024;
-					int G = ((Y - 16) * 1192 - (U - 128) * 400  - (V - 128) * 832 ) / 1024;
-					int B = ((Y - 16) * 1192 + (U - 128) * 2065                   ) / 1024;
-					d[0] = clamp_uint8(R);
-					d[1] = clamp_uint8(G);
-					d[2] = clamp_uint8(B);
+			if (cuda) {
+				global->cuda_plugin->convert_uyvy_to_rgb(w, h, this->bits(), newimage.bits());
+			} else {
+				for (int y = 0; y < h; y++) {
+					uint8_t const *s = scanLine(y);
+					uint8_t *d = newimage.scanLine(y);
+					uint8_t Y, U, V;
+					U = V = 0;
+					int w2 = w / 2;
+					for (int x = 0; x < w2; x++) {
+						int R, G, B;
+						U = s[0];
+						V = s[2];
+						Y = s[1];
+						R = ((Y - 16) * 1192 +                    (V - 128) * 1634) / 1024;
+						G = ((Y - 16) * 1192 - (U - 128) * 400  - (V - 128) * 832 ) / 1024;
+						B = ((Y - 16) * 1192 + (U - 128) * 2065                   ) / 1024;
+						d[0] = clamp_uint8(R);
+						d[1] = clamp_uint8(G);
+						d[2] = clamp_uint8(B);
+						Y = s[3];
+						R = ((Y - 16) * 1192 +                    (V - 128) * 1634) / 1024;
+						G = ((Y - 16) * 1192 - (U - 128) * 400  - (V - 128) * 832 ) / 1024;
+						B = ((Y - 16) * 1192 + (U - 128) * 2065                   ) / 1024;
+						d[3] = clamp_uint8(R);
+						d[4] = clamp_uint8(G);
+						d[5] = clamp_uint8(B);
+						s += 4;
+						d += 6;
+					}
+					if (w & 1) {
+						int U = s[0];
+						int Y = s[1];
+						int R = ((Y - 16) * 1192 +                    (V - 128) * 1634) / 1024;
+						int G = ((Y - 16) * 1192 - (U - 128) * 400  - (V - 128) * 832 ) / 1024;
+						int B = ((Y - 16) * 1192 + (U - 128) * 2065                   ) / 1024;
+						d[0] = clamp_uint8(R);
+						d[1] = clamp_uint8(G);
+						d[2] = clamp_uint8(B);
+					}
 				}
 			}
 			return newimage;
 		}
 		if (sformat == Format::YUYV8) {
 			Image newimage(w, h, dformat);
-			for (int y = 0; y < h; y++) {
-				uint8_t const *s = scanLine(y);
-				uint8_t *d = newimage.scanLine(y);
-				uint8_t Y, U, V;
-				U = V = 0;
-				int w2 = w / 2;
-				for (int x = 0; x < w2; x++) {
-					int R, G, B;
-					U = s[1];
-					V = s[3];
-					Y = s[0];
-					R = ((Y - 16) * 1192 +                    (V - 128) * 1634) / 1024;
-					G = ((Y - 16) * 1192 - (U - 128) * 400  - (V - 128) * 832 ) / 1024;
-					B = ((Y - 16) * 1192 + (U - 128) * 2065                   ) / 1024;
-					d[0] = clamp_uint8(R);
-					d[1] = clamp_uint8(G);
-					d[2] = clamp_uint8(B);
-					Y = s[2];
-					R = ((Y - 16) * 1192 +                    (V - 128) * 1634) / 1024;
-					G = ((Y - 16) * 1192 - (U - 128) * 400  - (V - 128) * 832 ) / 1024;
-					B = ((Y - 16) * 1192 + (U - 128) * 2065                   ) / 1024;
-					d[3] = clamp_uint8(R);
-					d[4] = clamp_uint8(G);
-					d[5] = clamp_uint8(B);
-					s += 4;
-					d += 6;
-				}
-				if (w & 1) {
-					int U = s[1];
-					int Y = s[0];
-					int R = ((Y - 16) * 1192 +                    (V - 128) * 1634) / 1024;
-					int G = ((Y - 16) * 1192 - (U - 128) * 400  - (V - 128) * 832 ) / 1024;
-					int B = ((Y - 16) * 1192 + (U - 128) * 2065                   ) / 1024;
-					d[0] = clamp_uint8(R);
-					d[1] = clamp_uint8(G);
-					d[2] = clamp_uint8(B);
+			if (cuda) {
+				global->cuda_plugin->convert_yuyv_to_rgb(w, h, this->bits(), newimage.bits());
+			} else {
+				for (int y = 0; y < h; y++) {
+					uint8_t const *s = scanLine(y);
+					uint8_t *d = newimage.scanLine(y);
+					uint8_t Y, U, V;
+					U = V = 0;
+					int w2 = w / 2;
+					for (int x = 0; x < w2; x++) {
+						int R, G, B;
+						U = s[1];
+						V = s[3];
+						Y = s[0];
+						R = ((Y - 16) * 1192 +                    (V - 128) * 1634) / 1024;
+						G = ((Y - 16) * 1192 - (U - 128) * 400  - (V - 128) * 832 ) / 1024;
+						B = ((Y - 16) * 1192 + (U - 128) * 2065                   ) / 1024;
+						d[0] = clamp_uint8(R);
+						d[1] = clamp_uint8(G);
+						d[2] = clamp_uint8(B);
+						Y = s[2];
+						R = ((Y - 16) * 1192 +                    (V - 128) * 1634) / 1024;
+						G = ((Y - 16) * 1192 - (U - 128) * 400  - (V - 128) * 832 ) / 1024;
+						B = ((Y - 16) * 1192 + (U - 128) * 2065                   ) / 1024;
+						d[3] = clamp_uint8(R);
+						d[4] = clamp_uint8(G);
+						d[5] = clamp_uint8(B);
+						s += 4;
+						d += 6;
+					}
+					if (w & 1) {
+						int U = s[1];
+						int Y = s[0];
+						int R = ((Y - 16) * 1192 +                    (V - 128) * 1634) / 1024;
+						int G = ((Y - 16) * 1192 - (U - 128) * 400  - (V - 128) * 832 ) / 1024;
+						int B = ((Y - 16) * 1192 + (U - 128) * 2065                   ) / 1024;
+						d[0] = clamp_uint8(R);
+						d[1] = clamp_uint8(G);
+						d[2] = clamp_uint8(B);
+					}
 				}
 			}
 			return newimage;
@@ -155,70 +169,78 @@ Image Image::convertToFormat(Image::Format dformat) const
 		}
 		if (sformat == Format::UYVY8) {
 			Image newimage(w, h, dformat);
-			for (int y = 0; y < h; y++) {
-				uint8_t const *s = scanLine(y);
-				uint8_t *d = newimage.scanLine(y);
-				uint8_t Y, U, V;
-				U = V = 0;
-				int w2 = w / 2;
-				for (int x = 0; x < w2; x++) {
-					int R, G, B;
-					U = s[0];
-					V = s[2];
-					Y = s[1];
-					R = clamp_uint8(((Y - 16) * 1192 +                    (V - 128) * 1634) / 1024);
-					G = clamp_uint8(((Y - 16) * 1192 - (U - 128) * 400  - (V - 128) * 832 ) / 1024);
-					B = clamp_uint8(((Y - 16) * 1192 + (U - 128) * 2065                   ) / 1024);
-					*d++ = gray(R, G, B);
-					Y = s[3];
-					R = clamp_uint8(((Y - 16) * 1192 +                    (V - 128) * 1634) / 1024);
-					G = clamp_uint8(((Y - 16) * 1192 - (U - 128) * 400  - (V - 128) * 832 ) / 1024);
-					B = clamp_uint8(((Y - 16) * 1192 + (U - 128) * 2065                   ) / 1024);
-					*d++ = gray(R, G, B);
-					s += 4;
-				}
-				if (w & 1) {
-					U = s[0];
-					Y = s[1];
-					int R = clamp_uint8(((Y - 16) * 1192 +                    (V - 128) * 1634) / 1024);
-					int G = clamp_uint8(((Y - 16) * 1192 - (U - 128) * 400  - (V - 128) * 832 ) / 1024);
-					int B = clamp_uint8(((Y - 16) * 1192 + (U - 128) * 2065                   ) / 1024);
-					*d = gray(R, G, B);
+			if (cuda) {
+				global->cuda_plugin->convert_uyvy_to_gray(w, h, this->bits(), newimage.bits());
+			} else {
+				for (int y = 0; y < h; y++) {
+					uint8_t const *s = scanLine(y);
+					uint8_t *d = newimage.scanLine(y);
+					uint8_t Y, U, V;
+					U = V = 0;
+					int w2 = w / 2;
+					for (int x = 0; x < w2; x++) {
+						int R, G, B;
+						U = s[0];
+						V = s[2];
+						Y = s[1];
+						R = clamp_uint8(((Y - 16) * 1192 +                    (V - 128) * 1634) / 1024);
+						G = clamp_uint8(((Y - 16) * 1192 - (U - 128) * 400  - (V - 128) * 832 ) / 1024);
+						B = clamp_uint8(((Y - 16) * 1192 + (U - 128) * 2065                   ) / 1024);
+						*d++ = gray(R, G, B);
+						Y = s[3];
+						R = clamp_uint8(((Y - 16) * 1192 +                    (V - 128) * 1634) / 1024);
+						G = clamp_uint8(((Y - 16) * 1192 - (U - 128) * 400  - (V - 128) * 832 ) / 1024);
+						B = clamp_uint8(((Y - 16) * 1192 + (U - 128) * 2065                   ) / 1024);
+						*d++ = gray(R, G, B);
+						s += 4;
+					}
+					if (w & 1) {
+						U = s[0];
+						Y = s[1];
+						int R = clamp_uint8(((Y - 16) * 1192 +                    (V - 128) * 1634) / 1024);
+						int G = clamp_uint8(((Y - 16) * 1192 - (U - 128) * 400  - (V - 128) * 832 ) / 1024);
+						int B = clamp_uint8(((Y - 16) * 1192 + (U - 128) * 2065                   ) / 1024);
+						*d = gray(R, G, B);
+					}
 				}
 			}
 			return newimage;
 		}
 		if (sformat == Format::YUYV8) {
 			Image newimage(w, h, dformat);
-			for (int y = 0; y < h; y++) {
-				uint8_t const *s = scanLine(y);
-				uint8_t *d = newimage.scanLine(y);
-				uint8_t Y, U, V;
-				U = V = 0;
-				int w2 = w / 2;
-				for (int x = 0; x < w2; x++) {
-					int R, G, B;
-					U = s[1];
-					V = s[3];
-					Y = s[0];
-					R = clamp_uint8(((Y - 16) * 1192 +                    (V - 128) * 1634) / 1024);
-					G = clamp_uint8(((Y - 16) * 1192 - (U - 128) * 400  - (V - 128) * 832 ) / 1024);
-					B = clamp_uint8(((Y - 16) * 1192 + (U - 128) * 2065                   ) / 1024);
-					*d++ = gray(R, G, B);
-					Y = s[2];
-					R = clamp_uint8(((Y - 16) * 1192 +                    (V - 128) * 1634) / 1024);
-					G = clamp_uint8(((Y - 16) * 1192 - (U - 128) * 400  - (V - 128) * 832 ) / 1024);
-					B = clamp_uint8(((Y - 16) * 1192 + (U - 128) * 2065                   ) / 1024);
-					*d++ = gray(R, G, B);
-					s += 4;
-				}
-				if (w & 1) {
-					U = s[1];
-					Y = s[0];
-					int R = clamp_uint8(((Y - 16) * 1192 +                    (V - 128) * 1634) / 1024);
-					int G = clamp_uint8(((Y - 16) * 1192 - (U - 128) * 400  - (V - 128) * 832 ) / 1024);
-					int B = clamp_uint8(((Y - 16) * 1192 + (U - 128) * 2065                   ) / 1024);
-					*d = gray(R, G, B);
+			if (cuda) {
+				global->cuda_plugin->convert_yuyv_to_gray(w, h, this->bits(), newimage.bits());
+			} else {
+				for (int y = 0; y < h; y++) {
+					uint8_t const *s = scanLine(y);
+					uint8_t *d = newimage.scanLine(y);
+					uint8_t Y, U, V;
+					U = V = 0;
+					int w2 = w / 2;
+					for (int x = 0; x < w2; x++) {
+						int R, G, B;
+						U = s[1];
+						V = s[3];
+						Y = s[0];
+						R = clamp_uint8(((Y - 16) * 1192 +                    (V - 128) * 1634) / 1024);
+						G = clamp_uint8(((Y - 16) * 1192 - (U - 128) * 400  - (V - 128) * 832 ) / 1024);
+						B = clamp_uint8(((Y - 16) * 1192 + (U - 128) * 2065                   ) / 1024);
+						*d++ = gray(R, G, B);
+						Y = s[2];
+						R = clamp_uint8(((Y - 16) * 1192 +                    (V - 128) * 1634) / 1024);
+						G = clamp_uint8(((Y - 16) * 1192 - (U - 128) * 400  - (V - 128) * 832 ) / 1024);
+						B = clamp_uint8(((Y - 16) * 1192 + (U - 128) * 2065                   ) / 1024);
+						*d++ = gray(R, G, B);
+						s += 4;
+					}
+					if (w & 1) {
+						U = s[1];
+						Y = s[0];
+						int R = clamp_uint8(((Y - 16) * 1192 +                    (V - 128) * 1634) / 1024);
+						int G = clamp_uint8(((Y - 16) * 1192 - (U - 128) * 400  - (V - 128) * 832 ) / 1024);
+						int B = clamp_uint8(((Y - 16) * 1192 + (U - 128) * 2065                   ) / 1024);
+						*d = gray(R, G, B);
+					}
 				}
 			}
 			return newimage;

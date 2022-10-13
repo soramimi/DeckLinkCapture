@@ -17,6 +17,11 @@ macx:LIBS += -framework CoreFoundation
 
 gcc:QMAKE_CXXFLAGS += -Wno-switch
 
+pre.target = pre
+pre.commands = cd $$PWD && make
+QMAKE_EXTRA_TARGETS += pre
+PRE_TARGETDEPS += pre
+
 # recording
 
 win32 {
@@ -127,6 +132,9 @@ FORMS += \
 
 RESOURCES += \
 	resources.qrc
+
+DISTFILES += \
+	CudaPlugin/src/cudalib.cu.cpp
 
 win32:SOURCES += sdk/Win/DeckLinkAPI_i.c
 win32:HEADERS += sdk/Win/DeckLinkAPI_h.h

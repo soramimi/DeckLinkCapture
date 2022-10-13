@@ -371,7 +371,7 @@ HRESULT DeckLinkInputDevice::VideoInputFrameArrived(IDeckLinkVideoInputFrame *vi
 		getAncillaryDataFromFrame(videoFrame, bmdTimecodeVITCField2,			&t.d->ancillary_data.vitcF2Timecode,		&t.d->ancillary_data.vitcF2UserBits);
 		getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188VITC1,			&t.d->ancillary_data.rp188vitc1Timecode,	&t.d->ancillary_data.rp188vitc1UserBits);
 		getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188VITC2,			&t.d->ancillary_data.rp188vitc2Timecode,	&t.d->ancillary_data.rp188vitc2UserBits);
-		getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188LTC,				&t.d->ancillary_data.rp188ltcTimecode,	&t.d->ancillary_data.rp188ltcUserBits);
+		getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188LTC,				&t.d->ancillary_data.rp188ltcTimecode,	    &t.d->ancillary_data.rp188ltcUserBits);
 		getAncillaryDataFromFrame(videoFrame, bmdTimecodeRP188HighFrameRate,	&t.d->ancillary_data.rp188hfrtcTimecode,	&t.d->ancillary_data.rp188hfrtcUserBits);
 
 		getHDRMetadataFromFrame(videoFrame, &t.d->hdr_metadata);

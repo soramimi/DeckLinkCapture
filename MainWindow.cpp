@@ -153,8 +153,10 @@ MainWindow::MainWindow(QWidget *parent)
 
 
 	checkBox_audio()->setChecked(true);
-	checkBox_deinterlace()->setChecked(true);
 	checkBox_display_mode_auto_detection()->setChecked(true);
+
+	checkBox_deinterlace()->setChecked(false);
+	m->frame_process_thread.enableDeinterlace(false);
 
 	setFullScreen(false);
 
@@ -207,7 +209,6 @@ void MainWindow::setFullScreen(bool f)
 	if (f) {
 		ui->stackedWidget->setCurrentWidget(ui->page_fullscreen);
 		showFullScreen();
-
 	} else {
 		ui->stackedWidget->setCurrentWidget(ui->page_normal);
 		showNormal();
@@ -733,7 +734,12 @@ void MainWindow::newFrame(CaptureFrame const &frame)
 	if (frame) {
 		m->frame_rate_counter_.increment();
 
-		QSize size = currentImageWidget()->scaledSize(frame.d->image);
+		QSize size;
+		if (isFullScreen()) {
+			size = ui->page_fullscreen->size();
+		} else {
+			size = currentImageWidget()->scaledSize(frame.d->image);
+		}
 		m->frame_process_thread.request(frame, size);
 
 		if (m->video_encoder) {
