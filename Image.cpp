@@ -16,7 +16,7 @@ static inline uint8_t gray(int r, int g, int b)
 	return (r * 306 + g * 601 + b * 117) / 1024;
 }
 
-
+Cuda *get_cuda_plugin();
 
 Image Image::convertToFormat(Image::Format dformat) const
 {
@@ -27,7 +27,7 @@ Image Image::convertToFormat(Image::Format dformat) const
 	const int w = width();
 	const int h = height();
 
-	bool cuda = (bool)global->cuda_plugin;
+	Cuda *cuda = get_cuda_plugin();
 
 	if ((sformat == Format::UYVY8 && dformat == Format::YUYV8) || (sformat == Format::YUYV8 && dformat == Format::UYVY8)) {
 		Image newimage(w, h, dformat);
@@ -48,7 +48,7 @@ Image Image::convertToFormat(Image::Format dformat) const
 		if (sformat == Format::UYVY8) {
 			Image newimage(w, h, dformat);
 			if (cuda) {
-				global->cuda_plugin->convert_uyvy_to_rgb(w, h, this->bits(), newimage.bits());
+				cuda->convert_uyvy_to_rgb(w, h, this->bits(), newimage.bits());
 			} else {
 				for (int y = 0; y < h; y++) {
 					uint8_t const *s = scanLine(y);
@@ -94,7 +94,7 @@ Image Image::convertToFormat(Image::Format dformat) const
 		if (sformat == Format::YUYV8) {
 			Image newimage(w, h, dformat);
 			if (cuda) {
-				global->cuda_plugin->convert_yuyv_to_rgb(w, h, this->bits(), newimage.bits());
+				cuda->convert_yuyv_to_rgb(w, h, this->bits(), newimage.bits());
 			} else {
 				for (int y = 0; y < h; y++) {
 					uint8_t const *s = scanLine(y);
@@ -170,7 +170,7 @@ Image Image::convertToFormat(Image::Format dformat) const
 		if (sformat == Format::UYVY8) {
 			Image newimage(w, h, dformat);
 			if (cuda) {
-				global->cuda_plugin->convert_uyvy_to_gray(w, h, this->bits(), newimage.bits());
+				cuda->convert_uyvy_to_gray(w, h, this->bits(), newimage.bits());
 			} else {
 				for (int y = 0; y < h; y++) {
 					uint8_t const *s = scanLine(y);
@@ -209,7 +209,7 @@ Image Image::convertToFormat(Image::Format dformat) const
 		if (sformat == Format::YUYV8) {
 			Image newimage(w, h, dformat);
 			if (cuda) {
-				global->cuda_plugin->convert_yuyv_to_gray(w, h, this->bits(), newimage.bits());
+				cuda->convert_yuyv_to_gray(w, h, this->bits(), newimage.bits());
 			} else {
 				for (int y = 0; y < h; y++) {
 					uint8_t const *s = scanLine(y);

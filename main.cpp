@@ -40,6 +40,11 @@ void DebugMessageHandler::install()
 	qInstallMessageHandler(debugMessageHandler);
 }
 
+Cuda *get_cuda_plugin()
+{
+	return global->cuda_plugin.get();
+}
+
 int main(int argc, char *argv[])
 {
 	putenv("QT_ASSUME_STDERR_HAS_CONSOLE=1");
