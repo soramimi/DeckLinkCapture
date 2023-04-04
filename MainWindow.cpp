@@ -819,7 +819,7 @@ void MainWindow::toggleRecord()
 		vopt.src_w = m->video_width;
 		vopt.src_h = m->video_height;
 		vopt.fps = m->fps;
-		m->video_encoder = std::make_shared<VideoEncoder>(VideoEncoder::HEVC_NVENC);
+		m->video_encoder = std::make_shared<VideoEncoder>(VideoEncoder::MPEG4);
 #ifdef Q_OS_WIN
 		m->video_encoder->open(m->recording_file_path.toStdString(), vopt, aopt);
 #else

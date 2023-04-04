@@ -32,7 +32,7 @@ macx:INCLUDEPATH += /usr/local/Cellar/ffmpeg/4.1.4_1/include
 macx:LIBS += -L/usr/local/Cellar/ffmpeg/4.1.4_1/lib
 !linux:LIBS += -lavutil -lavcodec -lavformat -lswscale -lswresample
 
-CONFIG += static_ffmpeg
+#CONFIG += static_ffmpeg
 static_ffmpeg {
 
 INCLUDEPATH += $$PWD/../FFmpeg
@@ -47,10 +47,24 @@ LIBS += \
 	$$PWD/../FFmpeg/libavfilter/libavfilter.a \
 	$$PWD/../FFmpeg/libswscale/libswscale.a
 
-LIBS += -lpthread
-LIBS += -L/usr/local/lib -lSvtAv1Enc -lSvtAv1Dec -lpthread -lm
-LIBS += -lX11 -lXext -lbz2 -lz -llzma -lopus -lva -lva-drm -lva-x11 -lvdpau
-LIBS += -ldl
+	LIBS += -lpthread
+	LIBS += -L/usr/local/lib -lSvtAv1Enc -lSvtAv1Dec -lpthread -lm
+	LIBS += -lX11 -lXext -lbz2 -lz -llzma -lopus -lva -lva-drm -lva-x11 -lvdpau
+	LIBS += -ldl
+
+	SOURCES += \
+	../FFmpeg/libavcodec/adts_parser.c \
+	../FFmpeg/libavcodec/avfft.c \
+	../FFmpeg/libavformat/mux.c \
+	../FFmpeg/libavutil/file.c \
+	../FFmpeg/libavutil/pixelutils.c
+
+	HEADERS += \
+	../FFmpeg/libavcodec/adts_parser.h \
+	../FFmpeg/libavcodec/avfft.h \
+	../FFmpeg/libavcodec/codec2utils.h \
+	../FFmpeg/libavutil/file.h \
+	../FFmpeg/libavutil/pixelutils.h
 }
 !static_ffmpeg {
 	linux:LIBS += -lavutil -lavcodec -lavformat -lswscale -lswresample
@@ -59,11 +73,6 @@ LIBS += -ldl
 #
 
 SOURCES += \
-../FFmpeg/libavcodec/adts_parser.c \
-../FFmpeg/libavcodec/avfft.c \
-../FFmpeg/libavformat/mux.c \
-../FFmpeg/libavutil/file.c \
-../FFmpeg/libavutil/pixelutils.c \
 	ActionHandler.cpp \
 	AncillaryDataTable.cpp \
 	CaptureFrame.cpp \
@@ -91,11 +100,6 @@ SOURCES += \
 	main.cpp
 
 HEADERS += \
-../FFmpeg/libavcodec/adts_parser.h \
-../FFmpeg/libavcodec/avfft.h \
-../FFmpeg/libavcodec/codec2utils.h \
-../FFmpeg/libavutil/file.h \
-../FFmpeg/libavutil/pixelutils.h \
 	ActionHandler.h \
 	AncillaryDataTable.h \
 	CaptureFrame.h \
