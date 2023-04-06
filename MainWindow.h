@@ -12,7 +12,7 @@
 #include <QWidget>
 #include <memory>
 
-class CaptureFrame;
+class VideoFrameData;
 class DeckLinkDeviceDiscovery;
 class DeckLinkInputDevice;
 class ProfileCallback;
@@ -90,7 +90,7 @@ public:
 	void stopRecord();
 	void startRecord();
 private slots:
-	void newFrame(const CaptureFrame &frame);
+	void newFrame(const VideoFrameData &frame);
 	void on_action_recording_start_triggered();
 	void on_action_recording_stop_triggered();
 	void on_action_view_dot_by_dot_triggered();
@@ -103,7 +103,7 @@ private slots:
 	void on_listWidget_display_mode_itemDoubleClicked(QListWidgetItem *item);
 	void on_listWidget_input_connection_currentRowChanged(int currentRow);
 	void on_listWidget_input_device_currentRowChanged(int currentRow);
-	void ready(const CaptureFrame &frame);
+	void ready(const VideoFrameData &frame);
 	void test();
 };
 

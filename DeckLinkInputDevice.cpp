@@ -362,7 +362,7 @@ HRESULT DeckLinkInputDevice::VideoInputFrameArrived(IDeckLinkVideoInputFrame *vi
 
 	bool signal_valid = (videoFrame->GetFlags() & bmdFrameHasNoInputSource) == 0;
 
-	CaptureFrame t;
+	VideoFrameData t;
 
 	if (m->capture) {
 		t.d->signal_valid = signal_valid;

@@ -17,7 +17,7 @@ struct FrameProcessThread::Private {
 	std::condition_variable cond;
 	bool interrupted = false;
 	std::vector<std::thread> thread;
-	std::deque<std::shared_ptr<CaptureFrame>> requested_frames;
+	std::deque<std::shared_ptr<VideoFrameData>> requested_frames;
 	QSize scaled_size;
 	Deinterlace di;
 	bool deinterlace_enabled = true;
@@ -83,14 +83,14 @@ static QImage scale(Image const &srcimg, int w, int h, QImage::Format f)
 void FrameProcessThread::run()
 {
 	while (1) {
-		std::shared_ptr<CaptureFrame> frame;
+		std::shared_ptr<VideoFrameData> frame;
 		{
 			std::unique_lock lock(m->mutex);
 			if (m->interrupted) break;
 			for (size_t i = 0; i < m->requested_frames.size(); i++) {
-				if (m->requested_frames[i]->d->state == CaptureFrame::Idle) {
+				if (m->requested_frames[i]->d->state == VideoFrameData::Idle) {
 					frame = m->requested_frames[i];
-					frame->d->state = CaptureFrame::Busy;
+					frame->d->state = VideoFrameData::Busy;
 					break;
 				}
 			}
@@ -110,14 +110,14 @@ void FrameProcessThread::run()
 			frame->d->image_for_view = scale(frame->d->image, m->scaled_size.width(), m->scaled_size.height(), QImage::Format_RGB888);
 #endif
 
-			frame->d->state = CaptureFrame::Ready;
+			frame->d->state = VideoFrameData::Ready;
 		}
 
-		std::deque<std::shared_ptr<CaptureFrame>> results;
+		std::deque<std::shared_ptr<VideoFrameData>> results;
 		{
 			std::unique_lock lock(m->mutex);
 			while (!m->requested_frames.empty()) {
-				if (m->requested_frames.front()->d->state != CaptureFrame::Ready) break;
+				if (m->requested_frames.front()->d->state != VideoFrameData::Ready) break;
 				frame = m->requested_frames.front();
 				m->requested_frames.pop_front();
 				results.push_back(frame);
@@ -159,14 +159,14 @@ void FrameProcessThread::stop()
 	m->interrupted = false;
 }
 
-void FrameProcessThread::request(CaptureFrame const &image, const QSize &size)
+void FrameProcessThread::request(VideoFrameData const &image, const QSize &size)
 {
 	if (image && size.width() > 0 && size.height() > 0) {
 		std::lock_guard lock(m->mutex);
 		while (m->requested_frames.size() > 4) {
 			m->requested_frames.pop_back(); // drop
 		}
-		m->requested_frames.push_back(std::make_shared<CaptureFrame>(image));
+		m->requested_frames.push_back(std::make_shared<VideoFrameData>(image));
 		m->scaled_size = size;
 		m->cond.notify_all();
 	}

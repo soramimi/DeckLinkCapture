@@ -2,13 +2,13 @@
 #define FRAMEPROCESSTHREAD_H
 
 #include "Image.h"
-#include "CaptureFrame.h"
+#include "VideoFrameData.h"
 #include <QImage>
 #include <QMutex>
 #include <QThread>
 #include <QWaitCondition>
 
-class CaptureFrame;
+class VideoFrameData;
 
 class FrameProcessThread : public QObject {
 	Q_OBJECT
@@ -21,10 +21,10 @@ public:
 	~FrameProcessThread() override;
 	void start();
 	void stop();
-	void request(const CaptureFrame &image, QSize const &size);
+	void request(const VideoFrameData &image, QSize const &size);
 	void enableDeinterlace(bool enable);
 signals:
-	void ready(CaptureFrame const &image);
+	void ready(VideoFrameData const &image);
 };
 
 #endif // FRAMEPROCESSTHREAD_H

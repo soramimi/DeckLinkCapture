@@ -75,11 +75,11 @@ LIBS += \
 SOURCES += \
 	ActionHandler.cpp \
 	AncillaryDataTable.cpp \
-	CaptureFrame.cpp \
 	DeckLinkCapture.cpp \
 	DeckLinkDeviceDiscovery.cpp \
 	DeckLinkInputDevice.cpp \
 	Deinterlace.cpp \
+	FFmpegVideoEncoder.cpp \
 	FrameProcessThread.cpp \
 	FrameRateCounter.cpp \
 	GlobalData.cpp \
@@ -95,18 +95,18 @@ SOURCES += \
 	StatusLabel.cpp \
 	TestForm.cpp \
 	UIWidget.cpp \
-	VideoEncoder.cpp \
+	VideoFrameData.cpp \
 	joinpath.cpp \
 	main.cpp
 
 HEADERS += \
 	ActionHandler.h \
 	AncillaryDataTable.h \
-	CaptureFrame.h \
 	DeckLinkCapture.h \
 	DeckLinkDeviceDiscovery.h \
 	DeckLinkInputDevice.h \
 	Deinterlace.h \
+	FFmpegVideoEncoder.h \
 	FrameProcessThread.h \
 	FrameRateCounter.h \
 	GlobalData.h \
@@ -122,7 +122,8 @@ HEADERS += \
 	StatusLabel.h \
 	TestForm.h \
 	UIWidget.h \
-	VideoEncoder.h \
+	VideoEncoderOption.h \
+	VideoFrameData.h \
 	common.h \
 	includeffmpeg.h \
 	joinpath.h \

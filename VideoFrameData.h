@@ -1,14 +1,15 @@
-#ifndef CAPTUREFRAME_H
-#define CAPTUREFRAME_H
+#ifndef VIDEOFRAMEDATA_H
+#define VIDEOFRAMEDATA_H
 
-#include "AncillaryDataTable.h"
-#include "DeckLinkAPI.h"
 #include "Image.h"
 #include <QImage>
 #include <QMetaType>
 #include <memory>
 
-class CaptureFrame {
+#include "AncillaryDataTable.h"
+#include "DeckLinkAPI.h"
+
+class VideoFrameData {
 public:
 	enum State {
 		Idle,
@@ -20,13 +21,14 @@ public:
 		Image image;
 		QByteArray audio;
 		QImage image_for_view;
+		bool signal_valid = false;
+
 		AncillaryDataStruct ancillary_data = {};
 		BMDPixelFormat pixfmt = bmdFormatUnspecified;
 		HDRMetadataStruct hdr_metadata = {};
-		bool signal_valid = false;
 	};
 	std::shared_ptr<Data> d;
-	CaptureFrame()
+	VideoFrameData()
 		: d(std::make_shared<Data>())
 	{
 	}
@@ -44,6 +46,6 @@ public:
 	}
 };
 
-Q_DECLARE_METATYPE(CaptureFrame)
+Q_DECLARE_METATYPE(VideoFrameData)
 
-#endif // CAPTUREFRAME_H
+#endif // VIDEOFRAMEDATA_H

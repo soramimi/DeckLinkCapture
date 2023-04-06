@@ -5,7 +5,7 @@
 #include <QWidget>
 
 class Image;
-class CaptureFrame;
+class VideoFrameData;
 
 class ImageWidget : public QWidget {
 	Q_OBJECT

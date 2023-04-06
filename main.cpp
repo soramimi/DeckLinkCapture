@@ -1,5 +1,5 @@
 #include "MainWindow.h"
-#include "CaptureFrame.h"
+#include "VideoFrameData.h"
 #include "GlobalData.h"
 #include "joinpath.h"
 #include "main.h"
@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
 	}
 
 	qRegisterMetaType<Rational>();
-	qRegisterMetaType<CaptureFrame>();
+	qRegisterMetaType<VideoFrameData>();
 
 	{
 		QPixmap pm(1, 1);

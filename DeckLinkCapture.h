@@ -3,7 +3,7 @@
 
 #include "DeckLinkInputDevice.h"
 #include "Image.h"
-#include "CaptureFrame.h"
+#include "VideoFrameData.h"
 #include "Rational.h"
 
 class Image;
@@ -68,7 +68,7 @@ public:
 	~DeckLinkCapture() override;
 	bool startCapture(DeckLinkInputDevice *selectedDevice_, BMDDisplayMode displayMode, BMDFieldDominance fieldDominance, bool applyDetectedInputMode, bool input_audio);
 signals:
-	void newFrame(CaptureFrame const &frame);
+	void newFrame(VideoFrameData const &frame);
 };
 
 #endif // DECKLINKCAPTURE_H

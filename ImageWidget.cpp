@@ -9,7 +9,7 @@
 #include "Image.h"
 #include "FrameProcessThread.h"
 #include "ImageUtil.h"
-#include "CaptureFrame.h"
+#include "VideoFrameData.h"
 
 struct ImageWidget::Private {
 	QImage scaled_image;

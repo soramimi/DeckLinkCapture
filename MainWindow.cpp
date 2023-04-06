@@ -10,7 +10,7 @@
 #include "RecordingDialog.h"
 #include "StatusLabel.h"
 #include "UIWidget.h"
-#include "VideoEncoder.h"
+#include "FFmpegVideoEncoder.h"
 #include "main.h"
 #include <QAudioOutput>
 #include <QCheckBox>
@@ -80,7 +80,7 @@ struct MainWindow::Private {
 	std::shared_ptr<QAudioOutput> audio_output;
 	QIODevice *audio_output_device = nullptr;
 
-	std::shared_ptr<VideoEncoder> video_encoder;
+	std::shared_ptr<FFmpegVideoEncoder> video_encoder;
 
 	StatusLabel *status_label = nullptr;
 
@@ -96,7 +96,7 @@ struct MainWindow::Private {
 
 	FrameProcessThread frame_process_thread;
 
-	std::deque<CaptureFrame> prepared_frames;
+	std::deque<VideoFrameData> prepared_frames;
 
 	BMDPixelFormat pixfmt = bmdFormatUnspecified;
 	QString pixfmt_text;
@@ -717,7 +717,7 @@ ImageWidget *MainWindow::currentImageWidget()
 	return isFullScreen() ? ui->image_widget_2 : ui->image_widget;
 }
 
-void MainWindow::ready(CaptureFrame const &frame)
+void MainWindow::ready(VideoFrameData const &frame)
 {
 	if (frame) {
 		while (m->prepared_frames.size() > 2) {
@@ -727,7 +727,7 @@ void MainWindow::ready(CaptureFrame const &frame)
 	}
 }
 
-void MainWindow::newFrame(CaptureFrame const &frame)
+void MainWindow::newFrame(VideoFrameData const &frame)
 {
 	m->valid_signal = frame.d->signal_valid;
 
@@ -771,7 +771,7 @@ void MainWindow::newFrame(CaptureFrame const &frame)
 	}
 
 	if (!m->prepared_frames.empty()) {
-		CaptureFrame f = m->prepared_frames.front();
+		VideoFrameData f = m->prepared_frames.front();
 		m->prepared_frames.pop_front();
 
 		if (f) {
@@ -812,18 +812,18 @@ void MainWindow::toggleRecord()
 		stopRecord();
 	} else {
 		m->recording_start_time = QDateTime::currentDateTime();
-		VideoEncoder::VideoOption vopt;
-		VideoEncoder::AudioOption aopt;
+		VideoEncoderOption::VideoOption vopt;
+		VideoEncoderOption::AudioOption aopt;
 		vopt.active = true;
 		aopt.active = true;
 		vopt.src_w = m->video_width;
 		vopt.src_h = m->video_height;
 		vopt.fps = m->fps;
-		m->video_encoder = std::make_shared<VideoEncoder>(VideoEncoder::MPEG4);
+		m->video_encoder = std::make_shared<FFmpegVideoEncoder>();
 #ifdef Q_OS_WIN
-		m->video_encoder->open(m->recording_file_path.toStdString(), vopt, aopt);
+		m->video_encoder->create(m->recording_file_path.toStdString(), VideoEncoderOption::Format::MPEG4, vopt, aopt);
 #else
-		m->video_encoder->open(m->recording_file_path.toStdString(), vopt, aopt);
+		m->video_encoder->create(m->recording_file_path.toStdString(), VideoEncoderOption::Format::MPEG4, vopt, aopt);
 #endif
 		notifyRecordingProgress(0, m->recording_seconds);
 	}
@@ -855,7 +855,7 @@ void MainWindow::notifyRecordingProgress(qint64 current, qint64 length)
 	ui->image_widget->updateRecordingProgress(current, length);
 }
 
-void MainWindow::timerEvent(QTimerEvent *event)
+void MainWindow::timerEvent(QTimerEvent *)
 {
 	m->timer_count = (m->timer_count + 1) % 10;
 	if (m->timer_count == 1) {
@@ -884,7 +884,7 @@ void MainWindow::timerEvent(QTimerEvent *event)
 	}
 }
 
-void MainWindow::mouseDoubleClickEvent(QMouseEvent *event)
+void MainWindow::mouseDoubleClickEvent(QMouseEvent *)
 {
 	bool v = false;
 	auto state = windowState();
@@ -907,7 +907,7 @@ void MainWindow::updateCursor()
 	m->hide_cursor_count = 10;
 }
 
-void MainWindow::mouseMoveEvent(QMouseEvent *event)
+void MainWindow::mouseMoveEvent(QMouseEvent *)
 {
 	updateCursor();
 }

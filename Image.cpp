@@ -1,10 +1,8 @@
 #include "Image.h"
-#include "GlobalData.h"
 #include <cstdint>
 #include <algorithm>
 #include <QElapsedTimer>
 #include <QDebug>
-#include "CudaPlugin/src/Cuda.h"
 
 static inline uint8_t clamp_uint8(int v)
 {
@@ -16,8 +14,6 @@ static inline uint8_t gray(int r, int g, int b)
 	return (r * 306 + g * 601 + b * 117) / 1024;
 }
 
-Cuda *get_cuda_plugin();
-
 Image Image::convertToFormat(Image::Format dformat) const
 {
 	Image::Format sformat = format();
@@ -26,8 +22,6 @@ Image Image::convertToFormat(Image::Format dformat) const
 
 	const int w = width();
 	const int h = height();
-
-	Cuda *cuda = get_cuda_plugin();
 
 	if ((sformat == Format::UYVY8 && dformat == Format::YUYV8) || (sformat == Format::YUYV8 && dformat == Format::UYVY8)) {
 		Image newimage(w, h, dformat);
@@ -47,9 +41,10 @@ Image Image::convertToFormat(Image::Format dformat) const
 	if (dformat == Format::RGB8) {
 		if (sformat == Format::UYVY8) {
 			Image newimage(w, h, dformat);
-			if (cuda) {
-				cuda->convert_uyvy_to_rgb(w, h, this->bits(), newimage.bits());
-			} else {
+//			if (cuda) {
+//				cuda->convert_uyvy_to_rgb(w, h, this->bits(), newimage.bits());
+//			} else
+			{
 				for (int y = 0; y < h; y++) {
 					uint8_t const *s = scanLine(y);
 					uint8_t *d = newimage.scanLine(y);
@@ -93,9 +88,10 @@ Image Image::convertToFormat(Image::Format dformat) const
 		}
 		if (sformat == Format::YUYV8) {
 			Image newimage(w, h, dformat);
-			if (cuda) {
-				cuda->convert_yuyv_to_rgb(w, h, this->bits(), newimage.bits());
-			} else {
+//			if (cuda) {
+//				cuda->convert_yuyv_to_rgb(w, h, this->bits(), newimage.bits());
+//			} else
+			{
 				for (int y = 0; y < h; y++) {
 					uint8_t const *s = scanLine(y);
 					uint8_t *d = newimage.scanLine(y);
@@ -169,9 +165,10 @@ Image Image::convertToFormat(Image::Format dformat) const
 		}
 		if (sformat == Format::UYVY8) {
 			Image newimage(w, h, dformat);
-			if (cuda) {
-				cuda->convert_uyvy_to_gray(w, h, this->bits(), newimage.bits());
-			} else {
+//			if (cuda) {
+//				cuda->convert_uyvy_to_gray(w, h, this->bits(), newimage.bits());
+//			} else
+			{
 				for (int y = 0; y < h; y++) {
 					uint8_t const *s = scanLine(y);
 					uint8_t *d = newimage.scanLine(y);
@@ -208,9 +205,10 @@ Image Image::convertToFormat(Image::Format dformat) const
 		}
 		if (sformat == Format::YUYV8) {
 			Image newimage(w, h, dformat);
-			if (cuda) {
-				cuda->convert_yuyv_to_gray(w, h, this->bits(), newimage.bits());
-			} else {
+//			if (cuda) {
+//				cuda->convert_yuyv_to_gray(w, h, this->bits(), newimage.bits());
+//			} else
+			{
 				for (int y = 0; y < h; y++) {
 					uint8_t const *s = scanLine(y);
 					uint8_t *d = newimage.scanLine(y);
