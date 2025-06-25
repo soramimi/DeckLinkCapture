@@ -166,8 +166,8 @@ MainWindow::MainWindow(QWidget *parent)
 	checkBox_audio()->setChecked(true);
 	checkBox_display_mode_auto_detection()->setChecked(true);
 
-	checkBox_deinterlace()->setChecked(false);
-	m->frame_process_thread.enableDeinterlace(false);
+	checkBox_deinterlace()->setChecked(true);
+	m->frame_process_thread.enableDeinterlace(true);
 
 	setFullScreen(false);
 

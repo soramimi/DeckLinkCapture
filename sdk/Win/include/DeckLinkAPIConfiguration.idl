@@ -1,5 +1,5 @@
 /* -LICENSE-START-
-** Copyright (c) 2020 Blackmagic Design
+** Copyright (c) 2024 Blackmagic Design
 **
 ** Permission is hereby granted, free of charge, to any person or organization
 ** obtaining a copy of the software and accompanying documentation covered by
@@ -25,6 +25,9 @@
 ** -LICENSE-END-
 */
 
+/*
+ * -- AUTOMATICALLY GENERATED - DO NOT EDIT ---
+ */
 
 #ifndef BMD_CONST
     #if defined(_MSC_VER)
@@ -74,13 +77,17 @@ typedef [v1_enum] enum _BMDDeckLinkConfigurationID {
     bmdDeckLinkConfigRec2020Output                               = /* 'rec2' */ 0x72656332,	// Ensure output is Rec.2020 colorspace
     bmdDeckLinkConfigQuadLinkSDIVideoOutputSquareDivisionSplit   = /* 'SDQS' */ 0x53445153,
     bmdDeckLinkConfigOutput1080pAsPsF                            = /* 'pfpr' */ 0x70667072,
+    bmdDeckLinkConfigOutputValidateEDIDForDolbyVision            = /* 'pred' */ 0x70726564,
 
     /* Video Output Integers */
 
     bmdDeckLinkConfigVideoOutputConnection                       = /* 'vocn' */ 0x766F636E,
     bmdDeckLinkConfigVideoOutputConversionMode                   = /* 'vocm' */ 0x766F636D,
+    bmdDeckLinkConfigVideoOutputConversionColorspaceDestination  = /* 'vccd' */ 0x76636364,	// Parameter is of type BMDColorspace
+    bmdDeckLinkConfigVideoOutputConversionColorspaceSource       = /* 'vccs' */ 0x76636373,	// Parameter is of type BMDColorspace
     bmdDeckLinkConfigAnalogVideoOutputFlags                      = /* 'avof' */ 0x61766F66,
     bmdDeckLinkConfigReferenceInputTimingOffset                  = /* 'glot' */ 0x676C6F74,
+    bmdDeckLinkConfigReferenceOutputMode                         = /* 'glOm' */ 0x676C4F6D,
     bmdDeckLinkConfigVideoOutputIdleOperation                    = /* 'voio' */ 0x766F696F,
     bmdDeckLinkConfigDefaultVideoOutputMode                      = /* 'dvom' */ 0x64766F6D,
     bmdDeckLinkConfigDefaultVideoOutputModeFlags                 = /* 'dvof' */ 0x64766F66,
@@ -97,6 +104,9 @@ typedef [v1_enum] enum _BMDDeckLinkConfigurationID {
     bmdDeckLinkConfigVideoOutputCompositeChromaGain              = /* 'oicg' */ 0x6F696367,
     bmdDeckLinkConfigVideoOutputSVideoLumaGain                   = /* 'oslg' */ 0x6F736C67,
     bmdDeckLinkConfigVideoOutputSVideoChromaGain                 = /* 'oscg' */ 0x6F736367,
+    bmdDeckLinkConfigDolbyVisionCMVersion                        = /* 'dvvr' */ 0x64767672,
+    bmdDeckLinkConfigDolbyVisionMasterMinimumNits                = /* 'mnnt' */ 0x6D6E6E74,
+    bmdDeckLinkConfigDolbyVisionMasterMaximumNits                = /* 'mxnt' */ 0x6D786E74,
 
     /* Video Input Flags */
 
@@ -160,6 +170,31 @@ typedef [v1_enum] enum _BMDDeckLinkConfigurationID {
     bmdDeckLinkConfigAnalogAudioOutputScaleChannel4              = /* 'aos4' */ 0x616F7334,
     bmdDeckLinkConfigDigitalAudioOutputScale                     = /* 'daos' */ 0x64616F73,
     bmdDeckLinkConfigHeadphoneVolume                             = /* 'hvol' */ 0x68766F6C,
+
+    /* Network Flags */
+
+    bmdDeckLinkConfigEthernetUseDHCP                             = /* 'DHCP' */ 0x44484350,
+    bmdDeckLinkConfigEthernetPTPFollowerOnly                     = /* 'PTPf' */ 0x50545066,
+    bmdDeckLinkConfigEthernetPTPUseUDPEncapsulation              = /* 'PTPU' */ 0x50545055,
+
+    /* Network Integers */
+
+    bmdDeckLinkConfigEthernetPTPPriority1                        = /* 'PTP1' */ 0x50545031,
+    bmdDeckLinkConfigEthernetPTPPriority2                        = /* 'PTP2' */ 0x50545032,
+    bmdDeckLinkConfigEthernetPTPDomain                           = /* 'PTPD' */ 0x50545044,
+    bmdDeckLinkConfigEthernetPTPLogAnnounceInterval              = /* 'PTPA' */ 0x50545041,
+
+    /* Network Strings */
+
+    bmdDeckLinkConfigEthernetStaticLocalIPAddress                = /* 'nsip' */ 0x6E736970,
+    bmdDeckLinkConfigEthernetStaticSubnetMask                    = /* 'nssm' */ 0x6E73736D,
+    bmdDeckLinkConfigEthernetStaticGatewayIPAddress              = /* 'nsgw' */ 0x6E736777,
+    bmdDeckLinkConfigEthernetStaticPrimaryDNS                    = /* 'nspd' */ 0x6E737064,
+    bmdDeckLinkConfigEthernetStaticSecondaryDNS                  = /* 'nssd' */ 0x6E737364,
+    bmdDeckLinkConfigEthernetVideoOutputAddress                  = /* 'noav' */ 0x6E6F6176,
+    bmdDeckLinkConfigEthernetAudioOutputAddress                  = /* 'noaa' */ 0x6E6F6161,
+    bmdDeckLinkConfigEthernetAncillaryOutputAddress              = /* 'noaA' */ 0x6E6F6141,
+    bmdDeckLinkConfigEthernetAudioOutputChannelOrder             = /* 'caco' */ 0x6361636F,
 
     /* Device Information Strings */
 
