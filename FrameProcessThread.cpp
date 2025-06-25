@@ -82,15 +82,12 @@ static QImage scale(Image const &srcimg, int w, int h, QImage::Format f)
 #else
 	Image tmpimg = srcimg.convertToFormat(Image::Format::RGB8);
 	QImage newimg(tmpimg.width(), tmpimg.height(), QImage::Format_RGB888);
-	// memcpy(newimg.bits(), tmpimg.bits(), tmpimg.width() * tmpimg.height() * 3);
 	for (int y = 0; y < tmpimg.height(); y++) {
 		uint8_t const *src = tmpimg.scanLine(y);
 		uint8_t *dst = newimg.scanLine(y);
 		memcpy(dst, src, tmpimg.width() * 3);
 	}
-
 	newimg = newimg.scaled(w, h, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-
 #endif
 
 	return newimg;
@@ -120,12 +117,11 @@ void FrameProcessThread::run()
 			}
 
 			// 画面表示用画像
-#if 0
-			frame->d->image_for_view = ImageUtil::qimage(frame->d->image).scaled(m->scaled_size, Qt::IgnoreAspectRatio, Qt::FastTransformation);
-#else
+#ifdef USE_FFMPEG
 			frame->d->image_for_view = scale(frame->d->image, m->scaled_size.width(), m->scaled_size.height(), QImage::Format_RGB888);
+#else
+			frame->d->image_for_view = ImageUtil::qimage(frame->d->image).scaled(m->scaled_size, Qt::IgnoreAspectRatio, Qt::FastTransformation);
 #endif
-
 			frame->d->state = VideoFrameData::Ready;
 		}
 
