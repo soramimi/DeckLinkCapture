@@ -1,12 +1,17 @@
 #include "Deinterlace.h"
 #include <QElapsedTimer>
-#include <alloca.h>
 #include <cstdint>
 #include <functional>
 #include <memory>
 #include <omp.h>
 #include <string.h>
 #include <vector>
+
+#ifdef _MSC_VER
+#include <malloc.h>
+#else
+#include <alloca.h>
+#endif
 
 namespace {
 

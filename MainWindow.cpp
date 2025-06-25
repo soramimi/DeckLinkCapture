@@ -10,7 +10,6 @@
 #include "RecordingDialog.h"
 #include "StatusLabel.h"
 #include "UIWidget.h"
-#include "FFmpegVideoEncoder.h"
 #include "main.h"
 #include <QAudioOutput>
 #include <QCheckBox>
@@ -22,6 +21,10 @@
 #include <QShortcut>
 #include <QTimer>
 #include <deque>
+
+#ifdef USE_FFMPEG
+#include "FFmpegVideoEncoder.h"
+#endif
 
 qint64 seconds(QTime const &t)
 {
@@ -80,7 +83,9 @@ struct MainWindow::Private {
 	std::shared_ptr<QAudioOutput> audio_output;
 	QIODevice *audio_output_device = nullptr;
 
+#ifdef USE_FFMPEG
 	std::shared_ptr<FFmpegVideoEncoder> video_encoder;
+#endif
 
 	StatusLabel *status_label = nullptr;
 
@@ -113,6 +118,12 @@ MainWindow::MainWindow(QWidget *parent)
 	ui->setupUi(this);
 
 	ui->widget_ui->bindMainWindow(this);
+
+#ifndef USE_FFMPEG
+	ui->menuRecording->setEnabled(false);
+	ui->action_recording_start->setEnabled(false);
+	ui->action_recording_stop->setEnabled(false);
+#endif
 
 	ui->image_widget_2->setViewMode(ImageWidget::ViewMode::FitToWindow);
 
@@ -183,8 +194,6 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
-	setFullScreen(false);
-
 	m->input_devices.clear();
 
 	if (m->profile_callback) {
@@ -742,9 +751,11 @@ void MainWindow::newFrame(VideoFrameData const &frame)
 		}
 		m->frame_process_thread.request(frame, size);
 
+#ifdef USE_FFMPEG
 		if (m->video_encoder) {
 			m->video_encoder->put_frame(frame);
 		}
+#endif
 
 		if (m->pixfmt != frame.d->pixfmt) {
 			m->pixfmt = frame.d->pixfmt;
@@ -787,11 +798,16 @@ void MainWindow::newFrame(VideoFrameData const &frame)
 
 bool MainWindow::isRecording() const
 {
+#ifdef USE_FFMPEG
 	return (bool)m->video_encoder;
+#else
+	return false;
+#endif
 }
 
 void MainWindow::stopRecord()
 {
+#ifdef USE_FFMPEG
 	if (isRecording()) {
 		if (isRecording()) {
 			qDebug() << "stop recording";
@@ -804,10 +820,12 @@ void MainWindow::stopRecord()
 
 		updateUI();
 	}
+#endif
 }
 
 void MainWindow::toggleRecord()
 {
+#ifdef USE_FFMPEG
 	if (isRecording()) {
 		stopRecord();
 	} else {
@@ -828,6 +846,7 @@ void MainWindow::toggleRecord()
 		notifyRecordingProgress(0, m->recording_seconds);
 	}
 	updateUI();
+#endif
 }
 
 void MainWindow::onInterval1s()

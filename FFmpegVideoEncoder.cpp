@@ -1,12 +1,15 @@
 #include "VideoFrameData.h"
 #include "FFmpegVideoEncoder.h"
-#include "includeffmpeg.h"
 #include <assert.h>
 #include <condition_variable>
 #include <deque>
 #include <cmath>
 #include <mutex>
 #include <thread>
+
+#ifdef USE_FFMPEG
+#include "includeffmpeg.h"
+#endif
 
 using namespace VideoEncoderOption;
 using namespace VideoEncoderInternal;

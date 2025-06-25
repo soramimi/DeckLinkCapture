@@ -10,7 +10,7 @@
 #include <QPluginLoader>
 #include <QStandardPaths>
 #include <QTextStream>
-#include "CudaPlugin/src/CudaPlugin.h"
+// #include "CudaPlugin/src/CudaPlugin.h"
 
 class DebugMessageHandler {
 public:
@@ -69,6 +69,7 @@ int main(int argc, char *argv[])
 	QApplication a(argc, argv);
 
 	QPluginLoader loader("cudaplugin");
+#ifdef USE_CUDA
 	CudaInterface *plugin = dynamic_cast<CudaInterface *>(loader.instance());
 	if (plugin) {
 		global->cuda_plugin = std::shared_ptr<Cuda>(plugin->create());
@@ -78,6 +79,7 @@ int main(int argc, char *argv[])
 	} else {
 		qDebug() << "failed to load the plugin";
 	}
+#endif
 
 	qRegisterMetaType<Rational>();
 	qRegisterMetaType<VideoFrameData>();

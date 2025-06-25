@@ -8,9 +8,11 @@
 #include <QDebug>
 #include "Deinterlace.h"
 
+#ifdef USE_FFMPEG
 extern "C" {
 #include <libswscale/swscale.h>
 }
+#endif
 
 struct FrameProcessThread::Private {
 	std::mutex mutex;
@@ -36,6 +38,7 @@ FrameProcessThread::~FrameProcessThread()
 
 static QImage scale(Image const &srcimg, int w, int h, QImage::Format f)
 {
+#ifdef USE_FFMPEG
 	AVPixelFormat sf = AV_PIX_FMT_NONE;
 	AVPixelFormat df = AV_PIX_FMT_NONE;
 
@@ -76,6 +79,19 @@ static QImage scale(Image const &srcimg, int w, int h, QImage::Format f)
 	int dstlines[] = { newimg.bytesPerLine() };
 	sws_scale(c, srcdata, srclines, 0, srcimg.height(), dstdata, dstlines);
 	sws_freeContext(c);
+#else
+	Image tmpimg = srcimg.convertToFormat(Image::Format::RGB8);
+	QImage newimg(tmpimg.width(), tmpimg.height(), QImage::Format_RGB888);
+	// memcpy(newimg.bits(), tmpimg.bits(), tmpimg.width() * tmpimg.height() * 3);
+	for (int y = 0; y < tmpimg.height(); y++) {
+		uint8_t const *src = tmpimg.scanLine(y);
+		uint8_t *dst = newimg.scanLine(y);
+		memcpy(dst, src, tmpimg.width() * 3);
+	}
+
+	newimg = newimg.scaled(w, h, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+
+#endif
 
 	return newimg;
 }

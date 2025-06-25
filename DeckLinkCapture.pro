@@ -1,11 +1,14 @@
+DESTDIR = $$PWD/_bin
+
+QMAKE_PROJECT_DEPTH = 0
 
 TARGET = DeckLinkCapture
 TEMPLATE = app
 QT += core gui widgets opengl multimedia
 CONFIG += c++17
 
-DESTDIR = $$PWD/_bin
 
+win32:DEFINES += NOMINMAX
 win32:INCLUDEPATH += C:\opencv\build\include
 
 linux:QMAKE_CXXFLAGS += -fopenmp
@@ -17,20 +20,24 @@ macx:LIBS += -framework CoreFoundation
 
 gcc:QMAKE_CXXFLAGS += -Wno-switch
 
-pre.target = pre
-pre.commands = cd $$PWD && make
-QMAKE_EXTRA_TARGETS += pre
-PRE_TARGETDEPS += pre
+# pre.target = pre
+# pre.commands = cd $$PWD && make
+# QMAKE_EXTRA_TARGETS += pre
+# PRE_TARGETDEPS += pre
 
-# recording
+# CONFIG += use_ffmpeg
 
-win32 {
-	INCLUDEPATH += C:/ffmpeg-4.1.3-win64-dev/include
-	LIBS += -LC:/ffmpeg-4.1.3-win64-dev/lib
+use_ffmpeg {
+	DEFINES += USE_FFMPEG
+	# recording
+	win32 {
+		INCLUDEPATH += C:/ffmpeg/include
+		LIBS += -LC:/ffmpeg/bin
+	}
+	macx:INCLUDEPATH += /usr/local/Cellar/ffmpeg/4.1.4_1/include
+	macx:LIBS += -L/usr/local/Cellar/ffmpeg/4.1.4_1/lib
+	!linux:LIBS += -lavutil -lavcodec -lavformat -lswscale -lswresample
 }
-macx:INCLUDEPATH += /usr/local/Cellar/ffmpeg/4.1.4_1/include
-macx:LIBS += -L/usr/local/Cellar/ffmpeg/4.1.4_1/lib
-!linux:LIBS += -lavutil -lavcodec -lavformat -lswscale -lswresample
 
 #CONFIG += static_ffmpeg
 static_ffmpeg {
@@ -79,7 +86,6 @@ SOURCES += \
 	DeckLinkDeviceDiscovery.cpp \
 	DeckLinkInputDevice.cpp \
 	Deinterlace.cpp \
-	FFmpegVideoEncoder.cpp \
 	FrameProcessThread.cpp \
 	FrameRateCounter.cpp \
 	GlobalData.cpp \
@@ -106,7 +112,6 @@ HEADERS += \
 	DeckLinkDeviceDiscovery.h \
 	DeckLinkInputDevice.h \
 	Deinterlace.h \
-	FFmpegVideoEncoder.h \
 	FrameProcessThread.h \
 	FrameRateCounter.h \
 	GlobalData.h \
@@ -125,7 +130,6 @@ HEADERS += \
 	VideoEncoderOption.h \
 	VideoFrameData.h \
 	common.h \
-	includeffmpeg.h \
 	joinpath.h \
 	main.h
 
@@ -138,8 +142,13 @@ FORMS += \
 RESOURCES += \
 	resources.qrc
 
-DISTFILES += \
-	CudaPlugin/src/cudalib.cu.cpp
+use_ffmpeg {
+	SOURCES += FFmpegVideoEncoder.cpp
+	HEADERS += FFmpegVideoEncoder.h includeffmpeg.h
+}
+
+# DISTFILES += \
+# 	CudaPlugin/src/cudalib.cu.cpp
 
 win32:SOURCES += sdk/Win/DeckLinkAPI_i.c
 win32:HEADERS += sdk/Win/DeckLinkAPI_h.h
